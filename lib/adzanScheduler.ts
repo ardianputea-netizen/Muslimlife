@@ -69,6 +69,7 @@ export const ADZAN_SETTINGS_KEY = 'ml_adzan_settings';
 export const ADZAN_GPS_CACHE_KEY = 'ml_adzan_gps_cache';
 export const ADZAN_SETTINGS_UPDATED_EVENT = 'ml:adzan-settings-updated';
 export const ADZAN_TRIGGER_EVENT = 'ml:adzan-trigger';
+const ADZAN_SOUND_FILE = 'audio/takbir-adzan.mp3';
 
 const DEFAULT_TIMEZONE = 'Asia/Jakarta';
 const GPS_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 6;
@@ -437,7 +438,7 @@ const scheduleCapacitorNotifications = async (events: PrayerEvent[], settings: A
     title: `Waktu Adzan ${item.label}`,
     body: `${item.label} telah masuk pada ${item.time}.`,
     schedule: { at: item.fireAt },
-    sound: settings.mode === 'adzan' ? 'audio/adzan-20s.mp3' : null,
+    sound: ADZAN_SOUND_FILE,
     extra: {
       prayer: item.prayer,
       fire_at: item.fireAt.toISOString(),

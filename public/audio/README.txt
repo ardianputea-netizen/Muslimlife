@@ -1,6 +1,6 @@
-Tempatkan file audio adzan berdurasi sekitar 20 detik di path:
+Tempatkan file audio adzan di path:
 
-  /public/audio/adzan-20s.mp3
+  /public/audio/takbir-adzan.mp3
 
 Catatan lisensi:
 - Gunakan audio yang memiliki izin legal untuk distribusi aplikasi.

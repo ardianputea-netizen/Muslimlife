@@ -7,8 +7,7 @@ import {
 } from '../lib/adzanScheduler';
 import { useAudioPlayer } from '../context/AudioPlayerContext';
 
-const ADZAN_AUDIO_PATH = '/audio/adzan-20s.mp3';
-const ADZAN_MAX_PLAY_MS = 20000;
+const ADZAN_AUDIO_PATH = '/audio/takbir-adzan.mp3';
 
 const formatTime = (isoValue: string) => {
   const date = new Date(isoValue);
@@ -23,7 +22,6 @@ export const AdzanManager: React.FC = () => {
   const [active, setActive] = useState<AdzanTriggerDetail | null>(null);
   const [audioError, setAudioError] = useState<string | null>(null);
   const { playing, currentSrc, playAudio, stop } = useAudioPlayer();
-  const stopAudioTimerRef = useRef<number | null>(null);
   const currentSrcRef = useRef<string | null>(currentSrc);
   currentSrcRef.current = currentSrc;
 
@@ -33,10 +31,6 @@ export const AdzanManager: React.FC = () => {
   );
 
   const stopAudio = useCallback(() => {
-    if (stopAudioTimerRef.current) {
-      window.clearTimeout(stopAudioTimerRef.current);
-      stopAudioTimerRef.current = null;
-    }
     if (currentSrcRef.current === ADZAN_AUDIO_PATH) {
       stop();
     }
@@ -48,19 +42,13 @@ export const AdzanManager: React.FC = () => {
 
     try {
       await playAudio(ADZAN_AUDIO_PATH);
-
-      stopAudioTimerRef.current = window.setTimeout(() => {
-        if (currentSrcRef.current === ADZAN_AUDIO_PATH) {
-          stop();
-        }
-      }, ADZAN_MAX_PLAY_MS);
     } catch {
       setAudioError(
-        'Audio adzan belum tersedia atau autoplay diblokir browser. Tambahkan file /public/audio/adzan-20s.mp3'
+        'Audio adzan belum tersedia atau autoplay diblokir browser. Tambahkan file /public/audio/takbir-adzan.mp3'
       );
       stopAudio();
     }
-  }, [playAudio, stop, stopAudio]);
+  }, [playAudio, stopAudio]);
 
   useEffect(() => {
     initializeAdzanScheduler();
@@ -69,16 +57,11 @@ export const AdzanManager: React.FC = () => {
       const detail = (event as CustomEvent<AdzanTriggerDetail>).detail;
       if (!detail) return;
 
-      const shouldOpen =
-        detail.source === 'notification_tap' || detail.source === 'test' || detail.mode === 'adzan';
+      const shouldOpen = detail.source === 'notification_tap' || detail.source === 'test' || detail.source === 'timer';
       if (!shouldOpen) return;
 
       setActive(detail);
-      if (detail.mode === 'adzan' || detail.source === 'test') {
-        void playAdzanAudio();
-      } else {
-        stopAudio();
-      }
+      void playAdzanAudio();
     };
 
     window.addEventListener(ADZAN_TRIGGER_EVENT, handleTrigger as EventListener);
@@ -122,7 +105,7 @@ export const AdzanManager: React.FC = () => {
 
         <p className="text-sm text-gray-600">
           {active.source === 'notification_tap'
-            ? 'Notifikasi dibuka. Audio akan diputar sesuai mode.'
+            ? 'Notifikasi dibuka. Audio adzan diputar.'
             : 'Waktu sholat telah tiba. Jaga ibadah tepat waktu.'}
         </p>
 
@@ -134,7 +117,7 @@ export const AdzanManager: React.FC = () => {
             <Volume2 size={14} />
             Test / Ulangi
           </button>
-          <span className="text-xs text-gray-500">{isPlayingAudio ? 'Audio aktif (20 detik)' : 'Audio idle'}</span>
+          <span className="text-xs text-gray-500">{isPlayingAudio ? 'Audio aktif' : 'Audio idle'}</span>
         </div>
 
         {audioError && (

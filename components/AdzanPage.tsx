@@ -32,9 +32,9 @@ interface AdzanPageProps {
 }
 
 const MODE_OPTIONS: Array<{ id: AdzanSettings['mode']; label: string; subtitle: string }> = [
-  { id: 'silent', label: 'Silent', subtitle: 'Notif tanpa audio' },
-  { id: 'vibrate', label: 'Vibrate', subtitle: 'Notif + getar' },
-  { id: 'adzan', label: 'Adzan', subtitle: 'Notif + audio 20 dtk' },
+  { id: 'silent', label: 'Silent', subtitle: 'Notifikasi tetap memakai audio adzan' },
+  { id: 'vibrate', label: 'Vibrate', subtitle: 'Notifikasi + getar + audio adzan' },
+  { id: 'adzan', label: 'Adzan', subtitle: 'Notifikasi + audio adzan penuh' },
 ];
 
 const METHOD_OPTIONS = [
@@ -189,7 +189,7 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
         )}
         <div>
           <h1 className="text-lg font-bold text-gray-900">Adzan Otomatis</h1>
-          <p className="text-xs text-gray-500">Notifikasi saat masuk waktu sholat + mode adzan 20 detik</p>
+          <p className="text-xs text-gray-500">Notifikasi saat masuk waktu sholat + audio takbir adzan</p>
         </div>
       </div>
 
@@ -387,7 +387,7 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
 
           <p className="text-[11px] text-gray-500 mt-3 inline-flex items-center gap-1">
             <Volume2 size={13} />
-            Audio dibaca dari: <code>/public/audio/adzan-20s.mp3</code>
+            Audio dibaca dari: <code>/public/audio/takbir-adzan.mp3</code>
           </p>
         </section>
 
