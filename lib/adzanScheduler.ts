@@ -1,4 +1,5 @@
-import { getPrayerTimes, PrayerName } from './ibadahApi';
+import { PrayerName } from './ibadahApi';
+import { CalculationMethodId, computeTimes, formatTime, loadPrayerSettings } from './prayerTimes';
 
 export type AdzanMode = 'silent' | 'vibrate' | 'adzan';
 export type AdzanLocationMode = 'gps' | 'manual';
@@ -82,6 +83,12 @@ const PRAYER_LABELS: Record<PrayerName, string> = {
   ashar: 'Ashar',
   maghrib: 'Maghrib',
   isya: 'Isya',
+};
+
+const adzanMethodToCalculation = (method: string): CalculationMethodId => {
+  if (method === '3') return 'muslim_world_league';
+  if (method === '2') return 'muslim_world_league';
+  return 'kemenag';
 };
 
 let scheduledTimeouts: number[] = [];
@@ -270,6 +277,15 @@ export const resolveAdzanLocation = async (settingsInput?: Partial<AdzanSettings
     };
   }
 
+  const prayerSettings = loadPrayerSettings();
+  if (typeof prayerSettings.lat === 'number' && typeof prayerSettings.lng === 'number') {
+    return {
+      lat: prayerSettings.lat,
+      lng: prayerSettings.lng,
+      source: 'manual',
+    };
+  }
+
   return null;
 };
 
@@ -302,6 +318,7 @@ export const fetchAdzanPrayerEvents = async (settingsInput?: Partial<AdzanSettin
 
   const timezone = resolveTimezone(settings.timezone);
   const method = settings.method || '20';
+  const calculationMethod = adzanMethodToCalculation(method);
 
   const today = new Date();
   const tomorrow = new Date(today);
@@ -310,27 +327,27 @@ export const fetchAdzanPrayerEvents = async (settingsInput?: Partial<AdzanSettin
   const todayKey = toDateKey(today);
   const tomorrowKey = toDateKey(tomorrow);
 
-  const [todayResponse, tomorrowResponse] = await Promise.all([
-    getPrayerTimes({
-      lat: location.lat,
-      lng: location.lng,
-      date: todayKey,
-      method,
-      timezone,
-    }),
-    getPrayerTimes({
-      lat: location.lat,
-      lng: location.lng,
-      date: tomorrowKey,
-      method,
-      timezone,
-    }),
-  ]);
+  const todayTimes = computeTimes(today, location.lat, location.lng, {
+    calculationMethod,
+  });
+  const tomorrowTimes = computeTimes(tomorrow, location.lat, location.lng, {
+    calculationMethod,
+  });
 
-  return [
-    ...toPrayerEvents(todayResponse.date, todayResponse.prayer_times),
-    ...toPrayerEvents(tomorrowResponse.date, tomorrowResponse.prayer_times),
+  const buildTimes = (times: typeof todayTimes) => ({
+    subuh: formatTime(times.subuh),
+    dzuhur: formatTime(times.dzuhur),
+    ashar: formatTime(times.ashar),
+    maghrib: formatTime(times.maghrib),
+    isya: formatTime(times.isya),
+  });
+
+  const events = [
+    ...toPrayerEvents(todayKey, buildTimes(todayTimes)),
+    ...toPrayerEvents(tomorrowKey, buildTimes(tomorrowTimes)),
   ].sort((a, b) => a.fireAt.getTime() - b.fireAt.getTime());
+
+  return events;
 };
 
 export const fetchTodayPrayerEvents = async (settingsInput?: Partial<AdzanSettings>): Promise<PrayerEvent[]> => {

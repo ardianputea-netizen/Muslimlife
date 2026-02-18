@@ -61,6 +61,13 @@ const findDay = (data: RamadhanMonthResponse | null, date: string) => {
   return null;
 };
 
+const cloneValue = <T,>(value: T): T => {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value)) as T;
+};
+
 const recomputeSummary = (data: RamadhanMonthResponse) => {
   let activeDays = 0;
   let totalDays = 0;
@@ -198,8 +205,8 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
       sedekah: item === 'sedekah' ? nextValue : todayDay.sedekah,
     };
 
-    const previous = structuredClone(monthData);
-    const optimistic = structuredClone(monthData);
+    const previous = cloneValue(monthData);
+    const optimistic = cloneValue(monthData);
     applyDayMutation(optimistic, todayDateKey, { [item]: nextValue });
     setMonthData(optimistic);
     setSavingItem(item);
@@ -228,8 +235,8 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
       sedekah: item === 'sedekah' ? nextValue : selectedDay.sedekah,
     };
 
-    const previous = structuredClone(monthData);
-    const optimistic = structuredClone(monthData);
+    const previous = cloneValue(monthData);
+    const optimistic = cloneValue(monthData);
     applyDayMutation(optimistic, selectedDate, { [item]: nextValue });
     setMonthData(optimistic);
     setSavingItem(item);

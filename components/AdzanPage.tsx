@@ -105,7 +105,7 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack }) => {
       }
     } catch (error) {
       console.error(error);
-      setErrorMessage('Gagal memuat jadwal sholat. Periksa koneksi dan lokasi.');
+      setErrorMessage('Gagal memuat jadwal sholat. Pastikan lokasi tersimpan di Settings.');
     } finally {
       setIsLoading(false);
     }

@@ -60,6 +60,13 @@ const findDayByDate = (data: PrayerMonthResponse | null, date: string) => {
   return null;
 };
 
+const cloneValue = <T,>(value: T): T => {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value)) as T;
+};
+
 const recomputeMonthSummary = (data: PrayerMonthResponse) => {
   let done = 0;
   let missed = 0;
@@ -229,8 +236,8 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
   ) => {
     if (!monthData || !date || savingPrayer) return;
 
-    const previous = structuredClone(monthData);
-    const optimistic = structuredClone(monthData);
+    const previous = cloneValue(monthData);
+    const optimistic = cloneValue(monthData);
     applyStatusLocally(optimistic, date, prayer, status);
     setMonthData(optimistic);
     setSavingPrayer(prayer);

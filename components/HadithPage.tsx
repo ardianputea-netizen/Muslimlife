@@ -147,7 +147,9 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
       } catch (error) {
         console.warn('Detail fetch failed, fallback cached data', error);
         const localCandidate =
-          bookmarks.find((item) => item.id === id) || lastViewed.find((item) => item.id === id);
+          listData.find((item) => item.id === id) ||
+          bookmarks.find((item) => item.id === id) ||
+          lastViewed.find((item) => item.id === id);
         if (localCandidate) {
           setActiveHadith(localCandidate);
           setOfflineMode(true);
@@ -158,7 +160,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
         setIsLoadingDetail(false);
       }
     },
-    [bookmarks, lastViewed, loadLastViewed]
+    [bookmarks, lastViewed, listData, loadLastViewed]
   );
 
   const toggleBookmark = useCallback(
