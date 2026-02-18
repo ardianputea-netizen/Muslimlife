@@ -47,9 +47,8 @@ export const AyahCard: React.FC<AyahCardProps> = ({
       </div>
 
       <p className="text-right text-3xl leading-[2.2] text-gray-900 font-serif">{verse.arabText}</p>
-      <p className="mt-2 text-sm text-gray-600">{verse.transliterationLatin}</p>
-      <p className="mt-2 text-sm text-gray-700">{verse.translationId}</p>
+      {verse.transliterationLatin ? <p className="mt-2 text-sm text-gray-600">{verse.transliterationLatin}</p> : null}
+      {verse.translationId ? <p className="mt-2 text-sm text-gray-700">{verse.translationId}</p> : null}
     </article>
   );
 };
-

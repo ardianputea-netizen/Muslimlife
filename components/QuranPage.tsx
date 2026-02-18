@@ -7,8 +7,7 @@ import { AyahCard } from './quran/AyahCard';
 import { AudioPlayerBar } from './quran/AudioPlayerBar';
 import type { QuranChapter, QuranVerse } from '@/lib/quran/provider';
 import { getLastRead, saveLastRead, type QuranLastRead } from '@/lib/quran/storage/lastRead';
-import { useQuranAudioPlayer } from '@/lib/quran/audio/useQuranAudioPlayer';
-import { quranFoundationProvider } from '@/lib/quran/providers/quranfoundation';
+import { getChapterVerseAudioMap, quranFoundationProvider } from '@/lib/quran/providers/quranfoundation';
 
 interface QuranPageProps {
   onBack: () => void;
@@ -39,18 +38,32 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const [failedSurahID, setFailedSurahID] = useState<number | null>(null);
 
   const [reciterId, setReciterId] = useState(7);
-  const [audioURL, setAudioURL] = useState('');
+  const [audioByVerseKey, setAudioByVerseKey] = useState<Map<string, string>>(new Map());
+  const [currentAyahKey, setCurrentAyahKey] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [lastRead, setLastRead] = useState<QuranLastRead | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const versesRef = useRef<QuranVerse[]>([]);
+  const currentAyahKeyRef = useRef<string | null>(null);
+  const audioMapRef = useRef<Map<string, string>>(new Map());
 
   const refs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const player = useQuranAudioPlayer({
-    reciterId,
-    mode: 'surah',
-    verses,
-  });
+  useEffect(() => {
+    versesRef.current = verses;
+  }, [verses]);
+
+  useEffect(() => {
+    currentAyahKeyRef.current = currentAyahKey;
+  }, [currentAyahKey]);
+
+  useEffect(() => {
+    audioMapRef.current = audioByVerseKey;
+  }, [audioByVerseKey]);
 
   const loadChapters = useCallback(async () => {
     setIsLoadingList(true);
@@ -80,7 +93,8 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const loadSurahDetail = useCallback(async (surahID: number) => {
     setIsLoadingDetail(true);
     setDetailError(null);
-    setAudioURL('');
+    setAudioByVerseKey(new Map());
+    setCurrentAyahKey(null);
     setAudioError(null);
     try {
       const payload = await quranFoundationProvider.getSurahDetail(surahID);
@@ -108,13 +122,18 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     setAudioLoading(true);
     setAudioError(null);
     try {
-      const nextURL = await quranFoundationProvider.getChapterAudioURL(surahID, nextReciterID);
-      if (!nextURL) {
+      const nextMap = await getChapterVerseAudioMap(surahID, nextReciterID);
+      if (nextMap.size === 0) {
         setAudioError('Audio surah tidak tersedia untuk qari ini.');
       }
-      setAudioURL(nextURL);
+      setAudioByVerseKey(nextMap);
+      if (import.meta.env.DEV) {
+        const firstVerse = verses[0]?.verseKey || '';
+        const firstURL = firstVerse ? nextMap.get(firstVerse) : '';
+        console.log('[QuranAPI] audio map loaded', { surahID, nextReciterID, firstVerse, firstURL });
+      }
     } catch (error) {
-      setAudioURL('');
+      setAudioByVerseKey(new Map());
       setAudioError(takeSnippet(error instanceof Error ? error.message : 'Gagal memuat audio surah.'));
     } finally {
       setAudioLoading(false);
@@ -127,19 +146,58 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   }, [loadAudioURL, reciterId, selectedChapter]);
 
   useEffect(() => {
-    if (!player.currentAyahKey) return;
-    const target = refs.current[player.currentAyahKey];
+    if (!currentAyahKey) return;
+    const target = refs.current[currentAyahKey];
     if (!target) return;
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [player.currentAyahKey]);
+  }, [currentAyahKey]);
 
   useEffect(() => {
-    if (!selectedChapter) return;
-    if (player.currentSurahId === null) return;
-    if (player.currentSurahId !== selectedChapter.id) {
-      player.stop();
-    }
-  }, [player, selectedChapter]);
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    audioRef.current = audio;
+
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime || 0);
+    const onDurationChange = () => setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
+    const onEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      const activeAyah = currentAyahKeyRef.current;
+      if (!activeAyah) return;
+      const currentVerses = versesRef.current;
+      const currentIndex = currentVerses.findIndex((row) => row.verseKey === activeAyah);
+      const next = currentIndex >= 0 ? currentVerses[currentIndex + 1] : null;
+      if (!next) return;
+      const nextURL = audioMapRef.current.get(next.verseKey);
+      if (!nextURL) return;
+      audio.src = nextURL;
+      audio.currentTime = 0;
+      setCurrentAyahKey(next.verseKey);
+      void audio.play().catch((error) => {
+        setAudioError(takeSnippet(error instanceof Error ? error.message : 'Gagal memutar audio ayat.'));
+      });
+    };
+
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('pause', onPause);
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('durationchange', onDurationChange);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('pause', onPause);
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('durationchange', onDurationChange);
+      audio.removeEventListener('ended', onEnded);
+      audioRef.current = null;
+    };
+  }, []);
 
   const visibleChapters = useMemo(
     () => (tab === 'juz_amma' ? chapters.filter((item) => item.id >= 78) : chapters),
@@ -173,18 +231,49 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   };
 
   const togglePlay = async () => {
-    if (!selectedChapter || !audioURL) return;
-    if (player.isPlaying) {
-      player.pause();
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
       return;
     }
-    await player.play({ surahID: selectedChapter.id, src: audioURL });
+
+    const fallbackKey = currentAyahKey || verses[0]?.verseKey;
+    if (!fallbackKey) return;
+    const src = audioByVerseKey.get(fallbackKey);
+    if (!src) {
+      setAudioError('Audio ayat tidak ditemukan untuk qari ini.');
+      return;
+    }
+    if (audio.src !== src) {
+      audio.src = src;
+      audio.currentTime = 0;
+    }
+    setCurrentAyahKey(fallbackKey);
+    try {
+      await audio.play();
+    } catch (error) {
+      setAudioError(takeSnippet(error instanceof Error ? error.message : 'Gagal memutar audio ayat.'));
+    }
   };
 
   const playFromAyah = async (ayahKey: string) => {
-    if (!selectedChapter || !audioURL) return;
-    await player.play({ surahID: selectedChapter.id, src: audioURL });
-    player.playFromAyah(ayahKey);
+    const audio = audioRef.current;
+    if (!audio) return;
+    const src = audioByVerseKey.get(ayahKey);
+    if (!src) {
+      setAudioError('Audio ayat tidak tersedia untuk ayat ini.');
+      return;
+    }
+    audio.src = src;
+    audio.currentTime = 0;
+    setCurrentAyahKey(ayahKey);
+    try {
+      await audio.play();
+    } catch (error) {
+      setAudioError(takeSnippet(error instanceof Error ? error.message : 'Gagal memutar audio ayat.'));
+    }
   };
 
   if (selectedChapter) {
@@ -194,7 +283,15 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
-                player.stop();
+                const audio = audioRef.current;
+                if (audio) {
+                  audio.pause();
+                  audio.currentTime = 0;
+                }
+                setIsPlaying(false);
+                setCurrentTime(0);
+                setDuration(0);
+                setCurrentAyahKey(null);
                 setSelectedChapter(null);
                 setVerses([]);
               }}
@@ -244,7 +341,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
               >
                 <AyahCard
                   verse={verse}
-                  isActive={player.currentAyahKey === verse.verseKey}
+                  isActive={currentAyahKey === verse.verseKey}
                   isBookmarked={lastRead?.surahID === selectedChapter.id && lastRead?.ayah === verse.verseNumber}
                   onShare={() => {
                     void shareAyah(verse);
@@ -262,13 +359,17 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
         </div>
 
         <AudioPlayerBar
-          isPlaying={player.isPlaying}
-          currentTime={player.currentTime}
-          duration={player.duration}
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          duration={duration}
           onToggle={() => {
             void togglePlay();
           }}
-          onSeek={player.seek}
+          onSeek={(seconds) => {
+            const audio = audioRef.current;
+            if (!audio) return;
+            audio.currentTime = Math.max(0, Math.min(seconds, Number.isFinite(audio.duration) ? audio.duration : seconds));
+          }}
         />
 
         {audioLoading ? (
