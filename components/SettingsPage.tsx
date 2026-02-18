@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Apple,
   Bell,
   BellRing,
   Download,
@@ -427,6 +428,21 @@ export const SettingsPage: React.FC = () => {
             <p className="text-xs text-gray-500">
               Aktifkan provider Google di Supabase: Authentication {'>'} Providers {'>'} Google.
             </p>
+
+            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-3">
+              <p className="text-[11px] text-gray-500 mb-2">Provider tambahan</p>
+              <button
+                type="button"
+                disabled
+                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 inline-flex items-center justify-center gap-2 cursor-not-allowed"
+              >
+                <Apple size={14} />
+                <span className="line-through">Login dengan Apple</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">
+                  NEXT UPDATE
+                </span>
+              </button>
+            </div>
           </CardContent>
         </Card>
 
