@@ -1,76 +1,52 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
-  Apple,
   Bell,
-  BellRing,
-  Download,
-  Info,
-  LogIn,
-  LogOut,
-  LocateFixed,
-  MapPin,
-  Navigation,
+  Compass,
+  Palette,
+  Calculator,
   RefreshCw,
-  Smartphone,
-  UserRound,
+  LogIn,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import {
-  PrayerSettings,
-  PRAYER_SETTINGS_UPDATED_EVENT,
-  CITY_PRESETS,
-  CALCULATION_METHOD_OPTIONS,
-  applyCityPreset,
-  formatCountdown,
-  getTimezone,
-  loadPrayerSettings,
-  savePrayerSettings,
-  setManualCoords,
-} from '../lib/prayerTimes';
-import { getLocation, getLocationPermissionStatus, LocationPermissionState } from '../lib/locationPermission';
-import {
-  canNotify,
-  getLastSyncedAt,
-  getNextAlert,
-  onNotificationScheduleUpdated,
-  requestPermission,
-  scheduleTestNotification,
-  syncDailyNotificationSchedule,
-} from '../lib/notifications';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
+import { mapSupabaseUser } from '../lib/accountProfile';
 import {
-  AccountSummary,
-  mapSupabaseUser,
-  mergeProfileWithOverride,
-  PROFILE_UPDATED_EVENT,
-  saveProfileOverride,
-} from '../lib/accountProfile';
+  BrowserNotificationPermission,
+  getNotificationPermission,
+  requestNotificationPermission,
+} from '../lib/notificationPermission';
+import {
+  DEFAULT_PROFILE_SETTINGS,
+  cacheProfilePrayerMethod,
+  clearCachedProfilePrayerMethod,
+  getPrayerCalcConfig,
+  getPrayerCalcLabel,
+  normalizeProfileSettings,
+  type NotificationSettingsPreference,
+  type PrayerCalcMethod,
+  type ProfileSettingsRecord,
+  type ThemePreference,
+} from '../lib/profileSettings';
+import { savePrayerSettings } from '../lib/prayerTimes';
+import { applyThemePreference, getThemeLabel } from '../lib/themePreference';
+import { UserAccountCard } from './settings/UserAccountCard';
+import { SettingsRow } from './settings/SettingsRow';
+import { ThemePicker } from './settings/ThemePicker';
+import { NotificationSheet } from './settings/NotificationSheet';
+import { MethodPickerSheet } from './settings/MethodPickerSheet';
+import { CompassCalibrationSheet } from './settings/CompassCalibrationSheet';
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+interface ToastState {
+  id: number;
+  message: string;
+  tone: 'success' | 'error';
 }
 
-type BrowserNotificationPermission = NotificationPermission | 'unsupported';
+type ProviderType = 'google' | 'apple' | 'unknown';
+type SavingKey = 'theme' | 'notification' | 'method' | 'compass' | 'logout' | null;
 
-const isIOS = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-const isStandalone = () =>
-  window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
 const PROD_ORIGINS = new Set(['https://www.muslimlife.my.id', 'https://muslimlife.my.id']);
-
-const getNotificationStatus = (): BrowserNotificationPermission => {
-  if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
-  return Notification.permission;
-};
-
-const formatDateTime = (value: number | null) => {
-  if (!value) return '-';
-  return new Intl.DateTimeFormat('id-ID', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-};
 
 const getOAuthRedirectTo = () => {
   const origin = window.location.origin.replace(/\/+$/, '');
@@ -85,769 +61,429 @@ const getOAuthRedirectTo = () => {
   return 'https://www.muslimlife.my.id/';
 };
 
-const readFileAsDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
-    reader.readAsDataURL(file);
-  });
+const resolveProvider = (user: SupabaseUser | null): ProviderType => {
+  if (!user) return 'unknown';
 
-const toOptimizedAvatarDataUrl = async (file: File) => {
-  const sourceDataUrl = await readFileAsDataUrl(file);
-  const image = new Image();
-  image.src = sourceDataUrl;
+  const providerFromMetadata = String((user.app_metadata || {}).provider || '').toLowerCase();
+  if (providerFromMetadata === 'google') return 'google';
+  if (providerFromMetadata === 'apple') return 'apple';
 
-  await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve();
-    image.onerror = () => reject(new Error('Format gambar tidak didukung.'));
-  });
+  const firstIdentity = user.identities?.[0];
+  const providerFromIdentity = String(firstIdentity?.provider || '').toLowerCase();
+  if (providerFromIdentity === 'google') return 'google';
+  if (providerFromIdentity === 'apple') return 'apple';
 
-  const maxSize = 320;
-  const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
-  const width = Math.max(1, Math.round(image.width * scale));
-  const height = Math.max(1, Math.round(image.height * scale));
-
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext('2d');
-  if (!context) return sourceDataUrl;
-
-  context.drawImage(image, 0, 0, width, height);
-  return canvas.toDataURL('image/jpeg', 0.84);
+  return 'unknown';
 };
 
-const ToggleRow: React.FC<{
-  label: string;
-  description: string;
-  checked: boolean;
-  onToggle: () => void;
-}> = ({ label, description, checked, onToggle }) => {
-  return (
-    <div className="rounded-xl border border-gray-100 px-3 py-2 flex items-center justify-between gap-3">
-      <div>
-        <p className="text-sm font-semibold text-gray-800">{label}</p>
-        <p className="text-xs text-gray-500">{description}</p>
-      </div>
-      <button
-        onClick={onToggle}
-        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-          checked ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-gray-200 text-gray-600'
-        }`}
-      >
-        {checked ? 'ON' : 'OFF'}
-      </button>
-    </div>
-  );
+const getNotificationSubtitle = (
+  permission: BrowserNotificationPermission,
+  settings: NotificationSettingsPreference
+) => {
+  if (permission !== 'granted') return 'Belum diizinkan';
+  if (!settings.enabled) return 'Mati';
+  const hasMutedCategory = !settings.adzan || !settings.notes || !settings.ramadhan;
+  if (hasMutedCategory) return 'Sebagian dimute';
+  return 'Aktif';
 };
 
 export const SettingsPage: React.FC = () => {
   const supabaseConfigured = isSupabaseConfigured();
   const supabaseClient = getSupabaseClient();
-  const [settings, setSettings] = useState<PrayerSettings>(loadPrayerSettings());
-  const [locationStatus, setLocationStatus] = useState<LocationPermissionState>('pending');
-  const [notificationStatus, setNotificationStatus] = useState<BrowserNotificationPermission>(
-    getNotificationStatus()
-  );
-  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [manualLat, setManualLat] = useState(settings.lat?.toString() || '');
-  const [manualLng, setManualLng] = useState(settings.lng?.toString() || '');
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(getLastSyncedAt());
-  const [nextAlert, setNextAlert] = useState(getNextAlert());
-  const [tick, setTick] = useState(Date.now());
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authInitialized, setAuthInitialized] = useState(false);
-  const [account, setAccount] = useState<AccountSummary | null>(null);
-  const [authMessage, setAuthMessage] = useState<string | null>(null);
-  const [profileName, setProfileName] = useState('');
-  const [profileAvatarUrl, setProfileAvatarUrl] = useState('');
-  const [profileSaving, setProfileSaving] = useState(false);
 
-  const refreshSettings = useCallback(() => {
-    const next = loadPrayerSettings();
-    setSettings(next);
-    setManualLat(next.lat?.toString() || '');
-    setManualLng(next.lng?.toString() || '');
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<ProfileSettingsRecord>(DEFAULT_PROFILE_SETTINGS);
+  const [permission, setPermission] = useState<BrowserNotificationPermission>('default');
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [savingKey, setSavingKey] = useState<SavingKey>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [methodOpen, setMethodOpen] = useState(false);
+  const [compassOpen, setCompassOpen] = useState(false);
+
+  const account = useMemo(() => mapSupabaseUser(user), [user]);
+  const provider = useMemo(() => resolveProvider(user), [user]);
+
+  const showToast = useCallback((message: string, tone: ToastState['tone'] = 'success') => {
+    setToast({ id: Date.now(), message, tone });
   }, []);
 
   useEffect(() => {
-    void getLocationPermissionStatus().then(setLocationStatus);
-    setNotificationStatus(getNotificationStatus());
-    refreshSettings();
-    setLastSyncedAt(getLastSyncedAt());
-    setNextAlert(getNextAlert());
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
-    const handler = (event: Event) => {
-      event.preventDefault();
-      setInstallPromptEvent(event as BeforeInstallPromptEvent);
-    };
-
-    const handleSettingsUpdate = () => refreshSettings();
-    const unsubscribeSchedule = onNotificationScheduleUpdated(() => {
-      setLastSyncedAt(getLastSyncedAt());
-      setNextAlert(getNextAlert());
+  const applyProfileEffects = useCallback((next: ProfileSettingsRecord) => {
+    applyThemePreference(next.theme);
+    cacheProfilePrayerMethod(next.prayer_calc_method);
+    savePrayerSettings({
+      calculationMethod: getPrayerCalcConfig(next.prayer_calc_method),
+      notificationsEnabled: next.notification_settings.enabled,
+      remindBeforeAdzan: next.notification_settings.adzan,
     });
-
-    window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener(PRAYER_SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
-
-    return () => {
-      unsubscribeSchedule();
-      window.removeEventListener('beforeinstallprompt', handler);
-      window.removeEventListener(PRAYER_SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
-    };
-  }, [refreshSettings]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setTick(Date.now());
-      setNextAlert(getNextAlert());
-      setNotificationStatus(getNotificationStatus());
-    }, 1000);
-    return () => window.clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const hash = window.location.hash;
-    if (!hash) return;
-    if (!hash.includes('access_token=') && !hash.includes('refresh_token=') && !hash.includes('error=')) return;
+  const ensureProfileRow = useCallback(
+    async (userId: string) => {
+      if (!supabaseClient) return;
+      await supabaseClient.from('profiles').upsert(
+        {
+          id: userId,
+          theme: DEFAULT_PROFILE_SETTINGS.theme,
+          notification_settings: DEFAULT_PROFILE_SETTINGS.notification_settings,
+          prayer_calc_method: DEFAULT_PROFILE_SETTINGS.prayer_calc_method,
+          compass_calibrated_at: null,
+        },
+        { onConflict: 'id', ignoreDuplicates: true }
+      );
+    },
+    [supabaseClient]
+  );
 
-    window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+  const loadProfile = useCallback(
+    async (userId: string) => {
+      if (!supabaseClient) return;
+      setIsLoadingProfile(true);
+
+      try {
+        await ensureProfileRow(userId);
+
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .select('theme, notification_settings, prayer_calc_method, compass_calibrated_at')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        const normalized = normalizeProfileSettings(data || DEFAULT_PROFILE_SETTINGS);
+        setProfile(normalized);
+        applyProfileEffects(normalized);
+      } catch (error) {
+        console.error('Failed loading profile settings', error);
+        showToast('Gagal memuat pengaturan profil.', 'error');
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    },
+    [applyProfileEffects, ensureProfileRow, showToast, supabaseClient]
+  );
+
+  useEffect(() => {
+    setPermission(getNotificationPermission());
+    applyThemePreference(profile.theme);
   }, []);
 
   useEffect(() => {
     if (!supabaseConfigured || !supabaseClient) {
-      setAuthInitialized(true);
-      setAccount(null);
+      setIsAuthLoading(false);
+      setIsLoadingProfile(false);
       return;
     }
 
     let mounted = true;
-    const applyAccount = (nextAccount: AccountSummary | null) => {
-      if (!mounted) return;
-      setAccount(mergeProfileWithOverride(nextAccount));
-    };
 
     const hydrateSession = async () => {
-      setAuthLoading(true);
+      setIsAuthLoading(true);
       try {
         const { data, error } = await supabaseClient.auth.getSession();
         if (error) throw error;
         if (!mounted) return;
-        applyAccount(mapSupabaseUser(data.session?.user || null));
+
+        const sessionUser = data.session?.user || null;
+        setUser(sessionUser);
+
+        if (sessionUser) {
+          await loadProfile(sessionUser.id);
+        } else {
+          clearCachedProfilePrayerMethod();
+          setProfile(DEFAULT_PROFILE_SETTINGS);
+          setIsLoadingProfile(false);
+        }
       } catch (error) {
-        console.error('Failed reading Google auth session', error);
-        if (mounted) setAuthMessage('Gagal membaca sesi login Google.');
+        console.error('Failed reading auth session', error);
+        if (mounted) {
+          showToast('Gagal membaca sesi login.', 'error');
+          setIsLoadingProfile(false);
+        }
       } finally {
-        if (!mounted) return;
-        setAuthLoading(false);
-        setAuthInitialized(true);
+        if (mounted) {
+          setIsAuthLoading(false);
+        }
       }
     };
 
     void hydrateSession();
 
     const { data } = supabaseClient.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
-      applyAccount(mapSupabaseUser(session?.user || null));
-      setAuthInitialized(true);
-    });
+      const sessionUser = session?.user || null;
+      setUser(sessionUser);
+      setPermission(getNotificationPermission());
 
-    const handleProfileUpdated = async () => {
-      try {
-        const { data: sessionData, error } = await supabaseClient.auth.getSession();
-        if (error) throw error;
-        applyAccount(mapSupabaseUser(sessionData.session?.user || null));
-      } catch (error) {
-        console.error('Failed to sync profile update', error);
+      if (sessionUser) {
+        void loadProfile(sessionUser.id);
+      } else {
+        clearCachedProfilePrayerMethod();
+        setProfile(DEFAULT_PROFILE_SETTINGS);
       }
-    };
-    window.addEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdated);
+    });
 
     return () => {
       mounted = false;
       data.subscription.unsubscribe();
-      window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdated);
     };
-  }, [supabaseClient, supabaseConfigured]);
+  }, [loadProfile, showToast, supabaseClient, supabaseConfigured]);
 
-  useEffect(() => {
-    if (!account) {
-      setProfileName('');
-      setProfileAvatarUrl('');
+  const updateProfile = useCallback(
+    async (patch: Partial<ProfileSettingsRecord>, key: Exclude<SavingKey, null>) => {
+      if (!supabaseConfigured || !supabaseClient || !user) {
+        showToast('Login diperlukan untuk menyimpan pengaturan.', 'error');
+        return;
+      }
+
+      const previous = profile;
+      const optimistic = normalizeProfileSettings({ ...profile, ...patch });
+      setProfile(optimistic);
+      applyProfileEffects(optimistic);
+      setSavingKey(key);
+
+      try {
+        const { error } = await supabaseClient.from('profiles').update(patch).eq('id', user.id);
+        if (error) throw error;
+        showToast('Pengaturan tersimpan.', 'success');
+      } catch (error) {
+        console.error('Failed updating profile settings', error);
+        setProfile(previous);
+        applyProfileEffects(previous);
+        showToast('Gagal menyimpan pengaturan.', 'error');
+      } finally {
+        setSavingKey(null);
+      }
+    },
+    [applyProfileEffects, profile, showToast, supabaseClient, supabaseConfigured, user]
+  );
+
+  const handleThemeSave = async (value: ThemePreference) => {
+    await updateProfile({ theme: value }, 'theme');
+    setThemeOpen(false);
+  };
+
+  const handleNotificationSave = async (value: NotificationSettingsPreference) => {
+    await updateProfile({ notification_settings: value }, 'notification');
+  };
+
+  const handleMethodSave = async (value: PrayerCalcMethod) => {
+    await updateProfile({ prayer_calc_method: value }, 'method');
+    setMethodOpen(false);
+  };
+
+  const handleCompassSave = async () => {
+    await updateProfile({ compass_calibrated_at: new Date().toISOString() }, 'compass');
+    setCompassOpen(false);
+  };
+
+  const handleRequestPermission = async () => {
+    const next = await requestNotificationPermission();
+    setPermission(next);
+
+    if (next === 'granted') {
+      showToast('Izin notifikasi diberikan.', 'success');
       return;
     }
 
-    setProfileName(account.fullName);
-    setProfileAvatarUrl(account.avatarUrl);
-  }, [account]);
+    if (next === 'denied') {
+      showToast('Izin notifikasi ditolak browser.', 'error');
+      return;
+    }
 
-  const iosNeedInstruction = useMemo(() => isIOS() && !isStandalone(), []);
-  const timezone = useMemo(() => settings.timezone || getTimezone(), [settings.timezone]);
+    showToast('Izin notifikasi belum diaktifkan.', 'error');
+  };
+
+  const handleLogout = async () => {
+    if (!supabaseClient) return;
+    setSavingKey('logout');
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) throw error;
+      showToast('Logout berhasil.', 'success');
+    } catch (error) {
+      console.error('Failed signing out', error);
+      showToast('Logout gagal.', 'error');
+    } finally {
+      setSavingKey(null);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
-    setAuthMessage(null);
     if (!supabaseConfigured || !supabaseClient) {
-      setAuthMessage('Supabase belum dikonfigurasi di environment Vercel.');
+      showToast('Supabase belum dikonfigurasi.', 'error');
       return;
     }
 
-    setAuthLoading(true);
     try {
-      const redirectTo = getOAuthRedirectTo();
       const { error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo,
-        },
+        options: { redirectTo: getOAuthRedirectTo() },
       });
       if (error) throw error;
     } catch (error) {
       console.error('Google sign-in failed', error);
-      setAuthMessage('Gagal memulai login Google.');
-    } finally {
-      setAuthLoading(false);
+      showToast('Gagal memulai login Google.', 'error');
     }
   };
 
-  const handleGoogleSignOut = async () => {
-    setAuthMessage(null);
-    if (!supabaseClient) return;
+  const notificationSubtitle = useMemo(
+    () => getNotificationSubtitle(permission, profile.notification_settings),
+    [permission, profile.notification_settings]
+  );
 
-    setAuthLoading(true);
-    try {
-      const { error } = await supabaseClient.auth.signOut();
-      if (error) throw error;
-      setAuthMessage('Berhasil logout.');
-    } catch (error) {
-      console.error('Google sign-out failed', error);
-      setAuthMessage('Gagal logout.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
+  const themeSubtitle = useMemo(
+    () => `Sistem / Terang / Gelap • ${getThemeLabel(profile.theme)}`,
+    [profile.theme]
+  );
 
-  const handleProfileImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.currentTarget.value = '';
-    if (!file) return;
+  const methodSubtitle = useMemo(
+    () => getPrayerCalcLabel(profile.prayer_calc_method),
+    [profile.prayer_calc_method]
+  );
 
-    setAuthMessage(null);
-    if (!file.type.startsWith('image/')) {
-      setAuthMessage('File harus berupa gambar.');
-      return;
-    }
-
-    try {
-      const dataUrl = await toOptimizedAvatarDataUrl(file);
-      setProfileAvatarUrl(dataUrl);
-    } catch (error) {
-      console.error('Profile image processing failed', error);
-      setAuthMessage('Gagal memproses gambar profil.');
-    }
-  };
-
-  const handleSaveProfile = async () => {
-    if (!account) return;
-
-    const nextName = profileName.trim();
-    const nextAvatar = profileAvatarUrl.trim();
-    if (!nextName) {
-      setAuthMessage('Nama profil tidak boleh kosong.');
-      return;
-    }
-
-    setAuthMessage(null);
-    setProfileSaving(true);
-
-    try {
-      const metadataAvatarUrl =
-        nextAvatar.startsWith('https://') || nextAvatar.startsWith('http://') ? nextAvatar : account.avatarUrl;
-
-      if (supabaseClient) {
-        const { error } = await supabaseClient.auth.updateUser({
-          data: {
-            full_name: nextName,
-            name: nextName,
-            avatar_url: metadataAvatarUrl,
-          },
-        });
-        if (error) throw error;
-      }
-
-      saveProfileOverride(account.id, {
-        fullName: nextName,
-        avatarUrl: nextAvatar,
-      });
-
-      setAccount((prev) =>
-        prev
-          ? {
-              ...prev,
-              fullName: nextName,
-              avatarUrl: nextAvatar,
-            }
-          : prev
-      );
-      setAuthMessage('Profil berhasil diperbarui.');
-    } catch (error) {
-      console.error('Failed saving profile', error);
-      setAuthMessage('Gagal menyimpan profil. Coba lagi.');
-    } finally {
-      setProfileSaving(false);
-    }
-  };
-
-  const requestLocation = async () => {
-    setMessage(null);
-    try {
-      const current = await getLocation();
-      savePrayerSettings({
-        cityPreset: 'manual',
-        lat: current.lat,
-        lng: current.lng,
-      });
-      setLocationStatus('granted');
-      setMessage(`Lokasi tersimpan: ${current.lat.toFixed(5)}, ${current.lng.toFixed(5)}`);
-    } catch {
-      const status = await getLocationPermissionStatus();
-      setLocationStatus(status);
-      setMessage(status === 'denied' ? 'Izin lokasi ditolak. Aktifkan dari browser settings.' : 'Gagal mengambil lokasi.');
-    }
-  };
-
-  const saveManualLocation = () => {
-    setMessage(null);
-    const lat = Number(manualLat);
-    const lng = Number(manualLng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setMessage('Koordinat manual tidak valid.');
-      return;
-    }
-
-    setManualCoords(lat, lng);
-    setMessage('Koordinat manual disimpan.');
-  };
-
-  const handleCityChange = (cityId: string) => {
-    setMessage(null);
-    if (cityId === 'manual') {
-      savePrayerSettings({ cityPreset: 'manual' });
-      return;
-    }
-    applyCityPreset(cityId);
-    const city = CITY_PRESETS.find((item) => item.id === cityId);
-    if (city) {
-      setMessage(`Preset lokasi: ${city.label}`);
-    }
-  };
-
-  const requestNotif = async () => {
-    setMessage(null);
-    const status = await requestPermission();
-    setNotificationStatus(status);
-    if (status === 'granted') {
-      setMessage('Izin notifikasi berhasil diberikan.');
-    } else if (status === 'unsupported') {
-      setMessage('Browser tidak mendukung Notification API.');
-    } else {
-      setMessage('Izin notifikasi belum diberikan.');
-    }
-  };
-
-  const testNotif = () => {
-    setMessage(null);
-    try {
-      scheduleTestNotification('Ini test notifikasi MuslimLife (delay 3 detik).', 3000);
-      setMessage('Test notifikasi dijadwalkan 3 detik lagi.');
-    } catch (error) {
-      console.error(error);
-      setMessage('Gagal test notif. Pastikan izin notifikasi sudah granted.');
-    }
-  };
-
-  const syncSchedule = async () => {
-    setIsSyncing(true);
-    setMessage(null);
-    try {
-      const result = await syncDailyNotificationSchedule({ askLocation: true });
-      if (!result.ok) {
-        if (result.reason === 'no-location') {
-          setMessage('Lokasi belum tersedia. Pilih city/preset atau klik Ambil Lokasi.');
-        } else {
-          setMessage('Gagal sync jadwal notifikasi.');
-        }
-        return;
-      }
-      setLastSyncedAt(result.schedule?.syncedAt || Date.now());
-      setNextAlert(getNextAlert());
-      setMessage('Jadwal notifikasi hari ini berhasil disinkronkan.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const installPWA = async () => {
-    if (!installPromptEvent) return;
-    await installPromptEvent.prompt();
-    await installPromptEvent.userChoice;
-    setInstallPromptEvent(null);
-  };
-
-  const nextAlertCountdown = nextAlert ? formatCountdown(new Date(nextAlert.fireAt), new Date(tick)) : '-';
+  const disableRows = isLoadingProfile || isAuthLoading || !user;
 
   return (
-    <div className="bg-gray-50 min-h-full pb-24">
-      <div className="safe-top sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3">
-        <h1 className="text-lg font-bold text-gray-900">Settings</h1>
-        <p className="text-xs text-gray-500">Location, install PWA, dan reminder notification</p>
+    <div className="min-h-full bg-[#060B16] bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),transparent_42%),radial-gradient(circle_at_85%_20%,_rgba(16,185,129,0.12),transparent_35%),#060B16]">
+      <div className="safe-top sticky top-0 z-10 border-b border-white/10 bg-[#060B16]/90 backdrop-blur px-4 py-3">
+        <h1 className="text-lg font-bold text-white">Settings</h1>
+        <p className="text-xs text-slate-400">Akun, tampilan, notifikasi, metode sholat, dan kompas</p>
       </div>
 
       <div className="p-4 space-y-4">
-        {message && <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">{message}</div>}
-        {authMessage ? (
-          <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">{authMessage}</div>
+        <UserAccountCard
+          name={account?.fullName || 'Pengguna'}
+          email={account?.email || '-'}
+          avatarUrl={account?.avatarUrl || ''}
+          provider={provider}
+          onLogout={() => void handleLogout()}
+          logoutDisabled={savingKey === 'logout' || !user}
+        />
+
+        {!user ? (
+          <button
+            type="button"
+            onClick={() => void handleGoogleSignIn()}
+            className="w-full rounded-2xl border border-white/15 bg-white/5 py-2.5 text-sm font-semibold text-slate-100 inline-flex items-center justify-center gap-2"
+          >
+            <LogIn size={15} /> Login dengan Google
+          </button>
         ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="inline-flex items-center gap-2">
-              <UserRound size={16} />
-              Akun Google
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {!supabaseConfigured ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                Supabase belum aktif. Isi <code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code> di
-                Vercel.
-              </div>
-            ) : !authInitialized ? (
-              <div className="text-sm text-gray-600 inline-flex items-center gap-2">
-                <RefreshCw size={14} className="animate-spin" />
-                Membaca sesi login...
-              </div>
-            ) : account ? (
-              <div className="space-y-3">
-                <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 flex items-center gap-3">
-                  {account.avatarUrl ? (
-                    <img
-                      src={account.avatarUrl}
-                      alt={account.fullName}
-                      className="w-10 h-10 rounded-full border border-gray-200 object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center">
-                      <UserRound size={16} className="text-gray-500" />
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{account.fullName}</p>
-                    <p className="text-xs text-gray-500 truncate">{account.email}</p>
-                  </div>
-                </div>
+        {(isLoadingProfile || isAuthLoading) && user ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300 inline-flex items-center gap-2">
+            <RefreshCw size={13} className="animate-spin" /> Sinkronisasi pengaturan...
+          </div>
+        ) : null}
 
-                <div className="rounded-xl border border-gray-100 bg-white p-3 space-y-3">
-                  <p className="text-xs font-semibold text-gray-600">Edit Profil</p>
+        <div>
+          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-slate-400">PENGATURAN UMUM</p>
+        </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full border border-gray-200 overflow-hidden bg-gray-100 flex items-center justify-center">
-                      {profileAvatarUrl ? (
-                        <img src={profileAvatarUrl} alt={profileName || account.fullName} className="w-full h-full object-cover" />
-                      ) : (
-                        <UserRound size={18} className="text-gray-500" />
-                      )}
-                    </div>
-                    <label className="text-xs font-medium text-[#0F9D58] cursor-pointer">
-                      Ganti Foto
-                      <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageChange} />
-                    </label>
-                  </div>
+        <section className="rounded-2xl border border-white/10 bg-slate-900/70 overflow-hidden">
+          <SettingsRow
+            icon={Palette}
+            iconClassName="text-fuchsia-200"
+            title="Tema Tampilan"
+            subtitle={themeSubtitle}
+            onClick={() => setThemeOpen(true)}
+            disabled={disableRows}
+          />
 
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">Nama tampilan</label>
-                    <input
-                      type="text"
-                      value={profileName}
-                      onChange={(event) => setProfileName(event.target.value)}
-                      placeholder="Masukkan nama"
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                    />
-                  </div>
+          <div className="h-px bg-white/10" />
 
-                  <div>
-                    <label className="text-xs text-gray-500 block mb-1">URL Foto (opsional)</label>
-                    <input
-                      type="url"
-                      value={profileAvatarUrl}
-                      onChange={(event) => setProfileAvatarUrl(event.target.value)}
-                      placeholder="https://..."
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                    />
-                  </div>
+          <SettingsRow
+            icon={Bell}
+            iconClassName="text-emerald-200"
+            title="Notifikasi"
+            subtitle={notificationSubtitle}
+            onClick={() => setNotifOpen(true)}
+            disabled={disableRows}
+          />
 
-                  <Button onClick={() => void handleSaveProfile()} disabled={profileSaving || authLoading} className="w-full">
-                    {profileSaving ? <RefreshCw size={14} className="mr-2 animate-spin" /> : null}
-                    Simpan Profil
-                  </Button>
-                </div>
+          <div className="h-px bg-white/10" />
 
-                <Button
-                  variant="outline"
-                  onClick={() => void handleGoogleSignOut()}
-                  disabled={authLoading}
-                  className="w-full"
-                >
-                  {authLoading ? <RefreshCw size={14} className="mr-2 animate-spin" /> : <LogOut size={14} className="mr-2" />}
-                  Logout Google
-                </Button>
-              </div>
-            ) : (
-              <Button onClick={() => void handleGoogleSignIn()} disabled={authLoading} className="w-full">
-                {authLoading ? <RefreshCw size={14} className="mr-2 animate-spin" /> : <LogIn size={14} className="mr-2" />}
-                Login dengan Google
-              </Button>
-            )}
+          <SettingsRow
+            icon={Calculator}
+            iconClassName="text-cyan-200"
+            title="Metode Perhitungan"
+            subtitle={methodSubtitle}
+            onClick={() => setMethodOpen(true)}
+            disabled={disableRows}
+          />
 
-            <p className="text-xs text-gray-500">
-              Aktifkan provider Google di Supabase: Authentication {'>'} Providers {'>'} Google.
-            </p>
+          <div className="h-px bg-white/10" />
 
-            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-3">
-              <p className="text-[11px] text-gray-500 mb-2">Provider tambahan</p>
-              <button
-                type="button"
-                disabled
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 inline-flex items-center justify-center gap-2 cursor-not-allowed"
-              >
-                <Apple size={14} />
-                <span className="line-through">Login dengan Apple</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">
-                  NEXT UPDATE
-                </span>
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="inline-flex items-center gap-2">
-              <Download size={16} />
-              Install App (PWA)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {installPromptEvent ? (
-              <Button onClick={() => void installPWA()} className="w-full">
-                Install ke Home Screen
-              </Button>
-            ) : (
-              <p className="text-sm text-gray-600">Install prompt Android muncul jika browser mendukung.</p>
-            )}
-
-            {iosNeedInstruction && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                iOS: buka menu <b>Share</b> lalu pilih <b>Add to Home Screen</b>. Notifikasi iOS butuh mode PWA.
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="inline-flex items-center gap-2">
-              <Navigation size={16} />
-              Lokasi & Metode Sholat
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-xs text-gray-500">
-              Status lokasi: <b>{locationStatus}</b> | Timezone: <b>{timezone}</b>
-            </p>
-
-            <div>
-              <label className="text-xs text-gray-500 block mb-1">Preset kota</label>
-              <select
-                value={settings.cityPreset}
-                onChange={(event) => handleCityChange(event.target.value)}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-              >
-                {CITY_PRESETS.map((city) => (
-                  <option key={city.id} value={city.id}>
-                    {city.label}
-                  </option>
-                ))}
-                <option value="manual">Manual Lat/Lng</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="number"
-                value={manualLat}
-                onChange={(event) => setManualLat(event.target.value)}
-                placeholder="Latitude"
-                className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
-              />
-              <input
-                type="number"
-                value={manualLng}
-                onChange={(event) => setManualLng(event.target.value)}
-                placeholder="Longitude"
-                className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={saveManualLocation}>
-                <MapPin size={14} className="mr-2" />
-                Simpan Manual
-              </Button>
-              <Button variant="outline" onClick={() => void requestLocation()}>
-                <LocateFixed size={14} className="mr-2" />
-                Ambil Lokasi GPS
-              </Button>
-            </div>
-
-            {locationStatus === 'denied' && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                Aktifkan location permission di browser settings, lalu klik Ambil Lokasi lagi.
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 gap-2">
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Metode perhitungan</label>
-                <select
-                  value={settings.calculationMethod}
-                  onChange={(event) =>
-                    savePrayerSettings({
-                      calculationMethod: event.target.value as PrayerSettings['calculationMethod'],
-                    })
-                  }
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                >
-                  {CALCULATION_METHOD_OPTIONS.map((method) => (
-                    <option key={method.id} value={method.id}>
-                      {method.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Offset imsak (menit sebelum Subuh)</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={60}
-                  value={settings.imsakOffsetMinutes}
-                  onChange={(event) =>
-                    savePrayerSettings({
-                      imsakOffsetMinutes: Number(event.target.value),
-                    })
-                  }
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="inline-flex items-center gap-2">
-              <Bell size={16} />
-              Reminder Notifikasi
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-xs text-gray-500">
-              Status notif: <b>{notificationStatus}</b> | Engine: <b>{canNotify() ? 'active' : 'waiting permission'}</b>
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => void requestNotif()}>
-                Minta Izin Notifikasi
-              </Button>
-              <Button onClick={testNotif}>Test Notif (3 detik)</Button>
-            </div>
-
-            {notificationStatus === 'denied' && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                Permission notifikasi sedang diblokir. Aktifkan dari browser/site settings.
-              </div>
-            )}
-
-            <ToggleRow
-              label="Aktifkan Reminder"
-              description="Master switch untuk semua notifikasi jadwal."
-              checked={settings.notificationsEnabled}
-              onToggle={() => savePrayerSettings({ notificationsEnabled: !settings.notificationsEnabled })}
-            />
-            <ToggleRow
-              label="10 menit sebelum adzan"
-              description="Subuh, Dzuhur, Ashar, Maghrib, Isya."
-              checked={settings.remindBeforeAdzan}
-              onToggle={() => savePrayerSettings({ remindBeforeAdzan: !settings.remindBeforeAdzan })}
-            />
-            <ToggleRow
-              label="1 jam sebelum imsak"
-              description="Alert persiapan sahur."
-              checked={settings.remindBeforeImsak}
-              onToggle={() => savePrayerSettings({ remindBeforeImsak: !settings.remindBeforeImsak })}
-            />
-            <ToggleRow
-              label="1 jam sebelum buka puasa"
-              description="Alert menjelang Maghrib."
-              checked={settings.remindBeforeBuka}
-              onToggle={() => savePrayerSettings({ remindBeforeBuka: !settings.remindBeforeBuka })}
-            />
-
-            <Button onClick={() => void syncSchedule()} disabled={isSyncing} className="w-full">
-              {isSyncing ? <RefreshCw size={14} className="mr-2 animate-spin" /> : <BellRing size={14} className="mr-2" />}
-              Sync Jadwal Hari Ini
-            </Button>
-
-            <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600 space-y-1">
-              <p>
-                Last synced: <b>{formatDateTime(lastSyncedAt)}</b>
-              </p>
-              <p>
-                Next alert:{' '}
-                <b>
-                  {nextAlert ? `${nextAlert.label} (${nextAlertCountdown})` : 'Belum ada jadwal'}
-                </b>
-              </p>
-            </div>
-
-            <p className="text-xs text-gray-500 inline-flex items-center gap-1">
-              <Info size={12} />
-              iOS notifikasi web berjalan optimal setelah Add to Home Screen.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="inline-flex items-center gap-2">
-              <Smartphone size={16} />
-              Privacy
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-xs text-gray-600 space-y-1">
-              <li>Permission dipakai hanya Location + Notifications.</li>
-              <li>Lokasi disimpan minimal di localStorage untuk hitung jadwal.</li>
-              <li>Tidak ada request camera/microphone.</li>
-            </ul>
-          </CardContent>
-        </Card>
+          <SettingsRow
+            icon={Compass}
+            iconClassName="text-amber-200"
+            title="Kalibrasi Kompas"
+            subtitle="Atur arah kiblat"
+            onClick={() => setCompassOpen(true)}
+            disabled={disableRows}
+          />
+        </section>
       </div>
+
+      <ThemePicker
+        open={themeOpen}
+        value={profile.theme}
+        isSaving={savingKey === 'theme'}
+        onClose={() => setThemeOpen(false)}
+        onSave={handleThemeSave}
+      />
+
+      <NotificationSheet
+        open={notifOpen}
+        permission={permission}
+        settings={profile.notification_settings}
+        isSaving={savingKey === 'notification'}
+        onClose={() => setNotifOpen(false)}
+        onRequestPermission={handleRequestPermission}
+        onSaveSettings={handleNotificationSave}
+      />
+
+      <MethodPickerSheet
+        open={methodOpen}
+        value={profile.prayer_calc_method}
+        isSaving={savingKey === 'method'}
+        onClose={() => setMethodOpen(false)}
+        onSave={handleMethodSave}
+      />
+
+      <CompassCalibrationSheet
+        open={compassOpen}
+        calibratedAt={profile.compass_calibrated_at}
+        isSaving={savingKey === 'compass'}
+        onClose={() => setCompassOpen(false)}
+        onSave={handleCompassSave}
+      />
+
+      {toast ? (
+        <div className="fixed bottom-20 left-1/2 z-[120] w-[92%] max-w-sm -translate-x-1/2">
+          <div
+            key={toast.id}
+            className={`rounded-xl border px-3 py-2 text-sm shadow-lg ${
+              toast.tone === 'success'
+                ? 'border-emerald-300/30 bg-emerald-500/20 text-emerald-100'
+                : 'border-rose-300/30 bg-rose-500/20 text-rose-100'
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
+

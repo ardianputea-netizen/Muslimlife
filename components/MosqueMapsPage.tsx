@@ -187,7 +187,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
   }, [loadNearbyMosques, radiusMeters, userLocation]);
 
   return (
-    <div className="min-h-full bg-gray-50 pb-24">
+    <div className="min-h-full bg-gray-50">
       <header className="sticky top-0 z-20 border-b border-emerald-100 bg-gray-50/95 px-4 pb-3 pt-4 backdrop-blur">
         <div className="flex items-center gap-3">
           {onBack ? (
@@ -452,3 +452,4 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
     </div>
   );
 };
+

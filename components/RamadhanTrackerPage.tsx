@@ -17,7 +17,8 @@ import {
 } from '../lib/ramadhanApi';
 import { MiniCalendarItem, MiniCalendarStrip } from './MiniCalendarStrip';
 import { DailyAbsen } from './ramadhan/DailyAbsen';
-import { addDays, fromDateKey, startOfMonth, toDateKey } from '../lib/date';
+import { RamadhanPrayerCard } from './ramadhan/RamadhanPrayerCard';
+import { addDays, daysInMonth, fromDateKey, isSameDay, startOfMonth, toDateKey } from '../lib/date';
 
 interface RamadhanTrackerPageProps {
   onBack: () => void;
@@ -47,14 +48,13 @@ const formatWeekday = (date: string) => {
   return new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(d);
 };
 
-const formatSelectedDateLabel = (date: string) => {
-  const parsed = fromDateKey(date);
+const formatSelectedDateLabel = (date: Date) => {
   return new Intl.DateTimeFormat('id-ID', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  }).format(parsed);
+  }).format(date);
 };
 
 const findDay = (data: RamadhanMonthResponse | null, date: string) => {
@@ -125,9 +125,8 @@ const applyDayMutation = (
 
 export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack, embedded = false }) => {
   const today = useMemo(() => fromDateKey(toDateKey(new Date())), []);
-  const todayDateKey = useMemo(() => toDateKey(today), [today]);
-  const [viewMonth, setViewMonth] = useState(() => startOfMonth(today));
-  const [selectedDate, setSelectedDate] = useState(todayDateKey);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => today);
+  const [viewMonth, setViewMonth] = useState<Date>(() => startOfMonth(today));
 
   const [monthData, setMonthData] = useState<RamadhanMonthResponse | null>(null);
   const [stats, setStats] = useState<RamadhanStatsResponse | null>(null);
@@ -137,9 +136,12 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
   const [savingItem, setSavingItem] = useState<RamadhanItemKey | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const selectedDateValue = useMemo(() => fromDateKey(selectedDate), [selectedDate]);
+  const todayDateKey = useMemo(() => toDateKey(today), [today]);
+  const selectedDateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
+  const selectedDateLabel = useMemo(() => formatSelectedDateLabel(selectedDate), [selectedDate]);
   const monthKey = useMemo(() => toMonthKey(viewMonth), [viewMonth]);
-  const selectedDay = useMemo(() => findDay(monthData, selectedDate), [monthData, selectedDate]);
+  const monthDayCount = useMemo(() => daysInMonth(viewMonth), [viewMonth]);
+  const selectedDay = useMemo(() => findDay(monthData, selectedDateKey), [monthData, selectedDateKey]);
 
   const loadMonth = useCallback(async () => {
     setIsLoadingMonth(true);
@@ -180,16 +182,26 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
   useEffect(() => {
     if (!monthData) return;
     if (monthData.month !== monthKey) return;
-    if (selectedDate.slice(0, 7) !== monthKey) return;
+    if (
+      selectedDate.getFullYear() !== viewMonth.getFullYear() ||
+      selectedDate.getMonth() !== viewMonth.getMonth()
+    ) {
+      return;
+    }
 
-    const selectedExists = Boolean(findDay(monthData, selectedDate));
+    const selectedExists = Boolean(findDay(monthData, selectedDateKey));
     if (!selectedExists) {
       const firstInMonth = monthData.weeks.flat().find((day) => day.in_month);
       if (firstInMonth) {
-        setSelectedDate(firstInMonth.date);
+        setSelectedDate(fromDateKey(firstInMonth.date));
       }
     }
-  }, [monthData, selectedDate, monthKey]);
+  }, [monthData, selectedDate, selectedDateKey, monthKey, viewMonth]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.log('selectedDate:', selectedDate.toISOString());
+  }, [selectedDate]);
 
   const upsertFromDay = useCallback(
     async (date: string, next: { sahur: boolean; puasa: boolean; tarawih: boolean; sedekah: boolean }) => {
@@ -217,12 +229,12 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
 
     const previous = cloneValue(monthData);
     const optimistic = cloneValue(monthData);
-    applyDayMutation(optimistic, selectedDate, { [item]: nextValue });
+    applyDayMutation(optimistic, selectedDateKey, { [item]: nextValue });
     setMonthData(optimistic);
     setSavingItem(item);
 
     try {
-      await upsertFromDay(selectedDate, nextPayload);
+      await upsertFromDay(selectedDateKey, nextPayload);
       setErrorMessage(null);
       void loadStats();
     } catch (error) {
@@ -243,9 +255,9 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
   }, [monthData]);
 
   const selectedIndex = useMemo(() => {
-    const index = inMonthDays.findIndex((day) => day.date === selectedDate);
+    const index = inMonthDays.findIndex((day) => day.date === selectedDateKey);
     return index >= 0 ? index + 1 : 0;
-  }, [inMonthDays, selectedDate]);
+  }, [inMonthDays, selectedDateKey]);
 
   const miniCalendarItems = useMemo<MiniCalendarItem[]>(() => {
     return inMonthDays.map((day) => {
@@ -264,34 +276,37 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
         completedCount: day.active_items,
         totalCount: 4,
         status: dayStatus,
-        isToday: day.date === todayDateKey,
+        isToday: isSameDay(fromDateKey(day.date), today),
       };
     });
-  }, [inMonthDays, todayDateKey]);
-
-  const selectedDateLabel = useMemo(() => formatSelectedDateLabel(selectedDate), [selectedDate]);
+  }, [inMonthDays, today]);
 
   const handleSelectDate = useCallback((dateKey: string) => {
     const nextDate = fromDateKey(dateKey);
-    const normalizedDate = toDateKey(nextDate);
-    setSelectedDate(normalizedDate);
+    setSelectedDate(nextDate);
     setViewMonth(startOfMonth(nextDate));
   }, []);
 
-  const handlePrevDay = useCallback(() => {
-    const previousDay = addDays(selectedDateValue, -1);
-    setSelectedDate(toDateKey(previousDay));
-    setViewMonth(startOfMonth(previousDay));
-  }, [selectedDateValue]);
+  const onPrevDay = useCallback((e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.preventDefault?.();
+    setSelectedDate((prev) => {
+      const d = addDays(prev, -1);
+      setViewMonth(startOfMonth(d));
+      return d;
+    });
+  }, []);
 
-  const handleNextDay = useCallback(() => {
-    const nextDay = addDays(selectedDateValue, 1);
-    setSelectedDate(toDateKey(nextDay));
-    setViewMonth(startOfMonth(nextDay));
-  }, [selectedDateValue]);
+  const onNextDay = useCallback((e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.preventDefault?.();
+    setSelectedDate((prev) => {
+      const d = addDays(prev, 1);
+      setViewMonth(startOfMonth(d));
+      return d;
+    });
+  }, []);
 
   return (
-    <div className={`${embedded ? 'bg-gray-50 min-h-full pb-24' : 'fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24'}`}>
+    <div className={`${embedded ? 'bg-gray-50 min-h-full' : 'fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24'}`}>
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
         {!embedded ? (
           <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100">
@@ -317,7 +332,9 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
         <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
-              <p className="text-xs text-gray-500">{formatMonthLabel(monthKey)}</p>
+              <p className="text-xs text-gray-500">
+                {formatMonthLabel(monthKey)} - {monthDayCount} hari
+              </p>
               <h2 className="font-bold text-gray-800">Hari ke-{selectedIndex || '-'} Ramadhan</h2>
             </div>
             <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
@@ -342,6 +359,10 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
             </div>
           </div>
 
+          <div className="mt-3">
+            <RamadhanPrayerCard selectedDateKey={selectedDateKey} />
+          </div>
+
           <div className="mt-3 text-xs text-gray-500 flex justify-between">
             <span>
               Checked item: {monthData?.summary.total_checked_items || 0}/{monthData?.summary.total_item_target || 0}
@@ -358,14 +379,16 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
             <h2 className="font-bold text-gray-800">Mini Kalender {formatMonthLabel(monthKey)}</h2>
             <div className="flex items-center gap-2">
               <button
-                onClick={handlePrevDay}
+                type="button"
+                onClick={onPrevDay}
                 aria-label="Pilih tanggal sebelumnya"
                 className="px-2 py-1 rounded border text-xs border-gray-200 inline-flex items-center gap-1"
               >
                 <ChevronLeft size={12} /> Prev
               </button>
               <button
-                onClick={handleNextDay}
+                type="button"
+                onClick={onNextDay}
                 aria-label="Pilih tanggal selanjutnya"
                 className="px-2 py-1 rounded border text-xs border-gray-200 inline-flex items-center gap-1"
               >
@@ -382,14 +405,14 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
           ) : (
             <MiniCalendarStrip
               items={miniCalendarItems}
-              selectedDate={selectedDate}
+              selectedDate={selectedDateKey}
               onSelect={handleSelectDate}
             />
           )}
         </section>
 
         <DailyAbsen
-          selectedDate={selectedDate}
+          selectedDate={selectedDateKey}
           isLoading={isLoadingMonth}
           selectedDay={
             selectedDay
@@ -450,3 +473,6 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
     </div>
   );
 };
+
+
+

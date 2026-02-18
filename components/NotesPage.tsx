@@ -282,7 +282,7 @@ export const NotesPage: React.FC = () => {
 
   if (isEditorOpen) {
     return (
-      <div className="bg-gray-50 min-h-full pb-24">
+      <div className="bg-gray-50 min-h-full">
         <div className="safe-top sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => {
@@ -412,7 +412,7 @@ export const NotesPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-full pb-24">
+    <div className="bg-gray-50 min-h-full">
       <div className="safe-top sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-gray-900">Notes</h1>
@@ -479,3 +479,4 @@ export const NotesPage: React.FC = () => {
     </div>
   );
 };
+

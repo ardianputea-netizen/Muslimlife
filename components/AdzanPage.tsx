@@ -176,7 +176,7 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
   return (
     <div
       className={`${
-        embedded ? 'bg-gray-50 min-h-full pb-24' : 'fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24'
+        embedded ? 'bg-gray-50 min-h-full' : 'fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24'
       }`}
     >
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
@@ -438,3 +438,4 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
     </div>
   );
 };
+

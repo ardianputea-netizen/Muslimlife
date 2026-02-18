@@ -4,11 +4,11 @@ import { BottomNavigation } from './components/BottomNavigation';
 import { UserProvider } from './context/UserContext';
 import { AudioPlayerProvider, useAudioPlayer } from './context/AudioPlayerContext';
 import { AdzanManager } from './components/AdzanManager';
+import { AppShell } from './components/AppShell';
 import { startNotificationEngine, stopNotificationEngine } from './lib/notifications';
 import { getCurrentPath, subscribePathChange } from './lib/appRouter';
 import { subscribeTabChange } from './lib/tabNavigation';
 
-// Lazy load pages - mengurangi initial bundle & re-render
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
 const RamadhanTrackerPage = lazy(() =>
   import('./components/RamadhanTrackerPage').then((m) => ({ default: m.RamadhanTrackerPage }))
@@ -84,25 +84,24 @@ function AppContent() {
     }
   };
 
-  return (
-    <div className="max-w-md mx-auto min-h-dvh bg-gray-50 relative shadow-2xl overflow-hidden flex flex-col">
-      <main className="flex-1 overflow-y-auto no-scrollbar scroll-smooth w-full relative">
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center min-h-[200px]">
-              <div className="w-8 h-8 border-2 border-[#0F9D58] border-t-transparent rounded-full animate-spin" />
-            </div>
-          }
-        >
-          {renderContent()}
-        </Suspense>
-      </main>
+  const showBottomNav = !path.startsWith('/hadits');
 
-      {!path.startsWith('/hadits') ? (
-        <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
-      ) : null}
+  return (
+    <AppShell
+      hasBottomNav={showBottomNav}
+      bottomNav={<BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />}
+    >
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-[200px]">
+            <div className="w-8 h-8 border-2 border-[#0F9D58] border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        {renderContent()}
+      </Suspense>
       <AdzanManager />
-    </div>
+    </AppShell>
   );
 }
 

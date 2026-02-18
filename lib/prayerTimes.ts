@@ -1,5 +1,6 @@
 import { CalculationMethod, Coordinates, Madhab, PrayerTimes } from 'adhan';
 import { getLocation, getSavedLocation } from './locationPermission';
+import { getCachedProfilePrayerMethod, getPrayerCalcConfig } from './profileSettings';
 
 export type PrayerName = 'subuh' | 'dzuhur' | 'ashar' | 'maghrib' | 'isya';
 export type CalculationMethodId = 'kemenag' | 'singapore' | 'muslim_world_league' | 'umm_al_qura';
@@ -107,18 +108,22 @@ const normalizeSettings = (value?: Partial<PrayerSettings> | null): PrayerSettin
     ...DEFAULT_PRAYER_SETTINGS,
     ...(value || {}),
   };
+  const profilePrayerMethod = getCachedProfilePrayerMethod();
+  const profileCalculationMethod = profilePrayerMethod ? getPrayerCalcConfig(profilePrayerMethod) : null;
+  const localCalculationMethod =
+    merged.calculationMethod === 'singapore' ||
+    merged.calculationMethod === 'muslim_world_league' ||
+    merged.calculationMethod === 'umm_al_qura' ||
+    merged.calculationMethod === 'kemenag'
+      ? merged.calculationMethod
+      : DEFAULT_PRAYER_SETTINGS.calculationMethod;
 
   return {
     lat: typeof merged.lat === 'number' && Number.isFinite(merged.lat) ? merged.lat : null,
     lng: typeof merged.lng === 'number' && Number.isFinite(merged.lng) ? merged.lng : null,
     cityPreset: String(merged.cityPreset || DEFAULT_PRAYER_SETTINGS.cityPreset),
-    calculationMethod:
-      merged.calculationMethod === 'singapore' ||
-      merged.calculationMethod === 'muslim_world_league' ||
-      merged.calculationMethod === 'umm_al_qura' ||
-      merged.calculationMethod === 'kemenag'
-        ? merged.calculationMethod
-        : DEFAULT_PRAYER_SETTINGS.calculationMethod,
+    // Hook point: method from Supabase profile cache overrides local setting.
+    calculationMethod: profileCalculationMethod || localCalculationMethod,
     madhab: merged.madhab === 'hanafi' ? 'hanafi' : 'shafi',
     imsakOffsetMinutes: clamp(Number(merged.imsakOffsetMinutes || 10), 0, 60),
     timezone: resolveTimezone(merged.timezone),

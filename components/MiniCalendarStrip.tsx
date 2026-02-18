@@ -1,4 +1,5 @@
 import React from 'react';
+import { Check, Sparkles, TriangleAlert } from 'lucide-react';
 import { fromDateKey } from '../lib/date';
 
 export type MiniCalendarStatus = 'default' | 'completed' | 'missed';
@@ -21,6 +22,11 @@ interface MiniCalendarStripProps {
   selectedDate: string;
   onSelect: (date: string) => void;
 }
+
+type BadgeState = {
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+};
 
 export const MiniCalendarStrip: React.FC<MiniCalendarStripProps> = ({
   items,
@@ -80,34 +86,36 @@ export const MiniCalendarStrip: React.FC<MiniCalendarStripProps> = ({
             ? '#d97706'
             : '#0284c7';
 
-          const stateBadge = selected
-            ? 'Dipilih'
-            : item.isToday
-            ? 'Hari ini'
+          const stateBadge: BadgeState | null = item.isToday
+            ? { label: 'Hari ini', icon: Sparkles }
             : isCompleted
-            ? '✓'
+            ? { label: 'Selesai', icon: Check }
             : isMissed
-            ? '!'
+            ? { label: '!', icon: TriangleAlert }
+            : selected
+            ? { label: 'Dipilih', icon: Sparkles }
             : null;
+          const BadgeIcon = stateBadge?.icon;
 
           const chipClass = item.disabled
             ? 'border-gray-100 bg-gray-50 text-gray-400'
             : selected
-            ? 'border-teal-300 bg-gradient-to-br from-emerald-100 via-cyan-100 to-sky-100 text-teal-900 shadow-[0_12px_24px_-14px_rgba(13,148,136,0.45)]'
+            ? 'border-2 border-teal-400 bg-gradient-to-br from-cyan-100 via-emerald-100 to-amber-100 text-teal-900 shadow-[0_14px_30px_-14px_rgba(13,148,136,0.6)]'
             : isCompleted
-            ? 'border-emerald-200 bg-emerald-50/90 text-emerald-900 shadow-[0_10px_20px_-16px_rgba(16,185,129,0.7)]'
+            ? 'border-emerald-200 bg-emerald-50/95 text-emerald-900 shadow-[0_10px_22px_-16px_rgba(16,185,129,0.72)]'
             : isMissed
-            ? 'border-amber-200 bg-amber-50/95 text-amber-900 shadow-[0_10px_20px_-16px_rgba(245,158,11,0.8)]'
+            ? 'border-amber-200 bg-amber-50/95 text-amber-900 shadow-[0_10px_22px_-16px_rgba(245,158,11,0.8)]'
             : 'border-slate-200 bg-white text-slate-800 shadow-[0_10px_18px_-16px_rgba(15,23,42,0.6)]';
 
           const todayOutline =
-            item.isToday && !selected && !item.disabled
+            item.isToday && !item.disabled
               ? 'border-dashed border-sky-300 ring-2 ring-sky-100/80 ring-inset'
               : '';
 
           return (
             <button
               key={item.date}
+              type="button"
               ref={(node) => {
                 chipRefs.current[item.date] = node;
               }}
@@ -116,7 +124,7 @@ export const MiniCalendarStrip: React.FC<MiniCalendarStripProps> = ({
               aria-label={`Pilih tanggal ${formatFullDate(item.date)}`}
               aria-current={selected ? 'date' : undefined}
               className={`min-w-[72px] rounded-2xl border px-2.5 py-2 text-left transition-all duration-200 ${
-                item.disabled ? '' : 'hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]'
+                item.disabled ? '' : 'hover:-translate-y-0.5 hover:shadow-md active:scale-95'
               } ${chipClass} ${todayOutline}`}
             >
               <div className="flex items-start justify-between gap-2">
@@ -140,16 +148,17 @@ export const MiniCalendarStrip: React.FC<MiniCalendarStripProps> = ({
               {stateBadge ? (
                 <p
                   className={`mt-1 inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
-                    selected
-                      ? 'bg-teal-200/70 text-teal-900'
-                      : item.isToday
+                    item.isToday
                       ? 'bg-sky-100 text-sky-700'
+                      : selected
+                      ? 'bg-teal-200/70 text-teal-900'
                       : isCompleted
                       ? 'bg-emerald-100 text-emerald-700'
                       : 'bg-amber-100 text-amber-700'
                   }`}
                 >
-                  {stateBadge}
+                  {BadgeIcon ? <BadgeIcon size={10} className="mr-1" /> : null}
+                  {stateBadge.label}
                 </p>
               ) : (
                 <p className="mt-1 text-[9px] text-transparent">-</p>

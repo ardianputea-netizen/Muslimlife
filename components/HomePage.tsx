@@ -46,15 +46,56 @@ const MENU_ITEMS = [
   { id: '99NAMA', label: '99 Nama', icon: List, iconColor: 'text-cyan-700', tile: 'from-cyan-100 via-cyan-50 to-white' },
 ] as const;
 
+const JAKARTA_TIMEZONE = 'Asia/Jakarta';
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+const HIJRI_GOVERNMENT_OFFSETS: Array<{
+  startDateKey: string;
+  endDateKey: string;
+  shiftDays: number;
+}> = [
+  {
+    startDateKey: '2026-02-18',
+    endDateKey: '2026-03-20',
+    shiftDays: -1,
+  },
+];
+
+const toDateKeyInTimeZone = (date: Date, timeZone: string) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  if (!year || !month || !day) return '';
+
+  return `${year}-${month}-${day}`;
+};
+
 const getHijriDate = () => {
   try {
-    return new Intl.DateTimeFormat('id-TN-u-ca-islamic', {
+    const now = new Date();
+    const dateKeyJakarta = toDateKeyInTimeZone(now, JAKARTA_TIMEZONE);
+    const activeOffset = HIJRI_GOVERNMENT_OFFSETS.find(
+      (item) => dateKeyJakarta >= item.startDateKey && dateKeyJakarta <= item.endDateKey
+    );
+    const sourceDate = activeOffset
+      ? new Date(now.getTime() + activeOffset.shiftDays * ONE_DAY_MS)
+      : now;
+
+    return new Intl.DateTimeFormat('id-ID-u-ca-islamic', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-    }).format(Date.now());
-  } catch (e) {
-    return "1445 Hijriah";
+      timeZone: JAKARTA_TIMEZONE,
+    }).format(sourceDate);
+  } catch {
+    return '1445 Hijriah';
   }
 };
 
@@ -441,7 +482,7 @@ export const HomePage: React.FC = () => {
   }
 
   return (
-    <div className="pb-24 pt-safe bg-gray-50 min-h-screen">
+    <div className="pt-safe bg-gray-50 min-h-full">
       {/* Header / Salam */}
       <div className="bg-gradient-to-br from-[#0F9D58] to-[#00695C] p-6 pb-12 rounded-b-[2rem] text-white shadow-lg">
         <div className="flex justify-between items-start mb-6">
@@ -639,4 +680,5 @@ export const HomePage: React.FC = () => {
     </div>
   );
 };
+
 
