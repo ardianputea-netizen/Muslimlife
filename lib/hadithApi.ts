@@ -87,18 +87,6 @@ const COLLECTION_ALIAS_MAP: Record<string, string> = {
   malik: 'malik',
 };
 
-const FALLBACK_COLLECTIONS: HadithCollectionItem[] = [
-  { id: 'bukhari', label: 'Sahih al-Bukhari', count: 7563, author: 'Imam Bukhari', sourceLabel: API_SOURCE },
-  { id: 'muslim', label: 'Sahih Muslim', count: 3033, author: 'Imam Muslim', sourceLabel: API_SOURCE },
-  { id: 'abu-daud', label: 'Sunan Abu Daud', count: 4590, author: 'Imam Abu Daud', sourceLabel: API_SOURCE },
-  { id: 'tirmidzi', label: 'Jami` at-Tirmidzi', count: 3956, author: 'Imam Tirmidzi', sourceLabel: API_SOURCE },
-  { id: 'nasai', label: "Sunan an-Nasa'i", count: 5662, author: "Imam an-Nasa'i", sourceLabel: API_SOURCE },
-  { id: 'ibnu-majah', label: 'Sunan Ibnu Majah', count: 4331, author: 'Imam Ibnu Majah', sourceLabel: API_SOURCE },
-  { id: 'ahmad', label: 'Musnad Ahmad', count: 26363, author: 'Imam Ahmad', sourceLabel: API_SOURCE },
-  { id: 'darimi', label: 'Sunan Darimi', count: 3367, author: 'Imam Darimi', sourceLabel: API_SOURCE },
-  { id: 'malik', label: "Muwatta' Malik", count: 1594, author: 'Imam Malik', sourceLabel: API_SOURCE },
-];
-
 const HADITH_TOPICS: HadithTopicMeta[] = [
   {
     id: 'adab-makan-minum',
@@ -172,7 +160,7 @@ const HADITH_TOPICS: HadithTopicMeta[] = [
   },
 ];
 
-let collectionCache: HadithCollectionItem[] = [...FALLBACK_COLLECTIONS];
+let collectionCache: HadithCollectionItem[] = [];
 
 const toPositiveNumber = (value?: number | string, fallback = 1) => {
   const parsed = Number(value);
@@ -186,8 +174,14 @@ const normalizeCollectionId = (value?: string | null) => {
   return COLLECTION_ALIAS_MAP[normalized] || normalized;
 };
 
+const humanizeCollectionID = (value: string) =>
+  value
+    .split('-')
+    .map((word) => (word ? word[0].toUpperCase() + word.slice(1) : ''))
+    .join(' ');
+
 const toCollectionDisplayName = (collectionID: string) => {
-  return collectionCache.find((item) => item.id === collectionID)?.label || collectionID;
+  return collectionCache.find((item) => item.id === collectionID)?.label || humanizeCollectionID(collectionID);
 };
 
 const readLocalBookmarks = (): string[] => {
@@ -400,7 +394,7 @@ const normalizeCollectionCatalogPayload = (payload: Record<string, unknown>): Ha
     })
     .filter(Boolean) as HadithCollectionItem[];
 
-  return normalized.length > 0 ? normalized : [...FALLBACK_COLLECTIONS];
+  return normalized;
 };
 
 const toHadisRows = (payload: Record<string, unknown>) => {
@@ -503,12 +497,12 @@ const parsePaginationMeta = (
 };
 
 export const getHadithCollectionCatalog = async (): Promise<HadithCollectionItem[]> => {
-  try {
-    const payload = await requestHadithApi('/collections', {});
-    collectionCache = normalizeCollectionCatalogPayload(payload);
-  } catch {
-    collectionCache = [...FALLBACK_COLLECTIONS];
+  const payload = await requestHadithApi('/collections', {});
+  const normalized = normalizeCollectionCatalogPayload(payload);
+  if (normalized.length > 0) {
+    console.log('Hadis API connected');
   }
+  collectionCache = normalized;
   return [...collectionCache];
 };
 
