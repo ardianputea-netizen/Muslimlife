@@ -13,6 +13,9 @@ import { applyThemePreference } from './lib/themePreference';
 import { startNotesReminderScheduler, stopNotesReminderScheduler } from './lib/notesReminderScheduler';
 import { getSupabaseClient, isSupabaseConfigured } from './lib/supabase';
 import { AuthRequiredModal } from './components/AuthRequiredModal';
+import MaintenanceScreen from './src/components/MaintenanceScreen';
+
+const IS_MAINTENANCE = true;
 
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
 const RamadhanTrackerPage = lazy(() =>
@@ -165,6 +168,10 @@ function AppContent() {
 }
 
 export default function App() {
+  if (IS_MAINTENANCE) {
+    return <MaintenanceScreen />;
+  }
+
   return (
     <AudioPlayerProvider>
       <UserProvider>
