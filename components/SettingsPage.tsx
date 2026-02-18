@@ -51,6 +51,7 @@ type BrowserNotificationPermission = NotificationPermission | 'unsupported';
 const isIOS = () => /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 const isStandalone = () =>
   window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+const PROD_ORIGINS = new Set(['https://www.muslimlife.my.id', 'https://muslimlife.my.id']);
 
 const getNotificationStatus = (): BrowserNotificationPermission => {
   if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
@@ -84,6 +85,19 @@ const mapSupabaseUser = (user: SupabaseUser | null): AccountSummary | null => {
     fullName,
     avatarUrl,
   };
+};
+
+const getOAuthRedirectTo = () => {
+  const origin = window.location.origin.replace(/\/+$/, '');
+  const host = window.location.hostname.toLowerCase();
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  const isVercelPreview = host.endsWith('.vercel.app');
+
+  if (isLocal || isVercelPreview || PROD_ORIGINS.has(origin)) {
+    return `${origin}/`;
+  }
+
+  return 'https://www.muslimlife.my.id/';
 };
 
 const ToggleRow: React.FC<{
@@ -176,6 +190,15 @@ export const SettingsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash;
+    if (!hash) return;
+    if (!hash.includes('access_token=') && !hash.includes('refresh_token=') && !hash.includes('error=')) return;
+
+    window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+  }, []);
+
+  useEffect(() => {
     if (!supabaseConfigured || !supabaseClient) {
       setAuthInitialized(true);
       setAccount(null);
@@ -226,7 +249,7 @@ export const SettingsPage: React.FC = () => {
 
     setAuthLoading(true);
     try {
-      const redirectTo = `${window.location.origin}${window.location.pathname}`;
+      const redirectTo = getOAuthRedirectTo();
       const { error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
