@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { DUMMY_USER } from '../constants';
-import { BookOpen, Calendar, ChevronRight, Compass, Moon, Hash, MapPin, Activity, List, Heart, X, RotateCcw, Wallet, CheckSquare2, Sparkles, ScrollText, BellRing } from 'lucide-react';
+import { BookOpen, Calendar, ChevronRight, Compass, Moon, Hash, MapPin, Activity, List, Heart, X, RotateCcw, CheckSquare2, Sparkles, ScrollText, BellRing, Clock3 } from 'lucide-react';
 import { QuranPage } from './QuranPage';
 import { MosqueMapsPage } from './MosqueMapsPage';
-import { WalletPage } from './WalletPage';
 import { IbadahPage } from './IbadahPage';
 import { AdzanPage } from './AdzanPage';
 import { RamadhanTrackerPage } from './RamadhanTrackerPage';
@@ -11,7 +10,6 @@ import { HadithPage } from './HadithPage';
 import { DuaDzikirPage } from './DuaDzikirPage';
 import { LastRead } from '../types';
 import { ASMAUL_HUSNA, AZKAR_MORNING } from '../data/islamicContent';
-import { useUser } from '../context/UserContext';
 import { DuaItem, getDuaToday } from '../lib/duaApi';
 import {
   PRAYER_SETTINGS_UPDATED_EVENT,
@@ -64,6 +62,15 @@ const PRAYER_LABELS: Record<PrayerName, string> = {
   isya: 'Isya',
 };
 
+interface LocalReminderItem {
+  id: string;
+  title: string;
+  fire_at: string;
+  status: 'scheduled' | 'done' | 'cancelled';
+}
+
+const REMINDERS_KEY = 'ml_reminders';
+
 export const HomePage: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
   const [lastRead, setLastRead] = useState<LastRead | null>(null);
@@ -72,11 +79,9 @@ export const HomePage: React.FC = () => {
   const [todayDuaDate, setTodayDuaDate] = useState('');
   const [isLoadingTodayDua, setIsLoadingTodayDua] = useState(true);
   const [todayTimes, setTodayTimes] = useState<PrayerTimesResult | null>(null);
+  const [tomorrowTimes, setTomorrowTimes] = useState<PrayerTimesResult | null>(null);
   const [nextAlert, setNextAlert] = useState(getNextAlert());
   const [tick, setTick] = useState(Date.now());
-  
-  // Use Context
-  const { coinBalance } = useUser();
 
   useEffect(() => {
     const saved = localStorage.getItem('lastRead');
@@ -125,7 +130,15 @@ export const HomePage: React.FC = () => {
       madhab: settings.madhab,
       imsakOffsetMinutes: settings.imsakOffsetMinutes,
     });
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextResult = computeTimes(tomorrow, coords.lat, coords.lng, {
+      calculationMethod: settings.calculationMethod,
+      madhab: settings.madhab,
+      imsakOffsetMinutes: settings.imsakOffsetMinutes,
+    });
     setTodayTimes(result);
+    setTomorrowTimes(nextResult);
   }, []);
 
   useEffect(() => {
@@ -164,6 +177,51 @@ export const HomePage: React.FC = () => {
     return getNextPrayer(todayTimes, new Date(tick));
   }, [todayTimes, tick]);
 
+  const now = useMemo(() => new Date(tick), [tick]);
+
+  const realtimeClock = useMemo(
+    () =>
+      new Intl.DateTimeFormat('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }).format(now),
+    [now]
+  );
+
+  const imsakTarget = useMemo(() => {
+    if (!todayTimes) return null;
+    if (todayTimes.imsak.getTime() > now.getTime()) return todayTimes.imsak;
+    return tomorrowTimes?.imsak || null;
+  }, [now, todayTimes, tomorrowTimes]);
+
+  const bukaTarget = useMemo(() => {
+    if (!todayTimes) return null;
+    if (todayTimes.maghrib.getTime() > now.getTime()) return todayTimes.maghrib;
+    return tomorrowTimes?.maghrib || null;
+  }, [now, todayTimes, tomorrowTimes]);
+
+  const noteReminder = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(REMINDERS_KEY);
+      if (!raw) return null;
+      const reminders = JSON.parse(raw) as LocalReminderItem[];
+      const upcoming = reminders
+        .filter((item) => item.status === 'scheduled')
+        .filter((item) => new Date(item.fire_at).getTime() > now.getTime())
+        .sort((a, b) => new Date(a.fire_at).getTime() - new Date(b.fire_at).getTime());
+      return upcoming[0] || null;
+    } catch {
+      return null;
+    }
+  }, [now]);
+
+  const adzanCountdown = nextPrayer ? formatCountdown(nextPrayer.time, now) : null;
+  const imsakCountdown = imsakTarget ? formatCountdown(imsakTarget, now) : null;
+  const bukaCountdown = bukaTarget ? formatCountdown(bukaTarget, now) : null;
+  const noteCountdown = noteReminder ? formatCountdown(new Date(noteReminder.fire_at), now) : null;
+
   const prayerTimeline = useMemo(() => {
     if (!todayTimes) return [];
     return PRAYER_ORDER.map((prayer) => ({
@@ -186,16 +244,6 @@ export const HomePage: React.FC = () => {
         return <IbadahPage onBack={() => setActiveFeature(null)} />;
       case 'QURAN':
         return <QuranPage onBack={() => setActiveFeature(null)} />;
-      case 'WALLET':
-        return (
-            <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-               <div className="bg-[#0F9D58] p-4 text-white flex gap-2 items-center sticky top-0 z-30 shadow-md">
-                <button onClick={() => setActiveFeature(null)}><X /></button>
-                <h2 className="font-bold">Dompet & Reward</h2>
-              </div>
-              <WalletPage />
-            </div>
-        );
       case 'MASJID':
         return (
           <div className="fixed inset-0 z-50 bg-white">
@@ -346,37 +394,42 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Highlight Section: Next Prayer & WALLET (Side by Side) */}
-        <div className="flex gap-3">
-            {/* Wallet Button - Now prominent */}
-             <button 
-              onClick={() => setActiveFeature('WALLET')}
-              className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-left active:scale-95 transition-transform"
-            >
-               <div className="flex items-center gap-2 mb-2">
-                 <div className="bg-[#F4E7BD] p-1.5 rounded-full text-[#0F9D58]">
-                     <Wallet size={16} fill="currentColor" />
-                 </div>
-                 <span className="text-xs font-bold text-[#F4E7BD]">Saldo Saya</span>
-               </div>
-               <p className="text-lg font-mono font-bold tracking-tight">
-                 {coinBalance.toLocaleString()} <span className="text-xs font-sans font-normal opacity-80">Koin</span>
-               </p>
-            </button>
-
-            {/* Prayer Time */}
-            <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-                <p className="text-xs opacity-80 mb-1">{nextPrayer ? `Next: ${nextPrayer.label}` : 'Next Prayer'}</p>
-                <h2 className="text-2xl font-bold text-[#F4E7BD]">
-                  {nextPrayer ? formatTime(nextPrayer.time) : '--:--'}
-                </h2>
-                <p className="text-[10px] opacity-80">
-                  {nextPrayer ? formatCountdown(nextPrayer.time, new Date(tick)) : 'Semua jadwal hari ini selesai'}
-                </p>
-                <p className="text-[10px] opacity-75 mt-1">
-                  {nextAlert ? `Next alert: ${formatCountdown(new Date(nextAlert.fireAt), new Date(tick))}` : 'Alert belum disinkronkan'}
-                </p>
+        {/* Highlight Section: Realtime Clock + Countdowns */}
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs opacity-80">Jam Sekarang</p>
+              <h2 className="text-3xl font-bold text-[#F4E7BD] tracking-wide">{realtimeClock}</h2>
             </div>
+            <div className="text-right">
+              <p className="text-xs opacity-80">{nextPrayer ? `Next Adzan: ${nextPrayer.label}` : 'Next Adzan'}</p>
+              <p className="text-sm font-semibold">{nextPrayer ? formatTime(nextPrayer.time) : '--:--'}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            <div className="rounded-xl bg-white/10 px-2 py-2">
+              <p className="text-[10px] opacity-80">Adzan</p>
+              <p className="text-xs font-semibold">{adzanCountdown || '--:--:--'}</p>
+            </div>
+            <div className="rounded-xl bg-white/10 px-2 py-2">
+              <p className="text-[10px] opacity-80">Imsak</p>
+              <p className="text-xs font-semibold">{imsakCountdown || '--:--:--'}</p>
+            </div>
+            <div className="rounded-xl bg-white/10 px-2 py-2">
+              <p className="text-[10px] opacity-80">Buka</p>
+              <p className="text-xs font-semibold">{bukaCountdown || '--:--:--'}</p>
+            </div>
+          </div>
+
+          <div className="mt-3 text-[11px] opacity-90 inline-flex items-center gap-1">
+            <Clock3 size={12} />
+            {noteReminder
+              ? `Reminder terdekat: ${noteReminder.title} (${noteCountdown || '--:--:--'})`
+              : nextAlert
+              ? `Next alert: ${formatCountdown(new Date(nextAlert.fireAt), now)}`
+              : 'Reminder belum ada'}
+          </div>
         </div>
       </div>
 
