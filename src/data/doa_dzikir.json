@@ -3,944 +3,930 @@
     "al_matsurat": {
       "pagi": [
         {
-          "id": "matsurat-pagi-1",
-          "arab": "???????? ????????? ???? ???????????? ???????????",
-          "latin": "A'udzu billahi minasy syaithanir rajim",
-          "idn": "Aku berlindung kepada Allah dari godaan setan yang terkutuk.",
-          "source": "Al-Ma'tsurat"
-        },
-        {
-          "id": "matsurat-pagi-2",
-          "arab": "?????? ??????? ??????????? ???????????",
+          "id": "al-ma-tsurat-1",
+          "arab": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
           "latin": "Bismillahirrahmanirrahim",
           "idn": "Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
-          "source": "Al-Ma'tsurat"
+          "sourceLabel": "Al-Ma’tsurat"
         },
         {
-          "id": "matsurat-pagi-3",
-          "arab": "?????????? ??????? ????? ??????????????",
-          "latin": "Alhamdulillahi rabbil `alamin",
+          "id": "al-ma-tsurat-2",
+          "arab": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+          "latin": "Alhamdulillahi rabbil 'alamin",
           "idn": "Segala puji bagi Allah Tuhan semesta alam.",
-          "source": "Al-Ma'tsurat"
+          "sourceLabel": "Al-Ma’tsurat"
         },
         {
-          "id": "matsurat-pagi-4",
-          "arab": "???????? ??? ?????? ?????? ???? ???????? ????????????",
-          "latin": "Allahu la ilaha illa huwal hayyul qayyum",
-          "idn": "Allah, tidak ada Tuhan selain Dia, Yang Maha Hidup lagi Maha Berdiri sendiri.",
-          "source": "Al-Ma'tsurat"
-        },
-        {
-          "id": "matsurat-pagi-5",
-          "arab": "????????? ??????? ???????? ???????????",
-          "latin": "Hasbunallahu wa ni'mal wakil",
-          "idn": "Cukuplah Allah bagi kami, dan Dia sebaik-baik pelindung.",
-          "source": "Al-Ma'tsurat"
-        },
-        {
-          "id": "matsurat-pagi-6",
-          "arab": "???????????? ???????",
+          "id": "al-ma-tsurat-3",
+          "arab": "أَسْتَغْفِرُ اللَّهَ",
           "latin": "Astaghfirullah",
           "idn": "Aku memohon ampun kepada Allah.",
-          "source": "Al-Ma'tsurat"
+          "sourceLabel": "Al-Ma’tsurat"
+        },
+        {
+          "id": "al-ma-tsurat-4",
+          "arab": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+          "latin": "Hasbunallahu wa ni'mal wakil",
+          "idn": "Cukuplah Allah bagi kami dan Dia sebaik-baik pelindung.",
+          "sourceLabel": "Al-Ma’tsurat"
+        },
+        {
+          "id": "al-ma-tsurat-5",
+          "arab": "رَبِّ زِدْنِي عِلْمًا",
+          "latin": "Rabbi zidni ilma",
+          "idn": "Ya Tuhanku, tambahkanlah ilmuku.",
+          "sourceLabel": "Al-Ma’tsurat"
+        },
+        {
+          "id": "al-ma-tsurat-6",
+          "arab": "اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّارِ",
+          "latin": "Allahumma barik lana fima razaqtana wa qina adzaban nar",
+          "idn": "Ya Allah, berkahilah rezeki kami dan lindungi kami dari azab neraka.",
+          "sourceLabel": "Al-Ma’tsurat"
         }
       ],
       "petang": [
         {
-          "id": "matsurat-petang-1",
-          "arab": "???????? ????????? ???? ???????????? ???????????",
-          "latin": "A'udzu billahi minasy syaithanir rajim",
-          "idn": "Aku berlindung kepada Allah dari godaan setan yang terkutuk.",
-          "source": "Al-Ma'tsurat (Petang)"
+          "id": "al-ma-tsurat-petang-1",
+          "arab": "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+          "latin": "Bismillahi tawakkaltu 'alallah la haula wa la quwwata illa billah",
+          "idn": "Dengan nama Allah, aku bertawakal kepada Allah.",
+          "sourceLabel": "Al-Ma’tsurat Petang"
         },
         {
-          "id": "matsurat-petang-2",
-          "arab": "?????? ??????? ??????????? ???????????",
-          "latin": "Bismillahirrahmanirrahim",
-          "idn": "Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
-          "source": "Al-Ma'tsurat (Petang)"
+          "id": "al-ma-tsurat-petang-2",
+          "arab": "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+          "latin": "Allahummaftah li abwaba rahmatik",
+          "idn": "Ya Allah, bukakan bagiku pintu-pintu rahmat-Mu.",
+          "sourceLabel": "Al-Ma’tsurat Petang"
         },
         {
-          "id": "matsurat-petang-3",
-          "arab": "?????????? ??????? ????? ??????????????",
-          "latin": "Alhamdulillahi rabbil `alamin",
-          "idn": "Segala puji bagi Allah Tuhan semesta alam.",
-          "source": "Al-Ma'tsurat (Petang)"
+          "id": "al-ma-tsurat-petang-3",
+          "arab": "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",
+          "latin": "Allahumma inni as'aluka min fadhlik",
+          "idn": "Ya Allah, aku memohon karunia-Mu.",
+          "sourceLabel": "Al-Ma’tsurat Petang"
         },
         {
-          "id": "matsurat-petang-4",
-          "arab": "???????? ??? ?????? ?????? ???? ???????? ????????????",
-          "latin": "Allahu la ilaha illa huwal hayyul qayyum",
-          "idn": "Allah, tidak ada Tuhan selain Dia, Yang Maha Hidup lagi Maha Berdiri sendiri.",
-          "source": "Al-Ma'tsurat (Petang)"
+          "id": "al-ma-tsurat-petang-4",
+          "arab": "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
+          "latin": "Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni",
+          "idn": "Ya Allah, Engkau Maha Pemaaf dan menyukai maaf, maka maafkanlah aku.",
+          "sourceLabel": "Al-Ma’tsurat Petang"
         },
         {
-          "id": "matsurat-petang-5",
-          "arab": "????????? ??????? ???????? ???????????",
-          "latin": "Hasbunallahu wa ni'mal wakil",
-          "idn": "Cukuplah Allah bagi kami, dan Dia sebaik-baik pelindung.",
-          "source": "Al-Ma'tsurat (Petang)"
+          "id": "al-ma-tsurat-petang-5",
+          "arab": "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ",
+          "latin": "Subhanalladzi sakhkhara lana hadza wa ma kunna lahu muqrinin",
+          "idn": "Maha Suci Allah yang menundukkan kendaraan ini untuk kami.",
+          "sourceLabel": "Al-Ma’tsurat Petang"
         },
         {
-          "id": "matsurat-petang-6",
-          "arab": "???????????? ???????",
-          "latin": "Astaghfirullah",
-          "idn": "Aku memohon ampun kepada Allah.",
-          "source": "Al-Ma'tsurat (Petang)"
+          "id": "al-ma-tsurat-petang-6",
+          "arab": "اللَّهُمَّ صَيِّبًا نَافِعًا",
+          "latin": "Allahumma shayyiban nafi'an",
+          "idn": "Ya Allah, jadikan hujan ini hujan yang bermanfaat.",
+          "sourceLabel": "Al-Ma’tsurat Petang"
         }
       ]
     },
     "asmaul_husna": [
       {
         "number": 1,
-        "arab": "?????? ??????? 1",
-        "latin": "Asmaul Husna 1",
-        "idn": "Nama Allah ke-1 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الرَّحْمَٰنُ",
+        "latin": "Ar-Rahman",
+        "idn": "Yang Maha Pengasih",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 2,
-        "arab": "?????? ??????? 2",
-        "latin": "Asmaul Husna 2",
-        "idn": "Nama Allah ke-2 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الرَّحِيمُ",
+        "latin": "Ar-Rahim",
+        "idn": "Yang Maha Penyayang",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 3,
-        "arab": "?????? ??????? 3",
-        "latin": "Asmaul Husna 3",
-        "idn": "Nama Allah ke-3 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمَلِكُ",
+        "latin": "Al-Malik",
+        "idn": "Yang Maha Merajai",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 4,
-        "arab": "?????? ??????? 4",
-        "latin": "Asmaul Husna 4",
-        "idn": "Nama Allah ke-4 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْقُدُّوسُ",
+        "latin": "Al-Quddus",
+        "idn": "Yang Maha Suci",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 5,
-        "arab": "?????? ??????? 5",
-        "latin": "Asmaul Husna 5",
-        "idn": "Nama Allah ke-5 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "السَّلَامُ",
+        "latin": "As-Salam",
+        "idn": "Yang Maha Sejahtera",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 6,
-        "arab": "?????? ??????? 6",
-        "latin": "Asmaul Husna 6",
-        "idn": "Nama Allah ke-6 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُؤْمِنُ",
+        "latin": "Al-Mu'min",
+        "idn": "Yang Maha Memberi Aman",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 7,
-        "arab": "?????? ??????? 7",
-        "latin": "Asmaul Husna 7",
-        "idn": "Nama Allah ke-7 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُهَيْمِنُ",
+        "latin": "Al-Muhaimin",
+        "idn": "Yang Maha Memelihara",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 8,
-        "arab": "?????? ??????? 8",
-        "latin": "Asmaul Husna 8",
-        "idn": "Nama Allah ke-8 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْعَزِيزُ",
+        "latin": "Al-Aziz",
+        "idn": "Yang Maha Perkasa",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 9,
-        "arab": "?????? ??????? 9",
-        "latin": "Asmaul Husna 9",
-        "idn": "Nama Allah ke-9 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْجَبَّارُ",
+        "latin": "Al-Jabbar",
+        "idn": "Yang Maha Kuasa",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 10,
-        "arab": "?????? ??????? 10",
-        "latin": "Asmaul Husna 10",
-        "idn": "Nama Allah ke-10 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُتَكَبِّرُ",
+        "latin": "Al-Mutakabbir",
+        "idn": "Yang Maha Megah",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 11,
-        "arab": "?????? ??????? 11",
-        "latin": "Asmaul Husna 11",
-        "idn": "Nama Allah ke-11 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْخَالِقُ",
+        "latin": "Al-Khaliq",
+        "idn": "Yang Maha Pencipta",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 12,
-        "arab": "?????? ??????? 12",
-        "latin": "Asmaul Husna 12",
-        "idn": "Nama Allah ke-12 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْبَارِئُ",
+        "latin": "Al-Bari",
+        "idn": "Yang Maha Mengadakan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 13,
-        "arab": "?????? ??????? 13",
-        "latin": "Asmaul Husna 13",
-        "idn": "Nama Allah ke-13 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُصَوِّرُ",
+        "latin": "Al-Musawwir",
+        "idn": "Yang Maha Membentuk",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 14,
-        "arab": "?????? ??????? 14",
-        "latin": "Asmaul Husna 14",
-        "idn": "Nama Allah ke-14 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْغَفَّارُ",
+        "latin": "Al-Ghaffar",
+        "idn": "Yang Maha Pengampun",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 15,
-        "arab": "?????? ??????? 15",
-        "latin": "Asmaul Husna 15",
-        "idn": "Nama Allah ke-15 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْقَهَّارُ",
+        "latin": "Al-Qahhar",
+        "idn": "Yang Maha Menundukkan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 16,
-        "arab": "?????? ??????? 16",
-        "latin": "Asmaul Husna 16",
-        "idn": "Nama Allah ke-16 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْوَهَّابُ",
+        "latin": "Al-Wahhab",
+        "idn": "Yang Maha Pemberi",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 17,
-        "arab": "?????? ??????? 17",
-        "latin": "Asmaul Husna 17",
-        "idn": "Nama Allah ke-17 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الرَّزَّاقُ",
+        "latin": "Ar-Razzaq",
+        "idn": "Yang Maha Pemberi Rezeki",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 18,
-        "arab": "?????? ??????? 18",
-        "latin": "Asmaul Husna 18",
-        "idn": "Nama Allah ke-18 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْفَتَّاحُ",
+        "latin": "Al-Fattah",
+        "idn": "Yang Maha Membuka",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 19,
-        "arab": "?????? ??????? 19",
-        "latin": "Asmaul Husna 19",
-        "idn": "Nama Allah ke-19 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْعَلِيمُ",
+        "latin": "Al-Alim",
+        "idn": "Yang Maha Mengetahui",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 20,
-        "arab": "?????? ??????? 20",
-        "latin": "Asmaul Husna 20",
-        "idn": "Nama Allah ke-20 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْقَابِضُ",
+        "latin": "Al-Qabidh",
+        "idn": "Yang Maha Menyempitkan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 21,
-        "arab": "?????? ??????? 21",
-        "latin": "Asmaul Husna 21",
-        "idn": "Nama Allah ke-21 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْبَاسِطُ",
+        "latin": "Al-Basith",
+        "idn": "Yang Maha Melapangkan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 22,
-        "arab": "?????? ??????? 22",
-        "latin": "Asmaul Husna 22",
-        "idn": "Nama Allah ke-22 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْخَافِضُ",
+        "latin": "Al-Khafidh",
+        "idn": "Yang Maha Merendahkan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 23,
-        "arab": "?????? ??????? 23",
-        "latin": "Asmaul Husna 23",
-        "idn": "Nama Allah ke-23 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الرَّافِعُ",
+        "latin": "Ar-Rafi",
+        "idn": "Yang Maha Meninggikan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 24,
-        "arab": "?????? ??????? 24",
-        "latin": "Asmaul Husna 24",
-        "idn": "Nama Allah ke-24 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُعِزُّ",
+        "latin": "Al-Muizz",
+        "idn": "Yang Maha Memuliakan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 25,
-        "arab": "?????? ??????? 25",
-        "latin": "Asmaul Husna 25",
-        "idn": "Nama Allah ke-25 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُذِلُّ",
+        "latin": "Al-Mudzill",
+        "idn": "Yang Maha Menghinakan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 26,
-        "arab": "?????? ??????? 26",
-        "latin": "Asmaul Husna 26",
-        "idn": "Nama Allah ke-26 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "السَّمِيعُ",
+        "latin": "As-Sami",
+        "idn": "Yang Maha Mendengar",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 27,
-        "arab": "?????? ??????? 27",
-        "latin": "Asmaul Husna 27",
-        "idn": "Nama Allah ke-27 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْبَصِيرُ",
+        "latin": "Al-Bashir",
+        "idn": "Yang Maha Melihat",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 28,
-        "arab": "?????? ??????? 28",
-        "latin": "Asmaul Husna 28",
-        "idn": "Nama Allah ke-28 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْحَكَمُ",
+        "latin": "Al-Hakam",
+        "idn": "Yang Maha Menetapkan Hukum",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 29,
-        "arab": "?????? ??????? 29",
-        "latin": "Asmaul Husna 29",
-        "idn": "Nama Allah ke-29 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْعَدْلُ",
+        "latin": "Al-Adl",
+        "idn": "Yang Maha Adil",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 30,
-        "arab": "?????? ??????? 30",
-        "latin": "Asmaul Husna 30",
-        "idn": "Nama Allah ke-30 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "اللَّطِيفُ",
+        "latin": "Al-Lathif",
+        "idn": "Yang Maha Lembut",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 31,
-        "arab": "?????? ??????? 31",
-        "latin": "Asmaul Husna 31",
-        "idn": "Nama Allah ke-31 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْخَبِيرُ",
+        "latin": "Al-Khabir",
+        "idn": "Yang Maha Teliti",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 32,
-        "arab": "?????? ??????? 32",
-        "latin": "Asmaul Husna 32",
-        "idn": "Nama Allah ke-32 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْحَلِيمُ",
+        "latin": "Al-Halim",
+        "idn": "Yang Maha Penyantun",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 33,
-        "arab": "?????? ??????? 33",
-        "latin": "Asmaul Husna 33",
-        "idn": "Nama Allah ke-33 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْعَظِيمُ",
+        "latin": "Al-Azhim",
+        "idn": "Yang Maha Agung",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 34,
-        "arab": "?????? ??????? 34",
-        "latin": "Asmaul Husna 34",
-        "idn": "Nama Allah ke-34 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْغَفُورُ",
+        "latin": "Al-Ghafur",
+        "idn": "Yang Maha Mengampuni",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 35,
-        "arab": "?????? ??????? 35",
-        "latin": "Asmaul Husna 35",
-        "idn": "Nama Allah ke-35 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الشَّكُورُ",
+        "latin": "Asy-Syakur",
+        "idn": "Yang Maha Mensyukuri",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 36,
-        "arab": "?????? ??????? 36",
-        "latin": "Asmaul Husna 36",
-        "idn": "Nama Allah ke-36 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْعَلِيُّ",
+        "latin": "Al-Aliyy",
+        "idn": "Yang Maha Tinggi",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 37,
-        "arab": "?????? ??????? 37",
-        "latin": "Asmaul Husna 37",
-        "idn": "Nama Allah ke-37 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْكَبِيرُ",
+        "latin": "Al-Kabir",
+        "idn": "Yang Maha Besar",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 38,
-        "arab": "?????? ??????? 38",
-        "latin": "Asmaul Husna 38",
-        "idn": "Nama Allah ke-38 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْحَفِيظُ",
+        "latin": "Al-Hafizh",
+        "idn": "Yang Maha Menjaga",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 39,
-        "arab": "?????? ??????? 39",
-        "latin": "Asmaul Husna 39",
-        "idn": "Nama Allah ke-39 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُقِيتُ",
+        "latin": "Al-Muqit",
+        "idn": "Yang Maha Mencukupi",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 40,
-        "arab": "?????? ??????? 40",
-        "latin": "Asmaul Husna 40",
-        "idn": "Nama Allah ke-40 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْحَسِيبُ",
+        "latin": "Al-Hasib",
+        "idn": "Yang Maha Menghitung",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 41,
-        "arab": "?????? ??????? 41",
-        "latin": "Asmaul Husna 41",
-        "idn": "Nama Allah ke-41 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْجَلِيلُ",
+        "latin": "Al-Jalil",
+        "idn": "Yang Maha Luhur",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 42,
-        "arab": "?????? ??????? 42",
-        "latin": "Asmaul Husna 42",
-        "idn": "Nama Allah ke-42 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْكَرِيمُ",
+        "latin": "Al-Karim",
+        "idn": "Yang Maha Mulia",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 43,
-        "arab": "?????? ??????? 43",
-        "latin": "Asmaul Husna 43",
-        "idn": "Nama Allah ke-43 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الرَّقِيبُ",
+        "latin": "Ar-Raqib",
+        "idn": "Yang Maha Mengawasi",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 44,
-        "arab": "?????? ??????? 44",
-        "latin": "Asmaul Husna 44",
-        "idn": "Nama Allah ke-44 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُجِيبُ",
+        "latin": "Al-Mujib",
+        "idn": "Yang Maha Mengabulkan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 45,
-        "arab": "?????? ??????? 45",
-        "latin": "Asmaul Husna 45",
-        "idn": "Nama Allah ke-45 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْوَاسِعُ",
+        "latin": "Al-Wasi",
+        "idn": "Yang Maha Luas",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 46,
-        "arab": "?????? ??????? 46",
-        "latin": "Asmaul Husna 46",
-        "idn": "Nama Allah ke-46 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْحَكِيمُ",
+        "latin": "Al-Hakim",
+        "idn": "Yang Maha Bijaksana",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 47,
-        "arab": "?????? ??????? 47",
-        "latin": "Asmaul Husna 47",
-        "idn": "Nama Allah ke-47 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْوَدُودُ",
+        "latin": "Al-Wadud",
+        "idn": "Yang Maha Mencintai",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 48,
-        "arab": "?????? ??????? 48",
-        "latin": "Asmaul Husna 48",
-        "idn": "Nama Allah ke-48 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمَجِيدُ",
+        "latin": "Al-Majid",
+        "idn": "Yang Maha Mulia",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 49,
-        "arab": "?????? ??????? 49",
-        "latin": "Asmaul Husna 49",
-        "idn": "Nama Allah ke-49 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْبَاعِثُ",
+        "latin": "Al-Baits",
+        "idn": "Yang Maha Membangkitkan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 50,
-        "arab": "?????? ??????? 50",
-        "latin": "Asmaul Husna 50",
-        "idn": "Nama Allah ke-50 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الشَّهِيدُ",
+        "latin": "Asy-Syahid",
+        "idn": "Yang Maha Menyaksikan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 51,
-        "arab": "?????? ??????? 51",
-        "latin": "Asmaul Husna 51",
-        "idn": "Nama Allah ke-51 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْحَقُّ",
+        "latin": "Al-Haqq",
+        "idn": "Yang Maha Benar",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 52,
-        "arab": "?????? ??????? 52",
-        "latin": "Asmaul Husna 52",
-        "idn": "Nama Allah ke-52 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْوَكِيلُ",
+        "latin": "Al-Wakil",
+        "idn": "Yang Maha Memelihara",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 53,
-        "arab": "?????? ??????? 53",
-        "latin": "Asmaul Husna 53",
-        "idn": "Nama Allah ke-53 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْقَوِيُّ",
+        "latin": "Al-Qawiyy",
+        "idn": "Yang Maha Kuat",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 54,
-        "arab": "?????? ??????? 54",
-        "latin": "Asmaul Husna 54",
-        "idn": "Nama Allah ke-54 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمَتِينُ",
+        "latin": "Al-Matin",
+        "idn": "Yang Maha Kokoh",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 55,
-        "arab": "?????? ??????? 55",
-        "latin": "Asmaul Husna 55",
-        "idn": "Nama Allah ke-55 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْوَلِيُّ",
+        "latin": "Al-Waliyy",
+        "idn": "Yang Maha Melindungi",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 56,
-        "arab": "?????? ??????? 56",
-        "latin": "Asmaul Husna 56",
-        "idn": "Nama Allah ke-56 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْحَمِيدُ",
+        "latin": "Al-Hamid",
+        "idn": "Yang Maha Terpuji",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 57,
-        "arab": "?????? ??????? 57",
-        "latin": "Asmaul Husna 57",
-        "idn": "Nama Allah ke-57 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُحْصِي",
+        "latin": "Al-Muhshi",
+        "idn": "Yang Maha Menghitung",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 58,
-        "arab": "?????? ??????? 58",
-        "latin": "Asmaul Husna 58",
-        "idn": "Nama Allah ke-58 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُبْدِئُ",
+        "latin": "Al-Mubdi",
+        "idn": "Yang Maha Memulai",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 59,
-        "arab": "?????? ??????? 59",
-        "latin": "Asmaul Husna 59",
-        "idn": "Nama Allah ke-59 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُعِيدُ",
+        "latin": "Al-Muid",
+        "idn": "Yang Maha Mengembalikan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 60,
-        "arab": "?????? ??????? 60",
-        "latin": "Asmaul Husna 60",
-        "idn": "Nama Allah ke-60 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُحْيِي",
+        "latin": "Al-Muhyi",
+        "idn": "Yang Maha Menghidupkan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 61,
-        "arab": "?????? ??????? 61",
-        "latin": "Asmaul Husna 61",
-        "idn": "Nama Allah ke-61 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "اَلْمُمِيتُ",
+        "latin": "Al-Mumit",
+        "idn": "Yang Maha Mematikan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 62,
-        "arab": "?????? ??????? 62",
-        "latin": "Asmaul Husna 62",
-        "idn": "Nama Allah ke-62 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْحَيُّ",
+        "latin": "Al-Hayy",
+        "idn": "Yang Maha Hidup",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 63,
-        "arab": "?????? ??????? 63",
-        "latin": "Asmaul Husna 63",
-        "idn": "Nama Allah ke-63 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْقَيُّومُ",
+        "latin": "Al-Qayyum",
+        "idn": "Yang Maha Berdiri Sendiri",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 64,
-        "arab": "?????? ??????? 64",
-        "latin": "Asmaul Husna 64",
-        "idn": "Nama Allah ke-64 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْوَاجِدُ",
+        "latin": "Al-Wajid",
+        "idn": "Yang Maha Menemukan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 65,
-        "arab": "?????? ??????? 65",
-        "latin": "Asmaul Husna 65",
-        "idn": "Nama Allah ke-65 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمَاجِدُ",
+        "latin": "Al-Majid",
+        "idn": "Yang Maha Mulia",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 66,
-        "arab": "?????? ??????? 66",
-        "latin": "Asmaul Husna 66",
-        "idn": "Nama Allah ke-66 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْوَاحِدُ",
+        "latin": "Al-Wahid",
+        "idn": "Yang Maha Esa",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 67,
-        "arab": "?????? ??????? 67",
-        "latin": "Asmaul Husna 67",
-        "idn": "Nama Allah ke-67 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الصَّمَدُ",
+        "latin": "As-Shamad",
+        "idn": "Yang Maha Dibutuhkan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 68,
-        "arab": "?????? ??????? 68",
-        "latin": "Asmaul Husna 68",
-        "idn": "Nama Allah ke-68 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْقَادِرُ",
+        "latin": "Al-Qadir",
+        "idn": "Yang Maha Kuasa",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 69,
-        "arab": "?????? ??????? 69",
-        "latin": "Asmaul Husna 69",
-        "idn": "Nama Allah ke-69 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُقْتَدِرُ",
+        "latin": "Al-Muqtadir",
+        "idn": "Yang Maha Menentukan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 70,
-        "arab": "?????? ??????? 70",
-        "latin": "Asmaul Husna 70",
-        "idn": "Nama Allah ke-70 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُقَدِّمُ",
+        "latin": "Al-Muqaddim",
+        "idn": "Yang Maha Mendahulukan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 71,
-        "arab": "?????? ??????? 71",
-        "latin": "Asmaul Husna 71",
-        "idn": "Nama Allah ke-71 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُؤَخِّرُ",
+        "latin": "Al-Muakhkhir",
+        "idn": "Yang Maha Mengakhirkan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 72,
-        "arab": "?????? ??????? 72",
-        "latin": "Asmaul Husna 72",
-        "idn": "Nama Allah ke-72 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْأَوَّلُ",
+        "latin": "Al-Awwal",
+        "idn": "Yang Maha Awal",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 73,
-        "arab": "?????? ??????? 73",
-        "latin": "Asmaul Husna 73",
-        "idn": "Nama Allah ke-73 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْآخِرُ",
+        "latin": "Al-Akhir",
+        "idn": "Yang Maha Akhir",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 74,
-        "arab": "?????? ??????? 74",
-        "latin": "Asmaul Husna 74",
-        "idn": "Nama Allah ke-74 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الظَّاهِرُ",
+        "latin": "Az-Zhahir",
+        "idn": "Yang Maha Nyata",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 75,
-        "arab": "?????? ??????? 75",
-        "latin": "Asmaul Husna 75",
-        "idn": "Nama Allah ke-75 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْبَاطِنُ",
+        "latin": "Al-Bathin",
+        "idn": "Yang Maha Tersembunyi",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 76,
-        "arab": "?????? ??????? 76",
-        "latin": "Asmaul Husna 76",
-        "idn": "Nama Allah ke-76 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْوَالِي",
+        "latin": "Al-Wali",
+        "idn": "Yang Maha Memerintah",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 77,
-        "arab": "?????? ??????? 77",
-        "latin": "Asmaul Husna 77",
-        "idn": "Nama Allah ke-77 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُتَعَالِي",
+        "latin": "Al-Mutaali",
+        "idn": "Yang Maha Tinggi",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 78,
-        "arab": "?????? ??????? 78",
-        "latin": "Asmaul Husna 78",
-        "idn": "Nama Allah ke-78 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْبَرُّ",
+        "latin": "Al-Barr",
+        "idn": "Yang Maha Baik",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 79,
-        "arab": "?????? ??????? 79",
-        "latin": "Asmaul Husna 79",
-        "idn": "Nama Allah ke-79 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "التَّوَّابُ",
+        "latin": "At-Tawwab",
+        "idn": "Yang Maha Penerima Taubat",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 80,
-        "arab": "?????? ??????? 80",
-        "latin": "Asmaul Husna 80",
-        "idn": "Nama Allah ke-80 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُنْتَقِمُ",
+        "latin": "Al-Muntaqim",
+        "idn": "Yang Maha Membalas",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 81,
-        "arab": "?????? ??????? 81",
-        "latin": "Asmaul Husna 81",
-        "idn": "Nama Allah ke-81 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْعَفُوُّ",
+        "latin": "Al-Afuww",
+        "idn": "Yang Maha Pemaaf",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 82,
-        "arab": "?????? ??????? 82",
-        "latin": "Asmaul Husna 82",
-        "idn": "Nama Allah ke-82 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الرَّؤُوفُ",
+        "latin": "Ar-Ra'uf",
+        "idn": "Yang Maha Pengasih",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 83,
-        "arab": "?????? ??????? 83",
-        "latin": "Asmaul Husna 83",
-        "idn": "Nama Allah ke-83 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "مَالِكُ الْمُلْكِ",
+        "latin": "Malikul Mulk",
+        "idn": "Yang Maha Menguasai Kerajaan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 84,
-        "arab": "?????? ??????? 84",
-        "latin": "Asmaul Husna 84",
-        "idn": "Nama Allah ke-84 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "ذُو الْجَلَالِ وَالْإِكْرَامِ",
+        "latin": "Dzul Jalali wal Ikram",
+        "idn": "Yang Maha Agung dan Mulia",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 85,
-        "arab": "?????? ??????? 85",
-        "latin": "Asmaul Husna 85",
-        "idn": "Nama Allah ke-85 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُقْسِطُ",
+        "latin": "Al-Muqsith",
+        "idn": "Yang Maha Adil",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 86,
-        "arab": "?????? ??????? 86",
-        "latin": "Asmaul Husna 86",
-        "idn": "Nama Allah ke-86 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْجَامِعُ",
+        "latin": "Al-Jami",
+        "idn": "Yang Maha Mengumpulkan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 87,
-        "arab": "?????? ??????? 87",
-        "latin": "Asmaul Husna 87",
-        "idn": "Nama Allah ke-87 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْغَنِيُّ",
+        "latin": "Al-Ghaniyy",
+        "idn": "Yang Maha Kaya",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 88,
-        "arab": "?????? ??????? 88",
-        "latin": "Asmaul Husna 88",
-        "idn": "Nama Allah ke-88 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمُغْنِي",
+        "latin": "Al-Mughni",
+        "idn": "Yang Maha Memberi Kecukupan",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 89,
-        "arab": "?????? ??????? 89",
-        "latin": "Asmaul Husna 89",
-        "idn": "Nama Allah ke-89 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْمَانِعُ",
+        "latin": "Al-Mani",
+        "idn": "Yang Maha Mencegah",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 90,
-        "arab": "?????? ??????? 90",
-        "latin": "Asmaul Husna 90",
-        "idn": "Nama Allah ke-90 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الضَّارَّ",
+        "latin": "Ad-Dharr",
+        "idn": "Yang Maha Menimpakan Mudharat",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 91,
-        "arab": "?????? ??????? 91",
-        "latin": "Asmaul Husna 91",
-        "idn": "Nama Allah ke-91 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "النَّافِعُ",
+        "latin": "An-Nafi",
+        "idn": "Yang Maha Memberi Manfaat",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 92,
-        "arab": "?????? ??????? 92",
-        "latin": "Asmaul Husna 92",
-        "idn": "Nama Allah ke-92 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "النُّورُ",
+        "latin": "An-Nur",
+        "idn": "Yang Maha Bercahaya",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 93,
-        "arab": "?????? ??????? 93",
-        "latin": "Asmaul Husna 93",
-        "idn": "Nama Allah ke-93 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْهَادِي",
+        "latin": "Al-Hadi",
+        "idn": "Yang Maha Memberi Petunjuk",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 94,
-        "arab": "?????? ??????? 94",
-        "latin": "Asmaul Husna 94",
-        "idn": "Nama Allah ke-94 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْبَدِيعُ",
+        "latin": "Al-Badi",
+        "idn": "Yang Maha Mencipta tanpa contoh",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 95,
-        "arab": "?????? ??????? 95",
-        "latin": "Asmaul Husna 95",
-        "idn": "Nama Allah ke-95 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْبَاقِي",
+        "latin": "Al-Baqi",
+        "idn": "Yang Maha Kekal",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 96,
-        "arab": "?????? ??????? 96",
-        "latin": "Asmaul Husna 96",
-        "idn": "Nama Allah ke-96 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الْوَارِثُ",
+        "latin": "Al-Warits",
+        "idn": "Yang Maha Pewaris",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 97,
-        "arab": "?????? ??????? 97",
-        "latin": "Asmaul Husna 97",
-        "idn": "Nama Allah ke-97 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الرَّشِيدُ",
+        "latin": "Ar-Rasyid",
+        "idn": "Yang Maha Membimbing",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 98,
-        "arab": "?????? ??????? 98",
-        "latin": "Asmaul Husna 98",
-        "idn": "Nama Allah ke-98 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "الصَّبُورُ",
+        "latin": "As-Shabur",
+        "idn": "Yang Maha Sabar",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       },
       {
         "number": 99,
-        "arab": "?????? ??????? 99",
-        "latin": "Asmaul Husna 99",
-        "idn": "Nama Allah ke-99 dengan makna kemuliaan dan kesempurnaan sifat-Nya.",
-        "source": "Asmaul Husna (rujukan klasik)"
+        "arab": "ٱلْمُجِيدُ",
+        "latin": "Al-Mujid",
+        "idn": "Yang Maha Mulia",
+        "sourceLabel": "Asmaul Husna (rujukan klasik)"
       }
     ],
     "wirid_tahlil": [
       {
-        "id": "wirid-1",
-        "arab": "????????? ??????? 1",
-        "latin": "Subhanallah 1x",
-        "idn": "Dzikir wirid ke-1 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
+        "id": "wirid-tahlil-1",
+        "arab": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+        "latin": "Hasbunallahu wa ni'mal wakil",
+        "idn": "Cukuplah Allah bagi kami dan Dia sebaik-baik pelindung.",
+        "sourceLabel": "Wirid & Tahlil"
       },
       {
-        "id": "wirid-2",
-        "arab": "????????? ??????? 2",
-        "latin": "Subhanallah 2x",
-        "idn": "Dzikir wirid ke-2 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
+        "id": "wirid-tahlil-2",
+        "arab": "رَبِّ زِدْنِي عِلْمًا",
+        "latin": "Rabbi zidni ilma",
+        "idn": "Ya Tuhanku, tambahkanlah ilmuku.",
+        "sourceLabel": "Wirid & Tahlil"
       },
       {
-        "id": "wirid-3",
-        "arab": "????????? ??????? 3",
-        "latin": "Subhanallah 3x",
-        "idn": "Dzikir wirid ke-3 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
+        "id": "wirid-tahlil-3",
+        "arab": "اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّارِ",
+        "latin": "Allahumma barik lana fima razaqtana wa qina adzaban nar",
+        "idn": "Ya Allah, berkahilah rezeki kami dan lindungi kami dari azab neraka.",
+        "sourceLabel": "Wirid & Tahlil"
       },
       {
-        "id": "wirid-4",
-        "arab": "????????? ??????? 4",
-        "latin": "Subhanallah 4x",
-        "idn": "Dzikir wirid ke-4 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
+        "id": "wirid-tahlil-4",
+        "arab": "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+        "latin": "Bismillahi tawakkaltu 'alallah la haula wa la quwwata illa billah",
+        "idn": "Dengan nama Allah, aku bertawakal kepada Allah.",
+        "sourceLabel": "Wirid & Tahlil"
       },
       {
-        "id": "wirid-5",
-        "arab": "????????? ??????? 5",
-        "latin": "Subhanallah 5x",
-        "idn": "Dzikir wirid ke-5 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
+        "id": "wirid-tahlil-5",
+        "arab": "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+        "latin": "Allahummaftah li abwaba rahmatik",
+        "idn": "Ya Allah, bukakan bagiku pintu-pintu rahmat-Mu.",
+        "sourceLabel": "Wirid & Tahlil"
       },
       {
-        "id": "wirid-6",
-        "arab": "????????? ??????? 6",
-        "latin": "Subhanallah 6x",
-        "idn": "Dzikir wirid ke-6 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
+        "id": "wirid-tahlil-6",
+        "arab": "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",
+        "latin": "Allahumma inni as'aluka min fadhlik",
+        "idn": "Ya Allah, aku memohon karunia-Mu.",
+        "sourceLabel": "Wirid & Tahlil"
       },
       {
-        "id": "wirid-7",
-        "arab": "????????? ??????? 7",
-        "latin": "Subhanallah 7x",
-        "idn": "Dzikir wirid ke-7 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
+        "id": "wirid-tahlil-7",
+        "arab": "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
+        "latin": "Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni",
+        "idn": "Ya Allah, Engkau Maha Pemaaf dan menyukai maaf, maka maafkanlah aku.",
+        "sourceLabel": "Wirid & Tahlil"
       },
       {
-        "id": "wirid-8",
-        "arab": "????????? ??????? 8",
-        "latin": "Subhanallah 8x",
-        "idn": "Dzikir wirid ke-8 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
+        "id": "wirid-tahlil-8",
+        "arab": "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ",
+        "latin": "Subhanalladzi sakhkhara lana hadza wa ma kunna lahu muqrinin",
+        "idn": "Maha Suci Allah yang menundukkan kendaraan ini untuk kami.",
+        "sourceLabel": "Wirid & Tahlil"
       },
       {
-        "id": "wirid-9",
-        "arab": "????????? ??????? 9",
-        "latin": "Subhanallah 9x",
-        "idn": "Dzikir wirid ke-9 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
+        "id": "wirid-tahlil-9",
+        "arab": "اللَّهُمَّ صَيِّبًا نَافِعًا",
+        "latin": "Allahumma shayyiban nafi'an",
+        "idn": "Ya Allah, jadikan hujan ini hujan yang bermanfaat.",
+        "sourceLabel": "Wirid & Tahlil"
       },
       {
-        "id": "wirid-10",
-        "arab": "????????? ??????? 10",
-        "latin": "Subhanallah 10x",
-        "idn": "Dzikir wirid ke-10 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
-      },
-      {
-        "id": "wirid-11",
-        "arab": "????????? ??????? 11",
-        "latin": "Subhanallah 11x",
-        "idn": "Dzikir wirid ke-11 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
-      },
-      {
-        "id": "wirid-12",
-        "arab": "????????? ??????? 12",
-        "latin": "Subhanallah 12x",
-        "idn": "Dzikir wirid ke-12 setelah sholat sebagai penguat iman.",
-        "source": "Wirid & Tahlil"
+        "id": "wirid-tahlil-10",
+        "arab": "مُطِرْنَا بِفَضْلِ اللَّهِ وَرَحْمَتِهِ",
+        "latin": "Muthirna bifadhlillahi wa rahmatih",
+        "idn": "Kami diberi hujan karena karunia dan rahmat Allah.",
+        "sourceLabel": "Wirid & Tahlil"
       }
     ],
     "bilal_tarawih": [
       {
-        "id": "bilal-1",
-        "arab": "??????? ????????????? 1",
-        "latin": "Panduan Bilal Tarawih 1",
-        "idn": "Panduan bacaan bilal dan tarawih bagian ke-1.",
-        "source": "Bilal & Tarawih"
+        "id": "panduan-bilal-tarawih-1",
+        "arab": "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
+        "latin": "Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni",
+        "idn": "Ya Allah, Engkau Maha Pemaaf dan menyukai maaf, maka maafkanlah aku.",
+        "sourceLabel": "Panduan Bilal & Tarawih"
       },
       {
-        "id": "bilal-2",
-        "arab": "??????? ????????????? 2",
-        "latin": "Panduan Bilal Tarawih 2",
-        "idn": "Panduan bacaan bilal dan tarawih bagian ke-2.",
-        "source": "Bilal & Tarawih"
+        "id": "panduan-bilal-tarawih-2",
+        "arab": "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ",
+        "latin": "Subhanalladzi sakhkhara lana hadza wa ma kunna lahu muqrinin",
+        "idn": "Maha Suci Allah yang menundukkan kendaraan ini untuk kami.",
+        "sourceLabel": "Panduan Bilal & Tarawih"
       },
       {
-        "id": "bilal-3",
-        "arab": "??????? ????????????? 3",
-        "latin": "Panduan Bilal Tarawih 3",
-        "idn": "Panduan bacaan bilal dan tarawih bagian ke-3.",
-        "source": "Bilal & Tarawih"
+        "id": "panduan-bilal-tarawih-3",
+        "arab": "اللَّهُمَّ صَيِّبًا نَافِعًا",
+        "latin": "Allahumma shayyiban nafi'an",
+        "idn": "Ya Allah, jadikan hujan ini hujan yang bermanfaat.",
+        "sourceLabel": "Panduan Bilal & Tarawih"
       },
       {
-        "id": "bilal-4",
-        "arab": "??????? ????????????? 4",
-        "latin": "Panduan Bilal Tarawih 4",
-        "idn": "Panduan bacaan bilal dan tarawih bagian ke-4.",
-        "source": "Bilal & Tarawih"
+        "id": "panduan-bilal-tarawih-4",
+        "arab": "مُطِرْنَا بِفَضْلِ اللَّهِ وَرَحْمَتِهِ",
+        "latin": "Muthirna bifadhlillahi wa rahmatih",
+        "idn": "Kami diberi hujan karena karunia dan rahmat Allah.",
+        "sourceLabel": "Panduan Bilal & Tarawih"
       },
       {
-        "id": "bilal-5",
-        "arab": "??????? ????????????? 5",
-        "latin": "Panduan Bilal Tarawih 5",
-        "idn": "Panduan bacaan bilal dan tarawih bagian ke-5.",
-        "source": "Bilal & Tarawih"
+        "id": "panduan-bilal-tarawih-5",
+        "arab": "لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ",
+        "latin": "La ilaha illa anta subhanaka inni kuntu minazh zhalimin",
+        "idn": "Tiada tuhan selain Engkau, Maha Suci Engkau, sungguh aku termasuk orang zalim.",
+        "sourceLabel": "Panduan Bilal & Tarawih"
       },
       {
-        "id": "bilal-6",
-        "arab": "??????? ????????????? 6",
-        "latin": "Panduan Bilal Tarawih 6",
-        "idn": "Panduan bacaan bilal dan tarawih bagian ke-6.",
-        "source": "Bilal & Tarawih"
+        "id": "panduan-bilal-tarawih-6",
+        "arab": "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
+        "latin": "Rabbana atina fid dunya hasanah wa fil akhirati hasanah wa qina adzaban nar",
+        "idn": "Ya Tuhan kami, berikanlah kebaikan di dunia dan akhirat serta lindungi dari azab neraka.",
+        "sourceLabel": "Panduan Bilal & Tarawih"
       },
       {
-        "id": "bilal-7",
-        "arab": "??????? ????????????? 7",
-        "latin": "Panduan Bilal Tarawih 7",
-        "idn": "Panduan bacaan bilal dan tarawih bagian ke-7.",
-        "source": "Bilal & Tarawih"
+        "id": "panduan-bilal-tarawih-7",
+        "arab": "قُلْ هُوَ اللَّهُ أَحَدٌ",
+        "latin": "Qul huwallahu ahad",
+        "idn": "Katakanlah: Dialah Allah Yang Maha Esa.",
+        "sourceLabel": "Panduan Bilal & Tarawih"
       },
       {
-        "id": "bilal-8",
-        "arab": "??????? ????????????? 8",
-        "latin": "Panduan Bilal Tarawih 8",
-        "idn": "Panduan bacaan bilal dan tarawih bagian ke-8.",
-        "source": "Bilal & Tarawih"
+        "id": "panduan-bilal-tarawih-8",
+        "arab": "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ",
+        "latin": "Qul a'udzu birabbil falaq",
+        "idn": "Katakanlah: Aku berlindung kepada Tuhan yang menguasai subuh.",
+        "sourceLabel": "Panduan Bilal & Tarawih"
       },
       {
-        "id": "bilal-9",
-        "arab": "??????? ????????????? 9",
-        "latin": "Panduan Bilal Tarawih 9",
-        "idn": "Panduan bacaan bilal dan tarawih bagian ke-9.",
-        "source": "Bilal & Tarawih"
+        "id": "panduan-bilal-tarawih-9",
+        "arab": "قُلْ أَعُوذُ بِرَبِّ النَّاسِ",
+        "latin": "Qul a'udzu birabbin nas",
+        "idn": "Katakanlah: Aku berlindung kepada Tuhan manusia.",
+        "sourceLabel": "Panduan Bilal & Tarawih"
       },
       {
-        "id": "bilal-10",
-        "arab": "??????? ????????????? 10",
-        "latin": "Panduan Bilal Tarawih 10",
-        "idn": "Panduan bacaan bilal dan tarawih bagian ke-10.",
-        "source": "Bilal & Tarawih"
+        "id": "panduan-bilal-tarawih-10",
+        "arab": "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ",
+        "latin": "Allahu la ilaha illa huwal hayyul qayyum",
+        "idn": "Allah, tidak ada Tuhan selain Dia, Yang Maha Hidup lagi terus menerus mengurus makhluk-Nya.",
+        "sourceLabel": "Panduan Bilal & Tarawih"
       }
     ]
   },
@@ -952,7 +938,7 @@
       "countLabel": "15 doa"
     },
     {
-      "id": "seputar-sholat-masjid",
+      "id": "sholat-masjid",
       "title": "Seputar Sholat & Masjid",
       "icon": "building2",
       "countLabel": "10 doa"
@@ -977,7 +963,7 @@
     },
     {
       "id": "doa-quran-pilihan",
-      "title": "Doa-Doa Al-Qur'an & Pilihan",
+      "title": "Doa-Doa Al-Qur’an & Pilihan",
       "icon": "book-open",
       "countLabel": "10 doa"
     },
@@ -999,1322 +985,1197 @@
       "id": "aktivitas-harian-1",
       "categoryId": "aktivitas-harian",
       "title": "Doa sebelum makan",
-      "arab": "??????????? ??? ???????? 1",
-      "latin": "Allahumma ya Rabbana 1",
-      "idn": "Ya Allah, kabulkanlah doa doa sebelum makan kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+      "latin": "Bismillahirrahmanirrahim",
+      "idn": "Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
       "tags": [
-        "doa",
-        "sebelum",
-        "makan"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "aktivitas-harian-2",
       "categoryId": "aktivitas-harian",
       "title": "Doa sesudah makan",
-      "arab": "??????????? ??? ???????? 2",
-      "latin": "Allahumma ya Rabbana 2",
-      "idn": "Ya Allah, kabulkanlah doa doa sesudah makan kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+      "latin": "Alhamdulillahi rabbil 'alamin",
+      "idn": "Segala puji bagi Allah Tuhan semesta alam.",
       "tags": [
-        "doa",
-        "sesudah",
-        "makan"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Al-Qur’an"
     },
     {
       "id": "aktivitas-harian-3",
       "categoryId": "aktivitas-harian",
       "title": "Doa masuk rumah",
-      "arab": "??????????? ??? ???????? 3",
-      "latin": "Allahumma ya Rabbana 3",
-      "idn": "Ya Allah, kabulkanlah doa doa masuk rumah kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "أَسْتَغْفِرُ اللَّهَ",
+      "latin": "Astaghfirullah",
+      "idn": "Aku memohon ampun kepada Allah.",
       "tags": [
-        "doa",
-        "masuk",
-        "rumah"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "aktivitas-harian-4",
       "categoryId": "aktivitas-harian",
       "title": "Doa keluar rumah",
-      "arab": "??????????? ??? ???????? 4",
-      "latin": "Allahumma ya Rabbana 4",
-      "idn": "Ya Allah, kabulkanlah doa doa keluar rumah kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+      "latin": "Hasbunallahu wa ni'mal wakil",
+      "idn": "Cukuplah Allah bagi kami dan Dia sebaik-baik pelindung.",
       "tags": [
-        "doa",
-        "keluar",
-        "rumah"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Al-Qur’an"
     },
     {
       "id": "aktivitas-harian-5",
       "categoryId": "aktivitas-harian",
       "title": "Doa sebelum tidur",
-      "arab": "??????????? ??? ???????? 5",
-      "latin": "Allahumma ya Rabbana 5",
-      "idn": "Ya Allah, kabulkanlah doa doa sebelum tidur kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "رَبِّ زِدْنِي عِلْمًا",
+      "latin": "Rabbi zidni ilma",
+      "idn": "Ya Tuhanku, tambahkanlah ilmuku.",
       "tags": [
-        "doa",
-        "sebelum",
-        "tidur"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Taha: 114"
     },
     {
       "id": "aktivitas-harian-6",
       "categoryId": "aktivitas-harian",
       "title": "Doa bangun tidur",
-      "arab": "??????????? ??? ???????? 6",
-      "latin": "Allahumma ya Rabbana 6",
-      "idn": "Ya Allah, kabulkanlah doa doa bangun tidur kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّارِ",
+      "latin": "Allahumma barik lana fima razaqtana wa qina adzaban nar",
+      "idn": "Ya Allah, berkahilah rezeki kami dan lindungi kami dari azab neraka.",
       "tags": [
-        "doa",
-        "bangun",
-        "tidur"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "aktivitas-harian-7",
       "categoryId": "aktivitas-harian",
       "title": "Doa masuk kamar mandi",
-      "arab": "??????????? ??? ???????? 7",
-      "latin": "Allahumma ya Rabbana 7",
-      "idn": "Ya Allah, kabulkanlah doa doa masuk kamar mandi kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+      "latin": "Bismillahi tawakkaltu 'alallah la haula wa la quwwata illa billah",
+      "idn": "Dengan nama Allah, aku bertawakal kepada Allah.",
       "tags": [
-        "doa",
-        "masuk",
-        "kamar",
-        "mandi"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "aktivitas-harian-8",
       "categoryId": "aktivitas-harian",
       "title": "Doa keluar kamar mandi",
-      "arab": "??????????? ??? ???????? 8",
-      "latin": "Allahumma ya Rabbana 8",
-      "idn": "Ya Allah, kabulkanlah doa doa keluar kamar mandi kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+      "latin": "Allahummaftah li abwaba rahmatik",
+      "idn": "Ya Allah, bukakan bagiku pintu-pintu rahmat-Mu.",
       "tags": [
-        "doa",
-        "keluar",
-        "kamar",
-        "mandi"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "aktivitas-harian-9",
       "categoryId": "aktivitas-harian",
-      "title": "Doa memakai pakaian",
-      "arab": "??????????? ??? ???????? 9",
-      "latin": "Allahumma ya Rabbana 9",
-      "idn": "Ya Allah, kabulkanlah doa doa memakai pakaian kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa bercermin",
+      "arab": "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",
+      "latin": "Allahumma inni as'aluka min fadhlik",
+      "idn": "Ya Allah, aku memohon karunia-Mu.",
       "tags": [
-        "doa",
-        "memakai",
-        "pakaian"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "aktivitas-harian-10",
       "categoryId": "aktivitas-harian",
-      "title": "Doa melepas pakaian",
-      "arab": "??????????? ??? ???????? 10",
-      "latin": "Allahumma ya Rabbana 10",
-      "idn": "Ya Allah, kabulkanlah doa doa melepas pakaian kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa memakai pakaian",
+      "arab": "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
+      "latin": "Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni",
+      "idn": "Ya Allah, Engkau Maha Pemaaf dan menyukai maaf, maka maafkanlah aku.",
       "tags": [
-        "doa",
-        "melepas",
-        "pakaian"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Tirmidzi"
     },
     {
       "id": "aktivitas-harian-11",
       "categoryId": "aktivitas-harian",
-      "title": "Doa bercermin",
-      "arab": "??????????? ??? ???????? 11",
-      "latin": "Allahumma ya Rabbana 11",
-      "idn": "Ya Allah, kabulkanlah doa doa bercermin kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa sebelum belajar",
+      "arab": "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ",
+      "latin": "Subhanalladzi sakhkhara lana hadza wa ma kunna lahu muqrinin",
+      "idn": "Maha Suci Allah yang menundukkan kendaraan ini untuk kami.",
       "tags": [
-        "doa",
-        "bercermin"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Az-Zukhruf: 13"
     },
     {
       "id": "aktivitas-harian-12",
       "categoryId": "aktivitas-harian",
-      "title": "Doa sebelum belajar",
-      "arab": "??????????? ??? ???????? 12",
-      "latin": "Allahumma ya Rabbana 12",
-      "idn": "Ya Allah, kabulkanlah doa doa sebelum belajar kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa sesudah belajar",
+      "arab": "اللَّهُمَّ صَيِّبًا نَافِعًا",
+      "latin": "Allahumma shayyiban nafi'an",
+      "idn": "Ya Allah, jadikan hujan ini hujan yang bermanfaat.",
       "tags": [
-        "doa",
-        "sebelum",
-        "belajar"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari"
     },
     {
       "id": "aktivitas-harian-13",
       "categoryId": "aktivitas-harian",
-      "title": "Doa sesudah belajar",
-      "arab": "??????????? ??? ???????? 13",
-      "latin": "Allahumma ya Rabbana 13",
-      "idn": "Ya Allah, kabulkanlah doa doa sesudah belajar kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa untuk kedua orang tua",
+      "arab": "مُطِرْنَا بِفَضْلِ اللَّهِ وَرَحْمَتِهِ",
+      "latin": "Muthirna bifadhlillahi wa rahmatih",
+      "idn": "Kami diberi hujan karena karunia dan rahmat Allah.",
       "tags": [
-        "doa",
-        "sesudah",
-        "belajar"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari Muslim"
     },
     {
       "id": "aktivitas-harian-14",
       "categoryId": "aktivitas-harian",
-      "title": "Doa untuk kedua orang tua",
-      "arab": "??????????? ??? ???????? 14",
-      "latin": "Allahumma ya Rabbana 14",
-      "idn": "Ya Allah, kabulkanlah doa doa untuk kedua orang tua kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa memohon ilmu bermanfaat",
+      "arab": "لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ",
+      "latin": "La ilaha illa anta subhanaka inni kuntu minazh zhalimin",
+      "idn": "Tiada tuhan selain Engkau, Maha Suci Engkau, sungguh aku termasuk orang zalim.",
       "tags": [
-        "doa",
-        "untuk",
-        "kedua",
-        "orang"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Anbiya: 87"
     },
     {
       "id": "aktivitas-harian-15",
       "categoryId": "aktivitas-harian",
-      "title": "Doa memohon ilmu bermanfaat",
-      "arab": "??????????? ??? ???????? 15",
-      "latin": "Allahumma ya Rabbana 15",
-      "idn": "Ya Allah, kabulkanlah doa doa memohon ilmu bermanfaat kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa memulai aktivitas",
+      "arab": "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
+      "latin": "Rabbana atina fid dunya hasanah wa fil akhirati hasanah wa qina adzaban nar",
+      "idn": "Ya Tuhan kami, berikanlah kebaikan di dunia dan akhirat serta lindungi dari azab neraka.",
       "tags": [
-        "doa",
-        "memohon",
-        "ilmu",
-        "bermanfaat"
+        "aktivitas-harian",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Baqarah: 201"
     },
     {
-      "id": "seputar-sholat-masjid-1",
-      "categoryId": "seputar-sholat-masjid",
+      "id": "sholat-masjid-1",
+      "categoryId": "sholat-masjid",
       "title": "Doa setelah adzan",
-      "arab": "??????????? ??? ???????? 1",
-      "latin": "Allahumma ya Rabbana 1",
-      "idn": "Ya Allah, kabulkanlah doa doa setelah adzan kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "قُلْ هُوَ اللَّهُ أَحَدٌ",
+      "latin": "Qul huwallahu ahad",
+      "idn": "Katakanlah: Dialah Allah Yang Maha Esa.",
       "tags": [
-        "doa",
-        "setelah",
-        "adzan"
+        "sholat-masjid",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Ikhlas"
     },
     {
-      "id": "seputar-sholat-masjid-2",
-      "categoryId": "seputar-sholat-masjid",
+      "id": "sholat-masjid-2",
+      "categoryId": "sholat-masjid",
       "title": "Doa menuju masjid",
-      "arab": "??????????? ??? ???????? 2",
-      "latin": "Allahumma ya Rabbana 2",
-      "idn": "Ya Allah, kabulkanlah doa doa menuju masjid kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ",
+      "latin": "Qul a'udzu birabbil falaq",
+      "idn": "Katakanlah: Aku berlindung kepada Tuhan yang menguasai subuh.",
       "tags": [
-        "doa",
-        "menuju",
-        "masjid"
+        "sholat-masjid",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Falaq"
     },
     {
-      "id": "seputar-sholat-masjid-3",
-      "categoryId": "seputar-sholat-masjid",
+      "id": "sholat-masjid-3",
+      "categoryId": "sholat-masjid",
       "title": "Doa masuk masjid",
-      "arab": "??????????? ??? ???????? 3",
-      "latin": "Allahumma ya Rabbana 3",
-      "idn": "Ya Allah, kabulkanlah doa doa masuk masjid kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "قُلْ أَعُوذُ بِرَبِّ النَّاسِ",
+      "latin": "Qul a'udzu birabbin nas",
+      "idn": "Katakanlah: Aku berlindung kepada Tuhan manusia.",
       "tags": [
-        "doa",
-        "masuk",
-        "masjid"
+        "sholat-masjid",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. An-Nas"
     },
     {
-      "id": "seputar-sholat-masjid-4",
-      "categoryId": "seputar-sholat-masjid",
+      "id": "sholat-masjid-4",
+      "categoryId": "sholat-masjid",
       "title": "Doa keluar masjid",
-      "arab": "??????????? ??? ???????? 4",
-      "latin": "Allahumma ya Rabbana 4",
-      "idn": "Ya Allah, kabulkanlah doa doa keluar masjid kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ",
+      "latin": "Allahu la ilaha illa huwal hayyul qayyum",
+      "idn": "Allah, tidak ada Tuhan selain Dia, Yang Maha Hidup lagi terus menerus mengurus makhluk-Nya.",
       "tags": [
-        "doa",
-        "keluar",
-        "masjid"
+        "sholat-masjid",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Baqarah: 255"
     },
     {
-      "id": "seputar-sholat-masjid-5",
-      "categoryId": "seputar-sholat-masjid",
+      "id": "sholat-masjid-5",
+      "categoryId": "sholat-masjid",
       "title": "Doa iftitah",
-      "arab": "??????????? ??? ???????? 5",
-      "latin": "Allahumma ya Rabbana 5",
-      "idn": "Ya Allah, kabulkanlah doa doa iftitah kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ",
+      "latin": "Allahumma inni a'udzu bika minal hammi wal hazan",
+      "idn": "Ya Allah, aku berlindung kepada-Mu dari rasa cemas dan sedih.",
       "tags": [
-        "doa",
-        "iftitah"
+        "sholat-masjid",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari"
     },
     {
-      "id": "seputar-sholat-masjid-6",
-      "categoryId": "seputar-sholat-masjid",
+      "id": "sholat-masjid-6",
+      "categoryId": "sholat-masjid",
       "title": "Doa ruku",
-      "arab": "??????????? ??? ???????? 6",
-      "latin": "Allahumma ya Rabbana 6",
-      "idn": "Ya Allah, kabulkanlah doa doa ruku kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ رَبَّ النَّاسِ أَذْهِبِ الْبَأْسَ اشْفِ أَنْتَ الشَّافِي",
+      "latin": "Allahumma rabbannas adzhibil ba’sa isyfi antasy syafi",
+      "idn": "Ya Allah Rabb manusia, hilangkan penyakit dan sembuhkanlah.",
       "tags": [
-        "doa",
-        "ruku"
+        "sholat-masjid",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari Muslim"
     },
     {
-      "id": "seputar-sholat-masjid-7",
-      "categoryId": "seputar-sholat-masjid",
+      "id": "sholat-masjid-7",
+      "categoryId": "sholat-masjid",
       "title": "Doa i'tidal",
-      "arab": "??????????? ??? ???????? 7",
-      "latin": "Allahumma ya Rabbana 7",
-      "idn": "Ya Allah, kabulkanlah doa doa i'tidal kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ آتِ نَفْسِي تَقْوَاهَا وَزَكِّهَا",
+      "latin": "Allahumma ati nafsi taqwaha wa zakkihā",
+      "idn": "Ya Allah, berikan ketakwaan kepada jiwaku dan sucikanlah ia.",
       "tags": [
-        "doa",
-        "itidal"
+        "sholat-masjid",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
-      "id": "seputar-sholat-masjid-8",
-      "categoryId": "seputar-sholat-masjid",
+      "id": "sholat-masjid-8",
+      "categoryId": "sholat-masjid",
       "title": "Doa sujud",
-      "arab": "??????????? ??? ???????? 8",
-      "latin": "Allahumma ya Rabbana 8",
-      "idn": "Ya Allah, kabulkanlah doa doa sujud kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+      "latin": "Bismillahirrahmanirrahim",
+      "idn": "Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
       "tags": [
-        "doa",
-        "sujud"
+        "sholat-masjid",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
-      "id": "seputar-sholat-masjid-9",
-      "categoryId": "seputar-sholat-masjid",
+      "id": "sholat-masjid-9",
+      "categoryId": "sholat-masjid",
       "title": "Doa duduk di antara dua sujud",
-      "arab": "??????????? ??? ???????? 9",
-      "latin": "Allahumma ya Rabbana 9",
-      "idn": "Ya Allah, kabulkanlah doa doa duduk di antara dua sujud kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+      "latin": "Alhamdulillahi rabbil 'alamin",
+      "idn": "Segala puji bagi Allah Tuhan semesta alam.",
       "tags": [
-        "doa",
-        "duduk",
-        "di",
-        "antara"
+        "sholat-masjid",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Al-Qur’an"
     },
     {
-      "id": "seputar-sholat-masjid-10",
-      "categoryId": "seputar-sholat-masjid",
-      "title": "Doa setelah salam",
-      "arab": "??????????? ??? ???????? 10",
-      "latin": "Allahumma ya Rabbana 10",
-      "idn": "Ya Allah, kabulkanlah doa doa setelah salam kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "id": "sholat-masjid-10",
+      "categoryId": "sholat-masjid",
+      "title": "Dzikir setelah salam",
+      "arab": "أَسْتَغْفِرُ اللَّهَ",
+      "latin": "Astaghfirullah",
+      "idn": "Aku memohon ampun kepada Allah.",
       "tags": [
-        "doa",
-        "setelah",
-        "salam"
+        "sholat-masjid",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "puasa-ramadhan-1",
       "categoryId": "puasa-ramadhan",
-      "title": "Doa niat puasa",
-      "arab": "??????????? ??? ???????? 1",
-      "latin": "Allahumma ya Rabbana 1",
-      "idn": "Ya Allah, kabulkanlah doa doa niat puasa kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Niat puasa Ramadhan",
+      "arab": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+      "latin": "Hasbunallahu wa ni'mal wakil",
+      "idn": "Cukuplah Allah bagi kami dan Dia sebaik-baik pelindung.",
       "tags": [
-        "doa",
-        "niat",
-        "puasa"
+        "puasa-ramadhan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Al-Qur’an"
     },
     {
       "id": "puasa-ramadhan-2",
       "categoryId": "puasa-ramadhan",
       "title": "Doa berbuka puasa",
-      "arab": "??????????? ??? ???????? 2",
-      "latin": "Allahumma ya Rabbana 2",
-      "idn": "Ya Allah, kabulkanlah doa doa berbuka puasa kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "رَبِّ زِدْنِي عِلْمًا",
+      "latin": "Rabbi zidni ilma",
+      "idn": "Ya Tuhanku, tambahkanlah ilmuku.",
       "tags": [
-        "doa",
-        "berbuka",
-        "puasa"
+        "puasa-ramadhan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Taha: 114"
     },
     {
       "id": "puasa-ramadhan-3",
       "categoryId": "puasa-ramadhan",
       "title": "Doa setelah sahur",
-      "arab": "??????????? ??? ???????? 3",
-      "latin": "Allahumma ya Rabbana 3",
-      "idn": "Ya Allah, kabulkanlah doa doa setelah sahur kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّارِ",
+      "latin": "Allahumma barik lana fima razaqtana wa qina adzaban nar",
+      "idn": "Ya Allah, berkahilah rezeki kami dan lindungi kami dari azab neraka.",
       "tags": [
-        "doa",
-        "setelah",
-        "sahur"
+        "puasa-ramadhan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "puasa-ramadhan-4",
       "categoryId": "puasa-ramadhan",
       "title": "Doa malam lailatul qadar",
-      "arab": "??????????? ??? ???????? 4",
-      "latin": "Allahumma ya Rabbana 4",
-      "idn": "Ya Allah, kabulkanlah doa doa malam lailatul qadar kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+      "latin": "Bismillahi tawakkaltu 'alallah la haula wa la quwwata illa billah",
+      "idn": "Dengan nama Allah, aku bertawakal kepada Allah.",
       "tags": [
-        "doa",
-        "malam",
-        "lailatul",
-        "qadar"
+        "puasa-ramadhan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "puasa-ramadhan-5",
       "categoryId": "puasa-ramadhan",
-      "title": "Doa saat tarawih",
-      "arab": "??????????? ??? ???????? 5",
-      "latin": "Allahumma ya Rabbana 5",
-      "idn": "Ya Allah, kabulkanlah doa doa saat tarawih kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa setelah tarawih",
+      "arab": "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+      "latin": "Allahummaftah li abwaba rahmatik",
+      "idn": "Ya Allah, bukakan bagiku pintu-pintu rahmat-Mu.",
       "tags": [
-        "doa",
-        "saat",
-        "tarawih"
+        "puasa-ramadhan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "puasa-ramadhan-6",
       "categoryId": "puasa-ramadhan",
       "title": "Doa qunut witir",
-      "arab": "??????????? ??? ???????? 6",
-      "latin": "Allahumma ya Rabbana 6",
-      "idn": "Ya Allah, kabulkanlah doa doa qunut witir kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",
+      "latin": "Allahumma inni as'aluka min fadhlik",
+      "idn": "Ya Allah, aku memohon karunia-Mu.",
       "tags": [
-        "doa",
-        "qunut",
-        "witir"
+        "puasa-ramadhan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "puasa-ramadhan-7",
       "categoryId": "puasa-ramadhan",
-      "title": "Doa akhir ramadhan",
-      "arab": "??????????? ??? ???????? 7",
-      "latin": "Allahumma ya Rabbana 7",
-      "idn": "Ya Allah, kabulkanlah doa doa akhir ramadhan kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa akhir Ramadhan",
+      "arab": "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
+      "latin": "Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni",
+      "idn": "Ya Allah, Engkau Maha Pemaaf dan menyukai maaf, maka maafkanlah aku.",
       "tags": [
-        "doa",
-        "akhir",
-        "ramadhan"
+        "puasa-ramadhan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Tirmidzi"
     },
     {
       "id": "puasa-ramadhan-8",
       "categoryId": "puasa-ramadhan",
-      "title": "Doa menyambut idul fitri",
-      "arab": "??????????? ??? ???????? 8",
-      "latin": "Allahumma ya Rabbana 8",
-      "idn": "Ya Allah, kabulkanlah doa doa menyambut idul fitri kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa menyambut Idul Fitri",
+      "arab": "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ",
+      "latin": "Subhanalladzi sakhkhara lana hadza wa ma kunna lahu muqrinin",
+      "idn": "Maha Suci Allah yang menundukkan kendaraan ini untuk kami.",
       "tags": [
-        "doa",
-        "menyambut",
-        "idul",
-        "fitri"
+        "puasa-ramadhan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Az-Zukhruf: 13"
     },
     {
       "id": "perjalanan-1",
       "categoryId": "perjalanan",
       "title": "Doa naik kendaraan",
-      "arab": "??????????? ??? ???????? 1",
-      "latin": "Allahumma ya Rabbana 1",
-      "idn": "Ya Allah, kabulkanlah doa doa naik kendaraan kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ صَيِّبًا نَافِعًا",
+      "latin": "Allahumma shayyiban nafi'an",
+      "idn": "Ya Allah, jadikan hujan ini hujan yang bermanfaat.",
       "tags": [
-        "doa",
-        "naik",
-        "kendaraan"
+        "perjalanan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari"
     },
     {
       "id": "perjalanan-2",
       "categoryId": "perjalanan",
       "title": "Doa safar",
-      "arab": "??????????? ??? ???????? 2",
-      "latin": "Allahumma ya Rabbana 2",
-      "idn": "Ya Allah, kabulkanlah doa doa safar kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "مُطِرْنَا بِفَضْلِ اللَّهِ وَرَحْمَتِهِ",
+      "latin": "Muthirna bifadhlillahi wa rahmatih",
+      "idn": "Kami diberi hujan karena karunia dan rahmat Allah.",
       "tags": [
-        "doa",
-        "safar"
+        "perjalanan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari Muslim"
     },
     {
       "id": "perjalanan-3",
       "categoryId": "perjalanan",
-      "title": "Doa singgah di tempat",
-      "arab": "??????????? ??? ???????? 3",
-      "latin": "Allahumma ya Rabbana 3",
-      "idn": "Ya Allah, kabulkanlah doa doa singgah di tempat kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa singgah di suatu tempat",
+      "arab": "لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ",
+      "latin": "La ilaha illa anta subhanaka inni kuntu minazh zhalimin",
+      "idn": "Tiada tuhan selain Engkau, Maha Suci Engkau, sungguh aku termasuk orang zalim.",
       "tags": [
-        "doa",
-        "singgah",
-        "di",
-        "tempat"
+        "perjalanan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Anbiya: 87"
     },
     {
       "id": "perjalanan-4",
       "categoryId": "perjalanan",
       "title": "Doa pulang dari safar",
-      "arab": "??????????? ??? ???????? 4",
-      "latin": "Allahumma ya Rabbana 4",
-      "idn": "Ya Allah, kabulkanlah doa doa pulang dari safar kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
+      "latin": "Rabbana atina fid dunya hasanah wa fil akhirati hasanah wa qina adzaban nar",
+      "idn": "Ya Tuhan kami, berikanlah kebaikan di dunia dan akhirat serta lindungi dari azab neraka.",
       "tags": [
-        "doa",
-        "pulang",
-        "dari",
-        "safar"
+        "perjalanan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Baqarah: 201"
     },
     {
       "id": "perjalanan-5",
       "categoryId": "perjalanan",
       "title": "Doa masuk pasar",
-      "arab": "??????????? ??? ???????? 5",
-      "latin": "Allahumma ya Rabbana 5",
-      "idn": "Ya Allah, kabulkanlah doa doa masuk pasar kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "قُلْ هُوَ اللَّهُ أَحَدٌ",
+      "latin": "Qul huwallahu ahad",
+      "idn": "Katakanlah: Dialah Allah Yang Maha Esa.",
       "tags": [
-        "doa",
-        "masuk",
-        "pasar"
+        "perjalanan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Ikhlas"
     },
     {
       "id": "perjalanan-6",
       "categoryId": "perjalanan",
       "title": "Doa ketika tersesat",
-      "arab": "??????????? ??? ???????? 6",
-      "latin": "Allahumma ya Rabbana 6",
-      "idn": "Ya Allah, kabulkanlah doa doa ketika tersesat kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ",
+      "latin": "Qul a'udzu birabbil falaq",
+      "idn": "Katakanlah: Aku berlindung kepada Tuhan yang menguasai subuh.",
       "tags": [
-        "doa",
-        "ketika",
-        "tersesat"
+        "perjalanan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Falaq"
     },
     {
       "id": "perjalanan-7",
       "categoryId": "perjalanan",
-      "title": "Doa saat hujan deras dalam perjalanan",
-      "arab": "??????????? ??? ???????? 7",
-      "latin": "Allahumma ya Rabbana 7",
-      "idn": "Ya Allah, kabulkanlah doa doa saat hujan deras dalam perjalanan kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa saat hujan dalam perjalanan",
+      "arab": "قُلْ أَعُوذُ بِرَبِّ النَّاسِ",
+      "latin": "Qul a'udzu birabbin nas",
+      "idn": "Katakanlah: Aku berlindung kepada Tuhan manusia.",
       "tags": [
-        "doa",
-        "saat",
-        "hujan",
-        "deras"
+        "perjalanan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. An-Nas"
     },
     {
       "id": "perjalanan-8",
       "categoryId": "perjalanan",
-      "title": "Doa meminta kemudahan perjalanan",
-      "arab": "??????????? ??? ???????? 8",
-      "latin": "Allahumma ya Rabbana 8",
-      "idn": "Ya Allah, kabulkanlah doa doa meminta kemudahan perjalanan kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa memohon kemudahan perjalanan",
+      "arab": "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ",
+      "latin": "Allahu la ilaha illa huwal hayyul qayyum",
+      "idn": "Allah, tidak ada Tuhan selain Dia, Yang Maha Hidup lagi terus menerus mengurus makhluk-Nya.",
       "tags": [
-        "doa",
-        "meminta",
-        "kemudahan",
-        "perjalanan"
+        "perjalanan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Baqarah: 255"
     },
     {
       "id": "fenomena-alam-1",
       "categoryId": "fenomena-alam",
       "title": "Doa ketika hujan turun",
-      "arab": "??????????? ??? ???????? 1",
-      "latin": "Allahumma ya Rabbana 1",
-      "idn": "Ya Allah, kabulkanlah doa doa ketika hujan turun kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ",
+      "latin": "Allahumma inni a'udzu bika minal hammi wal hazan",
+      "idn": "Ya Allah, aku berlindung kepada-Mu dari rasa cemas dan sedih.",
       "tags": [
-        "doa",
-        "ketika",
-        "hujan",
-        "turun"
+        "fenomena-alam",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari"
     },
     {
       "id": "fenomena-alam-2",
       "categoryId": "fenomena-alam",
       "title": "Doa setelah hujan",
-      "arab": "??????????? ??? ???????? 2",
-      "latin": "Allahumma ya Rabbana 2",
-      "idn": "Ya Allah, kabulkanlah doa doa setelah hujan kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ رَبَّ النَّاسِ أَذْهِبِ الْبَأْسَ اشْفِ أَنْتَ الشَّافِي",
+      "latin": "Allahumma rabbannas adzhibil ba’sa isyfi antasy syafi",
+      "idn": "Ya Allah Rabb manusia, hilangkan penyakit dan sembuhkanlah.",
       "tags": [
-        "doa",
-        "setelah",
-        "hujan"
+        "fenomena-alam",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari Muslim"
     },
     {
       "id": "fenomena-alam-3",
       "categoryId": "fenomena-alam",
       "title": "Doa ketika angin kencang",
-      "arab": "??????????? ??? ???????? 3",
-      "latin": "Allahumma ya Rabbana 3",
-      "idn": "Ya Allah, kabulkanlah doa doa ketika angin kencang kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ آتِ نَفْسِي تَقْوَاهَا وَزَكِّهَا",
+      "latin": "Allahumma ati nafsi taqwaha wa zakkihā",
+      "idn": "Ya Allah, berikan ketakwaan kepada jiwaku dan sucikanlah ia.",
       "tags": [
-        "doa",
-        "ketika",
-        "angin",
-        "kencang"
+        "fenomena-alam",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "fenomena-alam-4",
       "categoryId": "fenomena-alam",
       "title": "Doa ketika mendengar petir",
-      "arab": "??????????? ??? ???????? 4",
-      "latin": "Allahumma ya Rabbana 4",
-      "idn": "Ya Allah, kabulkanlah doa doa ketika mendengar petir kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+      "latin": "Bismillahirrahmanirrahim",
+      "idn": "Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
       "tags": [
-        "doa",
-        "ketika",
-        "mendengar",
-        "petir"
+        "fenomena-alam",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "fenomena-alam-5",
       "categoryId": "fenomena-alam",
       "title": "Doa saat gempa",
-      "arab": "??????????? ??? ???????? 5",
-      "latin": "Allahumma ya Rabbana 5",
-      "idn": "Ya Allah, kabulkanlah doa doa saat gempa kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+      "latin": "Alhamdulillahi rabbil 'alamin",
+      "idn": "Segala puji bagi Allah Tuhan semesta alam.",
       "tags": [
-        "doa",
-        "saat",
-        "gempa"
+        "fenomena-alam",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Al-Qur’an"
     },
     {
       "id": "fenomena-alam-6",
       "categoryId": "fenomena-alam",
       "title": "Doa melihat bulan baru",
-      "arab": "??????????? ??? ???????? 6",
-      "latin": "Allahumma ya Rabbana 6",
-      "idn": "Ya Allah, kabulkanlah doa doa melihat bulan baru kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "أَسْتَغْفِرُ اللَّهَ",
+      "latin": "Astaghfirullah",
+      "idn": "Aku memohon ampun kepada Allah.",
       "tags": [
-        "doa",
-        "melihat",
-        "bulan",
-        "baru"
+        "fenomena-alam",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "doa-quran-pilihan-1",
       "categoryId": "doa-quran-pilihan",
-      "title": "Rabbana atina fid-dunya hasanah",
-      "arab": "??????????? ??? ???????? 1",
-      "latin": "Allahumma ya Rabbana 1",
-      "idn": "Ya Allah, kabulkanlah doa rabbana atina fid-dunya hasanah kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa Rabbana Atina",
+      "arab": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+      "latin": "Hasbunallahu wa ni'mal wakil",
+      "idn": "Cukuplah Allah bagi kami dan Dia sebaik-baik pelindung.",
       "tags": [
-        "rabbana",
-        "atina",
-        "fiddunya",
-        "hasanah"
+        "doa-quran-pilihan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Al-Qur’an"
     },
     {
       "id": "doa-quran-pilihan-2",
       "categoryId": "doa-quran-pilihan",
-      "title": "Rabbish rahli sadri",
-      "arab": "??????????? ??? ???????? 2",
-      "latin": "Allahumma ya Rabbana 2",
-      "idn": "Ya Allah, kabulkanlah doa rabbish rahli sadri kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa Rabbisyrahli Sadri",
+      "arab": "رَبِّ زِدْنِي عِلْمًا",
+      "latin": "Rabbi zidni ilma",
+      "idn": "Ya Tuhanku, tambahkanlah ilmuku.",
       "tags": [
-        "rabbish",
-        "rahli",
-        "sadri"
+        "doa-quran-pilihan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Taha: 114"
     },
     {
       "id": "doa-quran-pilihan-3",
       "categoryId": "doa-quran-pilihan",
-      "title": "Rabbi zidni ilma",
-      "arab": "??????????? ??? ???????? 3",
-      "latin": "Allahumma ya Rabbana 3",
-      "idn": "Ya Allah, kabulkanlah doa rabbi zidni ilma kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa Rabbi Zidni Ilma",
+      "arab": "اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّارِ",
+      "latin": "Allahumma barik lana fima razaqtana wa qina adzaban nar",
+      "idn": "Ya Allah, berkahilah rezeki kami dan lindungi kami dari azab neraka.",
       "tags": [
-        "rabbi",
-        "zidni",
-        "ilma"
+        "doa-quran-pilihan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "doa-quran-pilihan-4",
       "categoryId": "doa-quran-pilihan",
-      "title": "Hasbunallahu wa ni'mal wakil",
-      "arab": "??????????? ??? ???????? 4",
-      "latin": "Allahumma ya Rabbana 4",
-      "idn": "Ya Allah, kabulkanlah doa hasbunallahu wa ni'mal wakil kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa Hasbunallah",
+      "arab": "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+      "latin": "Bismillahi tawakkaltu 'alallah la haula wa la quwwata illa billah",
+      "idn": "Dengan nama Allah, aku bertawakal kepada Allah.",
       "tags": [
-        "hasbunallahu",
-        "wa",
-        "nimal",
-        "wakil"
+        "doa-quran-pilihan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "doa-quran-pilihan-5",
       "categoryId": "doa-quran-pilihan",
-      "title": "La ilaha illa anta subhanaka",
-      "arab": "??????????? ??? ???????? 5",
-      "latin": "Allahumma ya Rabbana 5",
-      "idn": "Ya Allah, kabulkanlah doa la ilaha illa anta subhanaka kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa Nabi Yunus",
+      "arab": "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+      "latin": "Allahummaftah li abwaba rahmatik",
+      "idn": "Ya Allah, bukakan bagiku pintu-pintu rahmat-Mu.",
       "tags": [
-        "la",
-        "ilaha",
-        "illa",
-        "anta"
+        "doa-quran-pilihan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "doa-quran-pilihan-6",
       "categoryId": "doa-quran-pilihan",
-      "title": "Doa sapu jagat",
-      "arab": "??????????? ??? ???????? 6",
-      "latin": "Allahumma ya Rabbana 6",
-      "idn": "Ya Allah, kabulkanlah doa doa sapu jagat kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa memohon ampunan",
+      "arab": "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",
+      "latin": "Allahumma inni as'aluka min fadhlik",
+      "idn": "Ya Allah, aku memohon karunia-Mu.",
       "tags": [
-        "doa",
-        "sapu",
-        "jagat"
+        "doa-quran-pilihan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "doa-quran-pilihan-7",
       "categoryId": "doa-quran-pilihan",
-      "title": "Doa memohon ampunan",
-      "arab": "??????????? ??? ???????? 7",
-      "latin": "Allahumma ya Rabbana 7",
-      "idn": "Ya Allah, kabulkanlah doa doa memohon ampunan kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa meneguhkan hati",
+      "arab": "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
+      "latin": "Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni",
+      "idn": "Ya Allah, Engkau Maha Pemaaf dan menyukai maaf, maka maafkanlah aku.",
       "tags": [
-        "doa",
-        "memohon",
-        "ampunan"
+        "doa-quran-pilihan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Tirmidzi"
     },
     {
       "id": "doa-quran-pilihan-8",
       "categoryId": "doa-quran-pilihan",
-      "title": "Doa agar hati diteguhkan",
-      "arab": "??????????? ??? ???????? 8",
-      "latin": "Allahumma ya Rabbana 8",
-      "idn": "Ya Allah, kabulkanlah doa doa agar hati diteguhkan kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa memohon keturunan shalih",
+      "arab": "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ",
+      "latin": "Subhanalladzi sakhkhara lana hadza wa ma kunna lahu muqrinin",
+      "idn": "Maha Suci Allah yang menundukkan kendaraan ini untuk kami.",
       "tags": [
-        "doa",
-        "agar",
-        "hati",
-        "diteguhkan"
+        "doa-quran-pilihan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Az-Zukhruf: 13"
     },
     {
       "id": "doa-quran-pilihan-9",
       "categoryId": "doa-quran-pilihan",
-      "title": "Doa memohon keturunan shalih",
-      "arab": "??????????? ??? ???????? 9",
-      "latin": "Allahumma ya Rabbana 9",
-      "idn": "Ya Allah, kabulkanlah doa doa memohon keturunan shalih kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa husnul khatimah",
+      "arab": "اللَّهُمَّ صَيِّبًا نَافِعًا",
+      "latin": "Allahumma shayyiban nafi'an",
+      "idn": "Ya Allah, jadikan hujan ini hujan yang bermanfaat.",
       "tags": [
-        "doa",
-        "memohon",
-        "keturunan",
-        "shalih"
+        "doa-quran-pilihan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari"
     },
     {
       "id": "doa-quran-pilihan-10",
       "categoryId": "doa-quran-pilihan",
-      "title": "Doa agar diwafatkan husnul khatimah",
-      "arab": "??????????? ??? ???????? 10",
-      "latin": "Allahumma ya Rabbana 10",
-      "idn": "Ya Allah, kabulkanlah doa doa agar diwafatkan husnul khatimah kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa keluarga sakinah",
+      "arab": "مُطِرْنَا بِفَضْلِ اللَّهِ وَرَحْمَتِهِ",
+      "latin": "Muthirna bifadhlillahi wa rahmatih",
+      "idn": "Kami diberi hujan karena karunia dan rahmat Allah.",
       "tags": [
-        "doa",
-        "agar",
-        "diwafatkan",
-        "husnul"
+        "doa-quran-pilihan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari Muslim"
     },
     {
       "id": "perlindungan-ketenangan-1",
       "categoryId": "perlindungan-ketenangan",
       "title": "Ayat Kursi",
-      "arab": "??????????? ??? ???????? 1",
-      "latin": "Allahumma ya Rabbana 1",
-      "idn": "Ya Allah, kabulkanlah doa ayat kursi kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ",
+      "latin": "La ilaha illa anta subhanaka inni kuntu minazh zhalimin",
+      "idn": "Tiada tuhan selain Engkau, Maha Suci Engkau, sungguh aku termasuk orang zalim.",
       "tags": [
-        "ayat",
-        "kursi"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Anbiya: 87"
     },
     {
       "id": "perlindungan-ketenangan-2",
       "categoryId": "perlindungan-ketenangan",
-      "title": "Al-Ikhlas",
-      "arab": "??????????? ??? ???????? 2",
-      "latin": "Allahumma ya Rabbana 2",
-      "idn": "Ya Allah, kabulkanlah doa al-ikhlas kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Surah Al-Ikhlas",
+      "arab": "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
+      "latin": "Rabbana atina fid dunya hasanah wa fil akhirati hasanah wa qina adzaban nar",
+      "idn": "Ya Tuhan kami, berikanlah kebaikan di dunia dan akhirat serta lindungi dari azab neraka.",
       "tags": [
-        "alikhlas"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Baqarah: 201"
     },
     {
       "id": "perlindungan-ketenangan-3",
       "categoryId": "perlindungan-ketenangan",
-      "title": "Al-Falaq",
-      "arab": "??????????? ??? ???????? 3",
-      "latin": "Allahumma ya Rabbana 3",
-      "idn": "Ya Allah, kabulkanlah doa al-falaq kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Surah Al-Falaq",
+      "arab": "قُلْ هُوَ اللَّهُ أَحَدٌ",
+      "latin": "Qul huwallahu ahad",
+      "idn": "Katakanlah: Dialah Allah Yang Maha Esa.",
       "tags": [
-        "alfalaq"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Ikhlas"
     },
     {
       "id": "perlindungan-ketenangan-4",
       "categoryId": "perlindungan-ketenangan",
-      "title": "An-Nas",
-      "arab": "??????????? ??? ???????? 4",
-      "latin": "Allahumma ya Rabbana 4",
-      "idn": "Ya Allah, kabulkanlah doa an-nas kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Surah An-Nas",
+      "arab": "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ",
+      "latin": "Qul a'udzu birabbil falaq",
+      "idn": "Katakanlah: Aku berlindung kepada Tuhan yang menguasai subuh.",
       "tags": [
-        "annas"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Falaq"
     },
     {
       "id": "perlindungan-ketenangan-5",
       "categoryId": "perlindungan-ketenangan",
-      "title": "Doa perlindungan pagi",
-      "arab": "??????????? ??? ???????? 5",
-      "latin": "Allahumma ya Rabbana 5",
-      "idn": "Ya Allah, kabulkanlah doa doa perlindungan pagi kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Dzikir perlindungan pagi",
+      "arab": "قُلْ أَعُوذُ بِرَبِّ النَّاسِ",
+      "latin": "Qul a'udzu birabbin nas",
+      "idn": "Katakanlah: Aku berlindung kepada Tuhan manusia.",
       "tags": [
-        "doa",
-        "perlindungan",
-        "pagi"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. An-Nas"
     },
     {
       "id": "perlindungan-ketenangan-6",
       "categoryId": "perlindungan-ketenangan",
-      "title": "Doa perlindungan petang",
-      "arab": "??????????? ??? ???????? 6",
-      "latin": "Allahumma ya Rabbana 6",
-      "idn": "Ya Allah, kabulkanlah doa doa perlindungan petang kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Dzikir perlindungan petang",
+      "arab": "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ",
+      "latin": "Allahu la ilaha illa huwal hayyul qayyum",
+      "idn": "Allah, tidak ada Tuhan selain Dia, Yang Maha Hidup lagi terus menerus mengurus makhluk-Nya.",
       "tags": [
-        "doa",
-        "perlindungan",
-        "petang"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Baqarah: 255"
     },
     {
       "id": "perlindungan-ketenangan-7",
       "categoryId": "perlindungan-ketenangan",
       "title": "Doa ketika cemas",
-      "arab": "??????????? ??? ???????? 7",
-      "latin": "Allahumma ya Rabbana 7",
-      "idn": "Ya Allah, kabulkanlah doa doa ketika cemas kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "arab": "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ",
+      "latin": "Allahumma inni a'udzu bika minal hammi wal hazan",
+      "idn": "Ya Allah, aku berlindung kepada-Mu dari rasa cemas dan sedih.",
       "tags": [
-        "doa",
-        "ketika",
-        "cemas"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari"
     },
     {
       "id": "perlindungan-ketenangan-8",
       "categoryId": "perlindungan-ketenangan",
-      "title": "Doa saat sedih",
-      "arab": "??????????? ??? ???????? 8",
-      "latin": "Allahumma ya Rabbana 8",
-      "idn": "Ya Allah, kabulkanlah doa doa saat sedih kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa ketika sedih",
+      "arab": "اللَّهُمَّ رَبَّ النَّاسِ أَذْهِبِ الْبَأْسَ اشْفِ أَنْتَ الشَّافِي",
+      "latin": "Allahumma rabbannas adzhibil ba’sa isyfi antasy syafi",
+      "idn": "Ya Allah Rabb manusia, hilangkan penyakit dan sembuhkanlah.",
       "tags": [
-        "doa",
-        "saat",
-        "sedih"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari Muslim"
     },
     {
       "id": "perlindungan-ketenangan-9",
       "categoryId": "perlindungan-ketenangan",
-      "title": "Doa saat marah",
-      "arab": "??????????? ??? ???????? 9",
-      "latin": "Allahumma ya Rabbana 9",
-      "idn": "Ya Allah, kabulkanlah doa doa saat marah kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa ketika marah",
+      "arab": "اللَّهُمَّ آتِ نَفْسِي تَقْوَاهَا وَزَكِّهَا",
+      "latin": "Allahumma ati nafsi taqwaha wa zakkihā",
+      "idn": "Ya Allah, berikan ketakwaan kepada jiwaku dan sucikanlah ia.",
       "tags": [
-        "doa",
-        "saat",
-        "marah"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "perlindungan-ketenangan-10",
       "categoryId": "perlindungan-ketenangan",
-      "title": "Doa saat sakit",
-      "arab": "??????????? ??? ???????? 10",
-      "latin": "Allahumma ya Rabbana 10",
-      "idn": "Ya Allah, kabulkanlah doa doa saat sakit kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa ketika sakit",
+      "arab": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+      "latin": "Bismillahirrahmanirrahim",
+      "idn": "Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
       "tags": [
-        "doa",
-        "saat",
-        "sakit"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "perlindungan-ketenangan-11",
       "categoryId": "perlindungan-ketenangan",
-      "title": "Doa untuk ketenangan jiwa",
-      "arab": "??????????? ??? ???????? 11",
-      "latin": "Allahumma ya Rabbana 11",
-      "idn": "Ya Allah, kabulkanlah doa doa untuk ketenangan jiwa kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa ketenangan jiwa",
+      "arab": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+      "latin": "Alhamdulillahi rabbil 'alamin",
+      "idn": "Segala puji bagi Allah Tuhan semesta alam.",
       "tags": [
-        "doa",
-        "untuk",
-        "ketenangan",
-        "jiwa"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Al-Qur’an"
     },
     {
       "id": "perlindungan-ketenangan-12",
       "categoryId": "perlindungan-ketenangan",
-      "title": "Doa memohon keselamatan keluarga",
-      "arab": "??????????? ??? ???????? 12",
-      "latin": "Allahumma ya Rabbana 12",
-      "idn": "Ya Allah, kabulkanlah doa doa memohon keselamatan keluarga kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa keselamatan keluarga",
+      "arab": "أَسْتَغْفِرُ اللَّهَ",
+      "latin": "Astaghfirullah",
+      "idn": "Aku memohon ampun kepada Allah.",
       "tags": [
-        "doa",
-        "memohon",
-        "keselamatan",
-        "keluarga"
+        "perlindungan-ketenangan",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "doa-lengkap-1",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 1",
-      "arab": "??????????? ??? ???????? 1",
-      "latin": "Allahumma ya Rabbana 1",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 1 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 1",
+      "arab": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+      "latin": "Hasbunallahu wa ni'mal wakil",
+      "idn": "Cukuplah Allah bagi kami dan Dia sebaik-baik pelindung.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "1"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Al-Qur’an"
     },
     {
       "id": "doa-lengkap-2",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 2",
-      "arab": "??????????? ??? ???????? 2",
-      "latin": "Allahumma ya Rabbana 2",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 2 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 2",
+      "arab": "رَبِّ زِدْنِي عِلْمًا",
+      "latin": "Rabbi zidni ilma",
+      "idn": "Ya Tuhanku, tambahkanlah ilmuku.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "2"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Taha: 114"
     },
     {
       "id": "doa-lengkap-3",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 3",
-      "arab": "??????????? ??? ???????? 3",
-      "latin": "Allahumma ya Rabbana 3",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 3 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 3",
+      "arab": "اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّارِ",
+      "latin": "Allahumma barik lana fima razaqtana wa qina adzaban nar",
+      "idn": "Ya Allah, berkahilah rezeki kami dan lindungi kami dari azab neraka.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "3"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "doa-lengkap-4",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 4",
-      "arab": "??????????? ??? ???????? 4",
-      "latin": "Allahumma ya Rabbana 4",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 4 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 4",
+      "arab": "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+      "latin": "Bismillahi tawakkaltu 'alallah la haula wa la quwwata illa billah",
+      "idn": "Dengan nama Allah, aku bertawakal kepada Allah.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "4"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "doa-lengkap-5",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 5",
-      "arab": "??????????? ??? ???????? 5",
-      "latin": "Allahumma ya Rabbana 5",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 5 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 5",
+      "arab": "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+      "latin": "Allahummaftah li abwaba rahmatik",
+      "idn": "Ya Allah, bukakan bagiku pintu-pintu rahmat-Mu.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "5"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "doa-lengkap-6",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 6",
-      "arab": "??????????? ??? ???????? 6",
-      "latin": "Allahumma ya Rabbana 6",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 6 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 6",
+      "arab": "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",
+      "latin": "Allahumma inni as'aluka min fadhlik",
+      "idn": "Ya Allah, aku memohon karunia-Mu.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "6"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "doa-lengkap-7",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 7",
-      "arab": "??????????? ??? ???????? 7",
-      "latin": "Allahumma ya Rabbana 7",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 7 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 7",
+      "arab": "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
+      "latin": "Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni",
+      "idn": "Ya Allah, Engkau Maha Pemaaf dan menyukai maaf, maka maafkanlah aku.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "7"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Tirmidzi"
     },
     {
       "id": "doa-lengkap-8",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 8",
-      "arab": "??????????? ??? ???????? 8",
-      "latin": "Allahumma ya Rabbana 8",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 8 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 8",
+      "arab": "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ",
+      "latin": "Subhanalladzi sakhkhara lana hadza wa ma kunna lahu muqrinin",
+      "idn": "Maha Suci Allah yang menundukkan kendaraan ini untuk kami.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "8"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Az-Zukhruf: 13"
     },
     {
       "id": "doa-lengkap-9",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 9",
-      "arab": "??????????? ??? ???????? 9",
-      "latin": "Allahumma ya Rabbana 9",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 9 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 9",
+      "arab": "اللَّهُمَّ صَيِّبًا نَافِعًا",
+      "latin": "Allahumma shayyiban nafi'an",
+      "idn": "Ya Allah, jadikan hujan ini hujan yang bermanfaat.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "9"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari"
     },
     {
       "id": "doa-lengkap-10",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 10",
-      "arab": "??????????? ??? ???????? 10",
-      "latin": "Allahumma ya Rabbana 10",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 10 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 10",
+      "arab": "مُطِرْنَا بِفَضْلِ اللَّهِ وَرَحْمَتِهِ",
+      "latin": "Muthirna bifadhlillahi wa rahmatih",
+      "idn": "Kami diberi hujan karena karunia dan rahmat Allah.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "10"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari Muslim"
     },
     {
       "id": "doa-lengkap-11",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 11",
-      "arab": "??????????? ??? ???????? 11",
-      "latin": "Allahumma ya Rabbana 11",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 11 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 11",
+      "arab": "لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ",
+      "latin": "La ilaha illa anta subhanaka inni kuntu minazh zhalimin",
+      "idn": "Tiada tuhan selain Engkau, Maha Suci Engkau, sungguh aku termasuk orang zalim.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "11"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Anbiya: 87"
     },
     {
       "id": "doa-lengkap-12",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 12",
-      "arab": "??????????? ??? ???????? 12",
-      "latin": "Allahumma ya Rabbana 12",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 12 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 12",
+      "arab": "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
+      "latin": "Rabbana atina fid dunya hasanah wa fil akhirati hasanah wa qina adzaban nar",
+      "idn": "Ya Tuhan kami, berikanlah kebaikan di dunia dan akhirat serta lindungi dari azab neraka.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "12"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Baqarah: 201"
     },
     {
       "id": "doa-lengkap-13",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 13",
-      "arab": "??????????? ??? ???????? 13",
-      "latin": "Allahumma ya Rabbana 13",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 13 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 13",
+      "arab": "قُلْ هُوَ اللَّهُ أَحَدٌ",
+      "latin": "Qul huwallahu ahad",
+      "idn": "Katakanlah: Dialah Allah Yang Maha Esa.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "13"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Ikhlas"
     },
     {
       "id": "doa-lengkap-14",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 14",
-      "arab": "??????????? ??? ???????? 14",
-      "latin": "Allahumma ya Rabbana 14",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 14 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 14",
+      "arab": "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ",
+      "latin": "Qul a'udzu birabbil falaq",
+      "idn": "Katakanlah: Aku berlindung kepada Tuhan yang menguasai subuh.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "14"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Falaq"
     },
     {
       "id": "doa-lengkap-15",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 15",
-      "arab": "??????????? ??? ???????? 15",
-      "latin": "Allahumma ya Rabbana 15",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 15 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 15",
+      "arab": "قُلْ أَعُوذُ بِرَبِّ النَّاسِ",
+      "latin": "Qul a'udzu birabbin nas",
+      "idn": "Katakanlah: Aku berlindung kepada Tuhan manusia.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "15"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. An-Nas"
     },
     {
       "id": "doa-lengkap-16",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 16",
-      "arab": "??????????? ??? ???????? 16",
-      "latin": "Allahumma ya Rabbana 16",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 16 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 16",
+      "arab": "اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ",
+      "latin": "Allahu la ilaha illa huwal hayyul qayyum",
+      "idn": "Allah, tidak ada Tuhan selain Dia, Yang Maha Hidup lagi terus menerus mengurus makhluk-Nya.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "16"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "QS. Al-Baqarah: 255"
     },
     {
       "id": "doa-lengkap-17",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 17",
-      "arab": "??????????? ??? ???????? 17",
-      "latin": "Allahumma ya Rabbana 17",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 17 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 17",
+      "arab": "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ",
+      "latin": "Allahumma inni a'udzu bika minal hammi wal hazan",
+      "idn": "Ya Allah, aku berlindung kepada-Mu dari rasa cemas dan sedih.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "17"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari"
     },
     {
       "id": "doa-lengkap-18",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 18",
-      "arab": "??????????? ??? ???????? 18",
-      "latin": "Allahumma ya Rabbana 18",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 18 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 18",
+      "arab": "اللَّهُمَّ رَبَّ النَّاسِ أَذْهِبِ الْبَأْسَ اشْفِ أَنْتَ الشَّافِي",
+      "latin": "Allahumma rabbannas adzhibil ba’sa isyfi antasy syafi",
+      "idn": "Ya Allah Rabb manusia, hilangkan penyakit dan sembuhkanlah.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "18"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Bukhari Muslim"
     },
     {
       "id": "doa-lengkap-19",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 19",
-      "arab": "??????????? ??? ???????? 19",
-      "latin": "Allahumma ya Rabbana 19",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 19 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 19",
+      "arab": "اللَّهُمَّ آتِ نَفْسِي تَقْوَاهَا وَزَكِّهَا",
+      "latin": "Allahumma ati nafsi taqwaha wa zakkihā",
+      "idn": "Ya Allah, berikan ketakwaan kepada jiwaku dan sucikanlah ia.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "19"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "HR. Muslim"
     },
     {
       "id": "doa-lengkap-20",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 20",
-      "arab": "??????????? ??? ???????? 20",
-      "latin": "Allahumma ya Rabbana 20",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 20 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 20",
+      "arab": "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+      "latin": "Bismillahirrahmanirrahim",
+      "idn": "Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "20"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "doa-lengkap-21",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 21",
-      "arab": "??????????? ??? ???????? 21",
-      "latin": "Allahumma ya Rabbana 21",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 21 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 21",
+      "arab": "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+      "latin": "Alhamdulillahi rabbil 'alamin",
+      "idn": "Segala puji bagi Allah Tuhan semesta alam.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "21"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Al-Qur’an"
     },
     {
       "id": "doa-lengkap-22",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 22",
-      "arab": "??????????? ??? ???????? 22",
-      "latin": "Allahumma ya Rabbana 22",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 22 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 22",
+      "arab": "أَسْتَغْفِرُ اللَّهَ",
+      "latin": "Astaghfirullah",
+      "idn": "Aku memohon ampun kepada Allah.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "22"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Hisnul Muslim"
     },
     {
       "id": "doa-lengkap-23",
       "categoryId": "doa-lengkap",
-      "title": "Doa Lengkap Harian 23",
-      "arab": "??????????? ??? ???????? 23",
-      "latin": "Allahumma ya Rabbana 23",
-      "idn": "Ya Allah, kabulkanlah doa doa lengkap harian 23 kami dan beri kemudahan dalam ibadah sehari-hari.",
+      "title": "Doa lengkap pilihan 23",
+      "arab": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+      "latin": "Hasbunallahu wa ni'mal wakil",
+      "idn": "Cukuplah Allah bagi kami dan Dia sebaik-baik pelindung.",
       "tags": [
-        "doa",
-        "lengkap",
-        "harian",
-        "23"
+        "doa-lengkap",
+        "doa"
       ],
-      "source": "Hisnul Muslim / Al-Qur'an / Hadits Shahih"
+      "sourceLabel": "Al-Qur’an"
     }
   ]
 }

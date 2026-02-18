@@ -27,6 +27,7 @@ import {
   getCategoryByID,
   getDoaCategories,
   getDoaDataset,
+  getDatasetWarnings,
   getDoaItemByID,
   getItemsByCategory,
   getLastReadDoa,
@@ -146,12 +147,18 @@ const DoaDetailContent: React.FC<{ item: DoaItem }> = ({ item }) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-right text-3xl leading-loose text-slate-900" dir="rtl">
-            {item.arab}
+            {item.arab ? (
+              <span className="arabic-text text-right leading-relaxed tracking-normal" dir="rtl" lang="ar">
+                {item.arab}
+              </span>
+            ) : (
+              <span className="text-sm text-slate-500">Konten Arab belum tersedia</span>
+            )}
           </p>
           <p className="text-sm text-emerald-700">{item.latin}</p>
           <p className="text-sm text-slate-700 leading-relaxed">{item.idn}</p>
           <p className="text-xs text-slate-600">
-            <span className="font-semibold">Sumber:</span> {item.source}
+            <span className="font-semibold">Sumber:</span> {item.sourceLabel || item.source}
           </p>
         </CardContent>
       </Card>
@@ -184,12 +191,18 @@ const CollectionListPage: React.FC<{
         <Card key={item.id} className="rounded-2xl">
           <CardContent className="pt-4">
             <p className="text-right text-2xl leading-loose text-slate-900" dir="rtl">
-              {item.arab}
+              {item.arab ? (
+                <span className="arabic-text text-right leading-relaxed tracking-normal" dir="rtl" lang="ar">
+                  {item.arab}
+                </span>
+              ) : (
+                <span className="text-sm text-slate-500">Konten Arab belum tersedia</span>
+              )}
             </p>
             <p className="text-xs text-emerald-700">{item.latin}</p>
             <p className="text-sm text-slate-700 mt-2">{item.idn}</p>
             <p className="text-xs text-slate-500 mt-2">
-              <span className="font-semibold">Sumber:</span> {item.source}
+              <span className="font-semibold">Sumber:</span> {item.sourceLabel || item.source}
             </p>
           </CardContent>
         </Card>
@@ -221,7 +234,9 @@ const AsmaulHusnaPage: React.FC = () => {
               </div>
             </div>
             <p className="text-lg text-emerald-700" dir="rtl">
-              {item.arab}
+              <span className="arabic-text text-right leading-relaxed tracking-normal" dir="rtl" lang="ar">
+                {item.arab}
+              </span>
             </p>
           </button>
         ))}
@@ -237,7 +252,7 @@ const AsmaulHusnaPage: React.FC = () => {
             <p className="mt-2 font-semibold text-slate-900">{active.latin}</p>
             <p className="text-sm text-slate-700 mt-1">{active.idn}</p>
             <p className="text-xs text-slate-500 mt-2">
-              <span className="font-semibold">Sumber:</span> {active.source}
+              <span className="font-semibold">Sumber:</span> {active.sourceLabel || active.source}
             </p>
             <Button className="mt-3 w-full rounded-xl" onClick={() => setActive(null)}>
               Tutup
@@ -274,12 +289,18 @@ const AlMatsuratPage: React.FC = () => {
           <Card key={item.id} className="rounded-2xl">
             <CardContent className="pt-4">
               <p className="text-right text-2xl leading-loose text-slate-900" dir="rtl">
-                {item.arab}
+                {item.arab ? (
+                  <span className="arabic-text text-right leading-relaxed tracking-normal" dir="rtl" lang="ar">
+                    {item.arab}
+                  </span>
+                ) : (
+                  <span className="text-sm text-slate-500">Konten Arab belum tersedia</span>
+                )}
               </p>
               <p className="text-xs text-emerald-700">{item.latin}</p>
               <p className="text-sm text-slate-700 mt-2">{item.idn}</p>
               <p className="text-xs text-slate-500 mt-2">
-                <span className="font-semibold">Sumber:</span> {item.source}
+                <span className="font-semibold">Sumber:</span> {item.sourceLabel || item.source}
               </p>
             </CardContent>
           </Card>
@@ -315,6 +336,7 @@ const DoaHomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const categories = getDoaCategories();
   const lastRead = getLastReadDoa();
+  const warnings = getDatasetWarnings();
 
   useEffect(() => {
     const timer = window.setTimeout(() => setLoading(false), 280);
@@ -331,6 +353,13 @@ const DoaHomePage: React.FC = () => {
           <Card className="border-rose-200 bg-rose-50">
             <CardContent className="pt-4 text-sm text-rose-700">
               Dataset tidak ditemukan. Pastikan file `src/data/doa_dzikir.json` tersedia.
+            </CardContent>
+          </Card>
+        ) : null}
+        {warnings.length > 0 && import.meta.env.DEV ? (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="pt-4 text-xs text-amber-700">
+              Ditemukan {warnings.length} data korup dan otomatis disembunyikan.
             </CardContent>
           </Card>
         ) : null}

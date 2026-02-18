@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -117,5 +119,9 @@ body {
 }
 .pb-app-nav {
   padding-bottom: var(--bottom-nav-safe-h);
+}
+
+.arabic-text {
+  font-family: 'Noto Naskh Arabic', serif;
 }
 

@@ -5,7 +5,8 @@ export interface DoaCollectionItem {
   arab: string;
   latin: string;
   idn: string;
-  source: string;
+  sourceLabel: string;
+  source?: string;
 }
 
 export interface DoaCategory {
@@ -23,7 +24,8 @@ export interface DoaItem {
   latin: string;
   idn: string;
   tags: string[];
-  source: string;
+  sourceLabel: string;
+  source?: string;
 }
 
 export interface AsmaulHusnaItem {
@@ -31,7 +33,8 @@ export interface AsmaulHusnaItem {
   arab: string;
   latin: string;
   idn: string;
-  source: string;
+  sourceLabel: string;
+  source?: string;
 }
 
 interface DoaDataset {
@@ -48,15 +51,76 @@ interface DoaDataset {
   items: DoaItem[];
 }
 
-const dataset = rawData as DoaDataset;
+const hasCorruptedArabic = (value: string) => {
+  const text = String(value || '').trim();
+  if (!text) return true;
+  const questionMarks = (text.match(/\?/g) || []).length;
+  return questionMarks >= 3 || questionMarks >= Math.floor(text.length * 0.3);
+};
+
+const normalizeSourceLabel = <T extends { sourceLabel?: string; source?: string }>(value: T) => ({
+  ...value,
+  sourceLabel: String(value.sourceLabel || value.source || 'Rujukan doa'),
+});
+
+const warningBucket: string[] = [];
+
+const sanitizeDataset = (input: DoaDataset): DoaDataset => {
+  const categories = Array.isArray(input?.categories) ? input.categories : [];
+
+  const items = (Array.isArray(input?.items) ? input.items : [])
+    .map((item) => normalizeSourceLabel(item))
+    .filter((item) => {
+      const isValid = Boolean(item.id && item.categoryId && item.title && item.latin && item.idn) && !hasCorruptedArabic(item.arab);
+      if (!isValid) warningBucket.push(`[items] invalid arabic or empty fields: ${item.id || 'unknown-id'}`);
+      return isValid;
+    });
+
+  const sanitizeCollectionRows = (rows: DoaCollectionItem[], key: string) =>
+    (Array.isArray(rows) ? rows : [])
+      .map((row) => normalizeSourceLabel(row))
+      .filter((row) => {
+        const isValid = Boolean(row.id && row.latin && row.idn) && !hasCorruptedArabic(row.arab);
+        if (!isValid) warningBucket.push(`[${key}] invalid arabic or empty fields: ${row.id || 'unknown-id'}`);
+        return isValid;
+      });
+
+  const asmaul_husna = (Array.isArray(input?.collections?.asmaul_husna) ? input.collections.asmaul_husna : [])
+    .map((row) => normalizeSourceLabel(row))
+    .filter((row) => {
+      const isValid = Boolean(row.number && row.latin && row.idn) && !hasCorruptedArabic(row.arab);
+      if (!isValid) warningBucket.push(`[asmaul_husna] invalid arabic or empty fields: ${row.number || 'unknown-number'}`);
+      return isValid;
+    });
+
+  const sanitized: DoaDataset = {
+    collections: {
+      al_matsurat: {
+        pagi: sanitizeCollectionRows(input?.collections?.al_matsurat?.pagi || [], 'al_matsurat.pagi'),
+        petang: sanitizeCollectionRows(input?.collections?.al_matsurat?.petang || [], 'al_matsurat.petang'),
+      },
+      asmaul_husna,
+      wirid_tahlil: sanitizeCollectionRows(input?.collections?.wirid_tahlil || [], 'wirid_tahlil'),
+      bilal_tarawih: sanitizeCollectionRows(input?.collections?.bilal_tarawih || [], 'bilal_tarawih'),
+    },
+    categories,
+    items,
+  };
+
+  return sanitized;
+};
+
+const dataset = sanitizeDataset(rawData as DoaDataset);
 
 const BOOKMARK_KEY = 'ml_doa_bookmarks_v1';
 const LAST_READ_KEY = 'ml_doa_last_read_v1';
 
+export const getDatasetWarnings = () => warningBucket;
+
 export const getDoaDataset = () => dataset;
 
 export const isDatasetValid = () =>
-  Boolean(dataset && Array.isArray(dataset.categories) && Array.isArray(dataset.items));
+  Boolean(dataset && Array.isArray(dataset.categories) && Array.isArray(dataset.items) && dataset.items.length > 0);
 
 export const getDoaCategories = () => dataset.categories;
 
@@ -150,4 +214,9 @@ export const getLastReadDoa = (): { id: string; title: string; categoryId: strin
 };
 
 export const buildDoaShareText = (item: DoaItem) =>
-  `${item.title}\n\n${item.arab}\n\n${item.latin}\n\n${item.idn}\n\nSumber: ${item.source}`;
+  `${item.title}\n\n${item.arab}\n\n${item.latin}\n\n${item.idn}\n\nSumber: ${item.sourceLabel || item.source || '-'}`;
+
+if (import.meta.env.DEV && warningBucket.length > 0) {
+  // Runtime safeguard in development to catch corrupted dataset early.
+  console.error('[DoaDataset] Ditemukan data korup dan otomatis di-skip:', warningBucket);
+}
