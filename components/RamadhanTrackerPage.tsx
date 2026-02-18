@@ -17,7 +17,8 @@ import {
 } from '../lib/ramadhanApi';
 import { MiniCalendarItem, MiniCalendarStrip } from './MiniCalendarStrip';
 import { DailyAbsen } from './ramadhan/DailyAbsen';
-import { RamadhanPrayerCard } from './ramadhan/RamadhanPrayerCard';
+import { RamadhanTabs, RamadhanTabValue } from './ramadhan/RamadhanTabs';
+import { ImsakScheduleTab } from './ramadhan/ImsakScheduleTab';
 import { addDays, daysInMonth, fromDateKey, isSameDay, startOfMonth, toDateKey } from '../lib/date';
 
 interface RamadhanTrackerPageProps {
@@ -125,6 +126,7 @@ const applyDayMutation = (
 
 export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack, embedded = false }) => {
   const today = useMemo(() => fromDateKey(toDateKey(new Date())), []);
+  const [activeTab, setActiveTab] = useState<RamadhanTabValue>('tracker');
   const [selectedDate, setSelectedDate] = useState<Date>(() => today);
   const [viewMonth, setViewMonth] = useState<Date>(() => startOfMonth(today));
 
@@ -329,146 +331,150 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
           </div>
         )}
 
-        <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex items-start justify-between gap-3 mb-3">
-            <div>
-              <p className="text-xs text-gray-500">
-                {formatMonthLabel(monthKey)} - {monthDayCount} hari
-              </p>
-              <h2 className="font-bold text-gray-800">Hari ke-{selectedIndex || '-'} Ramadhan</h2>
-            </div>
-            <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
-              {monthData?.summary.completion_rate || '0.0'}%
-            </span>
-          </div>
+        <RamadhanTabs value={activeTab} onChange={setActiveTab} />
 
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
-            <div className="flex items-center justify-between mb-2 text-xs text-gray-600">
-              <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
-                <Target size={13} /> Target Line
-              </span>
-              <span>
-                Hari aktif {monthData?.summary.active_days || 0}/{monthData?.summary.total_days || 0}
-              </span>
-            </div>
-            <div className="w-full h-3 bg-emerald-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-green-600 transition-all"
-                style={{ width: `${activeRatio}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="mt-3">
-            <RamadhanPrayerCard selectedDateKey={selectedDateKey} />
-          </div>
-
-          <div className="mt-3 text-xs text-gray-500 flex justify-between">
-            <span>
-              Checked item: {monthData?.summary.total_checked_items || 0}/{monthData?.summary.total_item_target || 0}
-            </span>
-            <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-              <Flame size={12} />
-              Streak {isLoadingStats || !stats ? '...' : `${stats.streak_days} hari`}
-            </span>
-          </div>
-        </section>
-
-        <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-800">Mini Kalender {formatMonthLabel(monthKey)}</h2>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onPrevDay}
-                aria-label="Pilih tanggal sebelumnya"
-                className="px-2 py-1 rounded border text-xs border-gray-200 inline-flex items-center gap-1"
-              >
-                <ChevronLeft size={12} /> Prev
-              </button>
-              <button
-                type="button"
-                onClick={onNextDay}
-                aria-label="Pilih tanggal selanjutnya"
-                className="px-2 py-1 rounded border text-xs border-gray-200 inline-flex items-center gap-1"
-              >
-                Next <ChevronRight size={12} />
-              </button>
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 mb-3">Tanggal dipilih: {selectedDateLabel}</p>
-
-          {isLoadingMonth ? (
-            <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />
-          ) : miniCalendarItems.length === 0 ? (
-            <p className="text-sm text-gray-500">Konten belum tersedia.</p>
-          ) : (
-            <MiniCalendarStrip
-              items={miniCalendarItems}
-              selectedDate={selectedDateKey}
-              onSelect={handleSelectDate}
-            />
-          )}
-        </section>
-
-        <DailyAbsen
-          selectedDate={selectedDateKey}
-          isLoading={isLoadingMonth}
-          selectedDay={
-            selectedDay
-              ? {
-                  sahur: selectedDay.sahur,
-                  puasa: selectedDay.puasa,
-                  tarawih: selectedDay.tarawih,
-                  sedekah: selectedDay.sedekah,
-                  notes: selectedDay.notes,
-                }
-              : null
-          }
-          savingItem={savingItem}
-          onToggle={(item) => {
-            void handleToggle(item);
-          }}
-        />
-
-        <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-gray-800 text-sm">Statistik 30 Hari</h3>
-            <button
-              onClick={() => {
-                void loadMonth();
-                void loadStats();
-              }}
-              className="text-xs px-2 py-1 border border-gray-200 rounded-lg text-gray-600 inline-flex items-center gap-1"
-            >
-              <RefreshCw size={12} /> Refresh
-            </button>
-          </div>
-
-          {isLoadingStats || !stats ? (
-            <div className="space-y-2 animate-pulse">
-              <div className="h-4 rounded bg-gray-100" />
-              <div className="h-4 rounded bg-gray-100" />
-              <div className="h-4 rounded bg-gray-100" />
-            </div>
-          ) : (
-            <div className="space-y-2 text-xs text-gray-600">
-              <p>
-                Hari Aktif: {stats.active_days} dari {stats.range_days}
-              </p>
-              <p>Inactive: {stats.inactive_days} hari</p>
-              <p>
-                Checked Item: {stats.total_checked}/{stats.total_target}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-2 py-1 rounded-full bg-gray-100">Sahur {stats.item_totals.sahur}</span>
-                <span className="px-2 py-1 rounded-full bg-gray-100">Puasa {stats.item_totals.puasa}</span>
-                <span className="px-2 py-1 rounded-full bg-gray-100">Tarawih {stats.item_totals.tarawih}</span>
-                <span className="px-2 py-1 rounded-full bg-gray-100">Sedekah {stats.item_totals.sedekah}</span>
+        {activeTab === 'tracker' ? (
+          <>
+            <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p className="text-xs text-gray-500">
+                    {formatMonthLabel(monthKey)} - {monthDayCount} hari
+                  </p>
+                  <h2 className="font-bold text-gray-800">Hari ke-{selectedIndex || '-'} Ramadhan</h2>
+                </div>
+                <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
+                  {monthData?.summary.completion_rate || '0.0'}%
+                </span>
               </div>
-            </div>
-          )}
-        </section>
+
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
+                <div className="flex items-center justify-between mb-2 text-xs text-gray-600">
+                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                    <Target size={13} /> Target Line
+                  </span>
+                  <span>
+                    Hari aktif {monthData?.summary.active_days || 0}/{monthData?.summary.total_days || 0}
+                  </span>
+                </div>
+                <div className="w-full h-3 bg-emerald-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-green-600 transition-all"
+                    style={{ width: `${activeRatio}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 text-xs text-gray-500 flex justify-between">
+                <span>
+                  Checked item: {monthData?.summary.total_checked_items || 0}/{monthData?.summary.total_item_target || 0}
+                </span>
+                <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                  <Flame size={12} />
+                  Streak {isLoadingStats || !stats ? '...' : `${stats.streak_days} hari`}
+                </span>
+              </div>
+            </section>
+
+            <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-bold text-gray-800">Mini Kalender {formatMonthLabel(monthKey)}</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onPrevDay}
+                    aria-label="Pilih tanggal sebelumnya"
+                    className="px-2 py-1 rounded border text-xs border-gray-200 inline-flex items-center gap-1"
+                  >
+                    <ChevronLeft size={12} /> Prev
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onNextDay}
+                    aria-label="Pilih tanggal selanjutnya"
+                    className="px-2 py-1 rounded border text-xs border-gray-200 inline-flex items-center gap-1"
+                  >
+                    Next <ChevronRight size={12} />
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">Tanggal dipilih: {selectedDateLabel}</p>
+
+              {isLoadingMonth ? (
+                <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />
+              ) : miniCalendarItems.length === 0 ? (
+                <p className="text-sm text-gray-500">Konten belum tersedia.</p>
+              ) : (
+                <MiniCalendarStrip
+                  items={miniCalendarItems}
+                  selectedDate={selectedDateKey}
+                  onSelect={handleSelectDate}
+                />
+              )}
+            </section>
+
+            <DailyAbsen
+              selectedDate={selectedDateKey}
+              isLoading={isLoadingMonth}
+              selectedDay={
+                selectedDay
+                  ? {
+                      sahur: selectedDay.sahur,
+                      puasa: selectedDay.puasa,
+                      tarawih: selectedDay.tarawih,
+                      sedekah: selectedDay.sedekah,
+                      notes: selectedDay.notes,
+                    }
+                  : null
+              }
+              savingItem={savingItem}
+              onToggle={(item) => {
+                void handleToggle(item);
+              }}
+            />
+
+            <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-gray-800 text-sm">Statistik 30 Hari</h3>
+                <button
+                  onClick={() => {
+                    void loadMonth();
+                    void loadStats();
+                  }}
+                  className="text-xs px-2 py-1 border border-gray-200 rounded-lg text-gray-600 inline-flex items-center gap-1"
+                >
+                  <RefreshCw size={12} /> Refresh
+                </button>
+              </div>
+
+              {isLoadingStats || !stats ? (
+                <div className="space-y-2 animate-pulse">
+                  <div className="h-4 rounded bg-gray-100" />
+                  <div className="h-4 rounded bg-gray-100" />
+                  <div className="h-4 rounded bg-gray-100" />
+                </div>
+              ) : (
+                <div className="space-y-2 text-xs text-gray-600">
+                  <p>
+                    Hari Aktif: {stats.active_days} dari {stats.range_days}
+                  </p>
+                  <p>Inactive: {stats.inactive_days} hari</p>
+                  <p>
+                    Checked Item: {stats.total_checked}/{stats.total_target}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-2 py-1 rounded-full bg-gray-100">Sahur {stats.item_totals.sahur}</span>
+                    <span className="px-2 py-1 rounded-full bg-gray-100">Puasa {stats.item_totals.puasa}</span>
+                    <span className="px-2 py-1 rounded-full bg-gray-100">Tarawih {stats.item_totals.tarawih}</span>
+                    <span className="px-2 py-1 rounded-full bg-gray-100">Sedekah {stats.item_totals.sedekah}</span>
+                  </div>
+                </div>
+              )}
+            </section>
+          </>
+        ) : (
+          <ImsakScheduleTab selectedDate={selectedDate} selectedDateLabel={selectedDateLabel} />
+        )}
       </div>
     </div>
   );
