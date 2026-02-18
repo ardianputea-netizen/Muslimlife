@@ -27,6 +27,19 @@ export const MiniCalendarStrip: React.FC<MiniCalendarStripProps> = ({
   selectedDate,
   onSelect,
 }) => {
+  const chipRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
+
+  React.useEffect(() => {
+    const target = chipRefs.current[selectedDate];
+    if (!target) return;
+
+    target.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'center',
+      block: 'nearest',
+    });
+  }, [selectedDate, items]);
+
   const parseBadgeCounts = (badge?: string) => {
     if (!badge) return null;
     const matched = badge.match(/(\d+)\s*\/\s*(\d+)/);
@@ -95,6 +108,9 @@ export const MiniCalendarStrip: React.FC<MiniCalendarStripProps> = ({
           return (
             <button
               key={item.date}
+              ref={(node) => {
+                chipRefs.current[item.date] = node;
+              }}
               onClick={() => onSelect(item.date)}
               disabled={item.disabled}
               aria-label={`Pilih tanggal ${formatFullDate(item.date)}`}
