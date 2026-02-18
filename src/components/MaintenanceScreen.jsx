@@ -9,8 +9,10 @@ export default function MaintenanceScreen() {
     >
       <div className="absolute inset-0 bg-black/60 flex items-center justify-center px-6">
         <p className="max-w-5xl text-white text-2xl md:text-3xl font-bold text-center animate-pulse leading-relaxed">
-          SABAR CUI LAGI MAINTANCE YA MAKLUM MODAL AI TAPI GUA BUAT SEBAGUS MUNGKIN, DAN AMBIL
-          DARI SUMBER TERPERCAYA
+          SABAR CUI LAGI MAINTENANCE YA MAKLUM MODAL AI HEHEHEHEHEHEHEHEHHEHE
+          <br />
+          <br />
+          TAPI GUA BUAT SEBAGUS MUNGKIN, DAN AMBIL DARI SUMBER TERPERCAYA
         </p>
       </div>
     </div>
