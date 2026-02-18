@@ -1,84 +1,69 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Clock3 } from 'lucide-react';
-import {
-  CalculationMethodId,
-  MadhabId,
-  computeTimes,
-  formatTime,
-  loadPrayerSettings,
-} from '@/lib/prayerTimes';
 import { addDays, toDateKey } from '@/lib/date';
 import { CountdownPanel } from './CountdownPanel';
-import { LocationMode, LocationPicker, LocationPreference } from './LocationPicker';
+import { LocationPicker, LocationPreference } from './LocationPicker';
+import { getPrayerTimingsByDate, PrayerDayTimings } from '@/services/prayerTimesApi';
+import { loadPrayerSettings, savePrayerSettings } from '@/lib/prayerTimes';
 
 interface ImsakScheduleTabProps {
   selectedDate: Date;
   selectedDateLabel: string;
 }
 
-interface ImsakTimes {
-  imsak: Date;
-  subuh: Date;
-  maghrib: Date;
+interface StoredLocationPayload {
+  name: string;
+  lat: number;
+  lon: number;
+  country?: string;
+  admin1?: string;
+  admin2?: string;
+  timezone?: string;
+  source?: 'manual' | 'gps';
+  mode?: 'my_location' | 'city_search';
 }
 
-const LS_MODE = 'location_mode';
-const LS_CITY = 'location_cityName';
-const LS_LAT = 'location_lat';
-const LS_LNG = 'location_lng';
+interface ImsakTimes {
+  imsak: Date | null;
+  subuh: Date | null;
+  maghrib: Date | null;
+}
 
-const readLocationPreference = (): LocationPreference => {
-  if (typeof window === 'undefined') {
-    return { mode: 'city_search', cityName: '', lat: null, lng: null };
-  }
+const LOCATION_STORAGE_KEY = 'muslimlife.location';
 
-  const modeRaw = (localStorage.getItem(LS_MODE) || 'city_search') as LocationMode;
-  const mode: LocationMode = modeRaw === 'my_location' ? 'my_location' : 'city_search';
-  const cityName = localStorage.getItem(LS_CITY) || '';
-  const latRaw = Number(localStorage.getItem(LS_LAT));
-  const lngRaw = Number(localStorage.getItem(LS_LNG));
-
-  return {
-    mode,
-    cityName,
-    lat: Number.isFinite(latRaw) ? latRaw : null,
-    lng: Number.isFinite(lngRaw) ? lngRaw : null,
-  };
+const METHOD_MAP: Record<string, number> = {
+  kemenag: 20,
+  singapore: 11,
+  muslim_world_league: 3,
+  umm_al_qura: 4,
 };
 
-const saveLocationPreference = (value: LocationPreference) => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(LS_MODE, value.mode);
-  localStorage.setItem(LS_CITY, value.cityName || '');
-  localStorage.setItem(LS_LAT, typeof value.lat === 'number' ? String(value.lat) : '');
-  localStorage.setItem(LS_LNG, typeof value.lng === 'number' ? String(value.lng) : '');
+const parseClockToDate = (dateKey: string, clock: string): Date | null => {
+  const dateMatch = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!dateMatch) return null;
+
+  const clean = String(clock || '').trim();
+  const match = clean.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+
+  return new Date(
+    Number(dateMatch[1]),
+    Number(dateMatch[2]) - 1,
+    Number(dateMatch[3]),
+    Number(match[1]),
+    Number(match[2]),
+    0,
+    0
+  );
 };
 
-const getTimesForDate = ({
-  lat,
-  lng,
-  date,
-  method,
-  madhab,
-}: {
-  lat: number;
-  lng: number;
-  date: Date;
-  method?: CalculationMethodId;
-  madhab?: MadhabId;
-}): ImsakTimes => {
-  const settings = loadPrayerSettings();
-  const computed = computeTimes(date, lat, lng, {
-    calculationMethod: method || settings.calculationMethod || 'kemenag',
-    madhab: madhab || settings.madhab || 'shafi',
-    imsakOffsetMinutes: settings.imsakOffsetMinutes,
-  });
-
-  return {
-    imsak: computed.imsak,
-    subuh: computed.subuh,
-    maghrib: computed.maghrib,
-  };
+const formatTime = (value: Date | null) => {
+  if (!value) return '--:--';
+  return new Intl.DateTimeFormat('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(value);
 };
 
 const formatCountdown = (target: Date, now: Date) => {
@@ -90,19 +75,117 @@ const formatCountdown = (target: Date, now: Date) => {
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
 };
 
+const readLocationPreference = (): LocationPreference => {
+  if (typeof window === 'undefined') {
+    return {
+      mode: 'city_search',
+      name: '',
+      lat: null,
+      lng: null,
+      country: '',
+      admin1: '',
+      admin2: '',
+      source: 'manual',
+    };
+  }
+
+  try {
+    const raw = localStorage.getItem(LOCATION_STORAGE_KEY);
+    if (!raw) {
+      return {
+        mode: 'city_search',
+        name: '',
+        lat: null,
+        lng: null,
+        country: '',
+        admin1: '',
+        admin2: '',
+        source: 'manual',
+      };
+    }
+    const parsed = JSON.parse(raw) as StoredLocationPayload;
+    const lat = Number(parsed.lat);
+    const lng = Number(parsed.lon);
+
+    return {
+      mode: parsed.mode === 'my_location' ? 'my_location' : 'city_search',
+      name: String(parsed.name || ''),
+      lat: Number.isFinite(lat) ? lat : null,
+      lng: Number.isFinite(lng) ? lng : null,
+      country: String(parsed.country || ''),
+      admin1: String(parsed.admin1 || ''),
+      admin2: String(parsed.admin2 || ''),
+      timezone: parsed.timezone,
+      source: parsed.source === 'gps' ? 'gps' : 'manual',
+    };
+  } catch {
+    return {
+      mode: 'city_search',
+      name: '',
+      lat: null,
+      lng: null,
+      country: '',
+      admin1: '',
+      admin2: '',
+      source: 'manual',
+    };
+  }
+};
+
+const saveLocationPreference = (value: LocationPreference) => {
+  if (typeof window === 'undefined') return;
+  if (typeof value.lat !== 'number' || typeof value.lng !== 'number') return;
+
+  const payload: StoredLocationPayload = {
+    name: value.name || 'Lokasi Dipilih',
+    lat: value.lat,
+    lon: value.lng,
+    country: value.country,
+    admin1: value.admin1,
+    admin2: value.admin2,
+    timezone: value.timezone,
+    source: value.source,
+    mode: value.mode,
+  };
+  localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(payload));
+};
+
+const mapMethodToAladhan = () => {
+  const settings = loadPrayerSettings();
+  return METHOD_MAP[settings.calculationMethod] || 20;
+};
+
+const toImsakTimes = (dateKey: string, timings: PrayerDayTimings): ImsakTimes => ({
+  imsak: parseClockToDate(dateKey, timings.imsak),
+  subuh: parseClockToDate(dateKey, timings.subuh),
+  maghrib: parseClockToDate(dateKey, timings.maghrib),
+});
+
 const TimeRow: React.FC<{ label: string; value: Date | null }> = ({ label, value }) => (
   <div className="rounded-xl border border-gray-100 bg-white px-3 py-2 flex items-center justify-between">
     <span className="text-sm font-medium text-gray-700">{label}</span>
-    <span className="text-sm font-semibold text-gray-900">{value ? formatTime(value) : '--:--'}</span>
+    <span className="text-sm font-semibold text-gray-900">{formatTime(value)}</span>
   </div>
 );
 
 export const ImsakScheduleTab: React.FC<ImsakScheduleTabProps> = ({ selectedDate, selectedDateLabel }) => {
   const [locationPreference, setLocationPreference] = useState<LocationPreference>(() => readLocationPreference());
   const [tick, setTick] = useState(Date.now());
+  const [selectedTimings, setSelectedTimings] = useState<PrayerDayTimings | null>(null);
+  const [todayTimings, setTodayTimings] = useState<PrayerDayTimings | null>(null);
+  const [tomorrowTimings, setTomorrowTimings] = useState<PrayerDayTimings | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     saveLocationPreference(locationPreference);
+    if (typeof locationPreference.lat === 'number' && typeof locationPreference.lng === 'number') {
+      savePrayerSettings({
+        lat: locationPreference.lat,
+        lng: locationPreference.lng,
+        cityPreset: 'manual',
+      });
+    }
   }, [locationPreference]);
 
   useEffect(() => {
@@ -115,44 +198,93 @@ export const ImsakScheduleTab: React.FC<ImsakScheduleTabProps> = ({ selectedDate
     return { lat: locationPreference.lat, lng: locationPreference.lng };
   }, [locationPreference.lat, locationPreference.lng]);
 
-  const selectedTimes = useMemo(() => {
-    if (!coords) return null;
-    return getTimesForDate({
-      lat: coords.lat,
-      lng: coords.lng,
-      date: selectedDate,
-    });
+  useEffect(() => {
+    if (!coords) {
+      setSelectedTimings(null);
+      setTodayTimings(null);
+      setTomorrowTimings(null);
+      return;
+    }
+
+    const methodId = mapMethodToAladhan();
+    const selectedDateKey = toDateKey(selectedDate);
+    const todayDateKey = toDateKey(new Date());
+    const tomorrowDateKey = toDateKey(addDays(new Date(), 1));
+    let cancelled = false;
+
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    Promise.all([
+      getPrayerTimingsByDate({
+        lat: coords.lat,
+        lng: coords.lng,
+        dateKey: selectedDateKey,
+        method: methodId,
+      }),
+      getPrayerTimingsByDate({
+        lat: coords.lat,
+        lng: coords.lng,
+        dateKey: todayDateKey,
+        method: methodId,
+      }),
+      getPrayerTimingsByDate({
+        lat: coords.lat,
+        lng: coords.lng,
+        dateKey: tomorrowDateKey,
+        method: methodId,
+      }),
+    ])
+      .then(([selected, today, tomorrow]) => {
+        if (cancelled) return;
+        setSelectedTimings(selected);
+        setTodayTimings(today);
+        setTomorrowTimings(tomorrow);
+      })
+      .catch((error) => {
+        console.error(error);
+        if (cancelled) return;
+        setErrorMessage('Gagal memuat jadwal Imsak & sholat.');
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [coords, selectedDate]);
 
-  const today = useMemo(() => new Date(tick), [tick]);
-
-  const todayTimes = useMemo(() => {
-    if (!coords) return null;
-    return getTimesForDate({
-      lat: coords.lat,
-      lng: coords.lng,
-      date: today,
-    });
-  }, [coords, today]);
-
-  const tomorrowTimes = useMemo(() => {
-    if (!coords) return null;
-    return getTimesForDate({
-      lat: coords.lat,
-      lng: coords.lng,
-      date: addDays(today, 1),
-    });
-  }, [coords, today]);
+  const selectedTimes = useMemo(() => {
+    if (!selectedTimings) return null;
+    return toImsakTimes(toDateKey(selectedDate), selectedTimings);
+  }, [selectedDate, selectedTimings]);
 
   const nextTarget = useMemo(() => {
-    if (!todayTimes || !tomorrowTimes) return null;
+    if (!todayTimings || !tomorrowTimings) return null;
 
     const now = new Date(tick);
-    if (now.getTime() < todayTimes.imsak.getTime()) return { label: 'IMSAK', time: todayTimes.imsak };
-    if (now.getTime() < todayTimes.subuh.getTime()) return { label: 'SUBUH', time: todayTimes.subuh };
-    if (now.getTime() < todayTimes.maghrib.getTime()) return { label: 'MAGHRIB', time: todayTimes.maghrib };
-    return { label: 'IMSAK', time: tomorrowTimes.imsak };
-  }, [tick, todayTimes, tomorrowTimes]);
+    const todayKey = toDateKey(now);
+    const todayTimes = toImsakTimes(todayKey, todayTimings);
+    const tomorrowKey = toDateKey(addDays(now, 1));
+    const tomorrowTimes = toImsakTimes(tomorrowKey, tomorrowTimings);
+
+    if (todayTimes.imsak && now.getTime() < todayTimes.imsak.getTime()) {
+      return { label: 'IMSAK', time: todayTimes.imsak };
+    }
+    if (todayTimes.subuh && now.getTime() < todayTimes.subuh.getTime()) {
+      return { label: 'SUBUH', time: todayTimes.subuh };
+    }
+    if (todayTimes.maghrib && now.getTime() < todayTimes.maghrib.getTime()) {
+      return { label: 'MAGHRIB', time: todayTimes.maghrib };
+    }
+    if (tomorrowTimes.imsak) {
+      return { label: 'IMSAK', time: tomorrowTimes.imsak };
+    }
+    return null;
+  }, [tick, todayTimings, tomorrowTimings]);
 
   const countdown = useMemo(() => {
     if (!nextTarget) return '00:00:00';
@@ -175,11 +307,21 @@ export const ImsakScheduleTab: React.FC<ImsakScheduleTabProps> = ({ selectedDate
           <Clock3 size={12} />
           <span>Jadwal {toDateKey(selectedDate)}</span>
         </div>
-        <div className="space-y-2">
-          <TimeRow label="Imsak" value={selectedTimes?.imsak || null} />
-          <TimeRow label="Subuh" value={selectedTimes?.subuh || null} />
-          <TimeRow label="Maghrib" value={selectedTimes?.maghrib || null} />
-        </div>
+
+        {errorMessage ? <p className="mb-3 text-xs text-rose-600">{errorMessage}</p> : null}
+        {isLoading && !selectedTimes ? (
+          <div className="space-y-2 animate-pulse">
+            <div className="h-10 rounded-xl bg-gray-100" />
+            <div className="h-10 rounded-xl bg-gray-100" />
+            <div className="h-10 rounded-xl bg-gray-100" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <TimeRow label="Imsak" value={selectedTimes?.imsak || null} />
+            <TimeRow label="Subuh" value={selectedTimes?.subuh || null} />
+            <TimeRow label="Maghrib" value={selectedTimes?.maghrib || null} />
+          </div>
+        )}
       </section>
     </div>
   );

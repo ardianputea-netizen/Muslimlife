@@ -1,15 +1,21 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LocateFixed, MapPin, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { GeocodeSuggestion, getGeocodeSuggestions } from '@/services/geocodeApi';
 
 export type LocationMode = 'my_location' | 'city_search';
 
 export interface LocationPreference {
   mode: LocationMode;
-  cityName: string;
+  name: string;
   lat: number | null;
   lng: number | null;
+  country: string;
+  admin1: string;
+  admin2: string;
+  timezone?: string;
+  source: 'gps' | 'manual';
 }
 
 interface LocationPickerProps {
@@ -17,30 +23,22 @@ interface LocationPickerProps {
   onChange: (next: LocationPreference) => void;
 }
 
-interface CityOption {
-  name: string;
-  lat: number;
-  lng: number;
-}
-
-const CITY_FALLBACK: CityOption[] = [
-  { name: 'Jakarta', lat: -6.2088, lng: 106.8456 },
-  { name: 'Bandung', lat: -6.9175, lng: 107.6191 },
-  { name: 'Surabaya', lat: -7.2575, lng: 112.7521 },
-  { name: 'Medan', lat: 3.5952, lng: 98.6722 },
-  { name: 'Makassar', lat: -5.1477, lng: 119.4327 },
-];
-
 const MODES: Array<{ id: LocationMode; label: string }> = [
   { id: 'my_location', label: 'Lokasi Saya' },
   { id: 'city_search', label: 'Cari Kota' },
 ];
 
+const buildSubtitle = (item: GeocodeSuggestion) =>
+  [item.country, item.admin1, item.name || item.admin2].filter(Boolean).join(' • ');
+
 export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange }) => {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<CityOption[]>([]);
+  const [searchResults, setSearchResults] = useState<GeocodeSuggestion[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [didSearch, setDidSearch] = useState(false);
+  const activeRequestRef = useRef(0);
 
   const coordsLabel = useMemo(() => {
     if (typeof value.lat !== 'number' || typeof value.lng !== 'number') return null;
@@ -66,9 +64,13 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange 
         onChange({
           ...value,
           mode: 'my_location',
-          cityName: 'Lokasi Saya',
+          name: 'Lokasi Saya',
           lat: position.coords.latitude,
           lng: position.coords.longitude,
+          country: '',
+          admin1: '',
+          admin2: '',
+          source: 'gps',
         });
         setIsGettingLocation(false);
       },
@@ -80,18 +82,54 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange 
     );
   };
 
-  const handleSearch = () => {
-    const keyword = searchTerm.trim().toLowerCase();
+  const runSearch = useCallback((keywordRaw: string, immediate = false) => {
+    const keyword = keywordRaw.trim();
     if (keyword.length < 3) {
-      setMessage('Masukkan minimal 3 huruf untuk cari kota.');
       setSearchResults([]);
-      return;
+      setSearchLoading(false);
+      setDidSearch(false);
+      return () => {};
     }
 
-    const matched = CITY_FALLBACK.filter((item) => item.name.toLowerCase().includes(keyword));
-    setSearchResults(matched);
-    setMessage(matched.length === 0 ? 'Kota tidak ditemukan di data lokal sementara.' : null);
-  };
+    setSearchLoading(true);
+    setMessage(null);
+    const requestId = activeRequestRef.current + 1;
+    activeRequestRef.current = requestId;
+
+    const execute = () => {
+      void getGeocodeSuggestions(keyword)
+        .then((results) => {
+          if (activeRequestRef.current !== requestId) return;
+          setSearchResults(results);
+          setDidSearch(true);
+          if (results.length === 0) {
+            setMessage('Kota tidak ditemukan, coba kata lain.');
+          }
+        })
+        .catch((error: unknown) => {
+          if (activeRequestRef.current !== requestId) return;
+          const asError = error as { message?: string; name?: string };
+          if (asError?.name === 'GeocodeRateLimitError' || asError?.message === 'TOO_MANY_REQUESTS') {
+            setMessage('Terlalu banyak permintaan, coba lagi sebentar.');
+          } else {
+            setMessage('Gagal mencari kota. Coba lagi beberapa saat.');
+          }
+        })
+        .finally(() => {
+          if (activeRequestRef.current === requestId) {
+            setSearchLoading(false);
+          }
+        });
+    };
+
+    const timer = window.setTimeout(execute, immediate ? 0 : 400);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (value.mode !== 'city_search') return;
+    return runSearch(searchTerm, false);
+  }, [runSearch, searchTerm, value.mode]);
 
   return (
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
@@ -145,39 +183,57 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange 
             />
             <button
               type="button"
-              onClick={handleSearch}
-              className="inline-flex items-center gap-1 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-secondary-foreground hover:bg-accent hover:text-accent-foreground"
+              onClick={() => {
+                if (value.mode !== 'city_search') return;
+                runSearch(searchTerm, true);
+              }}
+              className="inline-flex items-center gap-1 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-secondary-foreground"
             >
               <Search size={14} />
               Cari
             </button>
           </div>
 
+          {searchLoading ? <p className="text-xs text-muted-foreground">Mencari kota...</p> : null}
+
           {searchResults.length > 0 ? (
-            <div className="max-h-36 overflow-y-auto space-y-1">
+            <div className="max-h-52 overflow-y-auto space-y-1">
               {searchResults.map((city) => (
                 <button
                   type="button"
-                  key={city.name}
+                  key={city.id}
                   onClick={() => {
                     onChange({
                       ...value,
                       mode: 'city_search',
-                      cityName: city.name,
+                      name: city.name,
                       lat: city.lat,
-                      lng: city.lng,
+                      lng: city.lon,
+                      country: city.country,
+                      admin1: city.admin1,
+                      admin2: city.admin2,
+                      source: 'manual',
                     });
                     setMessage(`Kota dipilih: ${city.name}`);
                   }}
-                  className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-left text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
+                  className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-left hover:bg-accent"
                 >
-                  {city.name}
+                  <p className="text-sm font-semibold text-foreground">{city.shortTitle}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">{buildSubtitle(city)}</p>
                 </button>
               ))}
             </div>
           ) : null}
 
-          {value.cityName ? <p className="text-xs text-muted-foreground">Kota aktif: {value.cityName}</p> : null}
+          {didSearch && !searchLoading && searchResults.length === 0 && !message ? (
+            <p className="text-xs text-muted-foreground">Kota tidak ditemukan, coba kata lain.</p>
+          ) : null}
+
+          {value.name ? (
+            <p className="text-xs text-muted-foreground">
+              Kota aktif: {value.name} <span className="font-semibold">({value.source === 'manual' ? 'Manual' : 'GPS'})</span>
+            </p>
+          ) : null}
         </div>
       )}
 
