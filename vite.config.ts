@@ -7,6 +7,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
+    proxy: {
+      '/quran-api': {
+        target: 'https://api.quran.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/quran-api/, ''),
+      },
+    },
   },
   plugins: [react()],
   resolve: {

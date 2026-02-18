@@ -1,6 +1,6 @@
 import type { QuranChapter, QuranProvider, SurahDetailPayload } from '../provider';
 
-const DEFAULT_QF_BASE = 'https://api.quran.com/api/v4';
+const DEFAULT_QF_BASE = '/quran-api/api/v4';
 
 const resolveBase = () => process.env.QF_API_BASE?.trim() || DEFAULT_QF_BASE;
 
@@ -85,4 +85,3 @@ export const quranFoundationProvider: QuranProvider = {
     return `https://audio.qurancdn.com/${rawURL.replace(/^\/+/, '')}`;
   },
 };
-

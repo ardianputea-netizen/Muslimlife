@@ -35,6 +35,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const [chapters, setChapters] = useState<QuranChapter[]>([]);
   const [sourceLabel, setSourceLabel] = useState('QuranFoundation');
   const [isLoadingList, setIsLoadingList] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
 
   const [selectedChapter, setSelectedChapter] = useState<QuranChapter | null>(null);
   const [verses, setVerses] = useState<QuranVerse[]>([]);
@@ -66,14 +67,19 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
 
   const loadChapters = useCallback(async () => {
     setIsLoadingList(true);
+    setListError(null);
     try {
       const response = await fetch('/api/quran/chapters');
       const payload = await response.json();
+      if (!response.ok || !payload?.success) {
+        throw new Error(String(payload?.message || 'Gagal memuat daftar surah.'));
+      }
       const rows = Array.isArray(payload?.chapters) ? payload.chapters : [];
       setChapters(rows);
       if (payload?.sourceLabel) setSourceLabel(String(payload.sourceLabel));
-    } catch {
+    } catch (error) {
       setChapters([]);
+      setListError(error instanceof Error ? error.message : 'Gagal memuat daftar surah.');
     } finally {
       setIsLoadingList(false);
     }
@@ -319,7 +325,21 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
         <QuranTabs value={tab} onChange={setTab} />
         <div className="mt-3">
           {isLoadingList ? (
-            <div className="py-12 text-center text-sm text-gray-500">Memuat daftar surah...</div>
+            <div className="py-12 text-center text-sm text-gray-500">Memuat...</div>
+          ) : listError ? (
+            <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 text-center">
+              <p className="text-sm text-red-700">{listError}</p>
+              <button
+                onClick={() => {
+                  void loadChapters();
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Retry
+              </button>
+            </div>
+          ) : visibleChapters.length === 0 ? (
+            <div className="py-12 text-center text-sm text-gray-500">Data tidak ditemukan</div>
           ) : (
             <SurahList
               items={visibleChapters}
@@ -333,4 +353,3 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     </div>
   );
 };
-
