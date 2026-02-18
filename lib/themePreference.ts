@@ -1,23 +1,27 @@
 import type { ThemePreference } from './profileSettings';
 
-const resolveTheme = (theme: ThemePreference): 'light' | 'dark' => {
-  if (theme === 'light' || theme === 'dark') return theme;
-  if (typeof window === 'undefined') return 'light';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+const THEME_STORAGE_KEYS = ['theme', 'app-theme', 'theme-preference', 'ml_theme', 'ml_theme_preference'];
+
+const migrateThemeStorageToLight = () => {
+  if (typeof window === 'undefined') return;
+  for (const key of THEME_STORAGE_KEYS) {
+    const value = String(window.localStorage.getItem(key) || '').toLowerCase();
+    if (value === 'dark' || value === 'system') {
+      window.localStorage.setItem(key, 'light');
+    }
+  }
 };
 
-export const applyThemePreference = (theme: ThemePreference) => {
+export const applyThemePreference = (_theme: ThemePreference) => {
   if (typeof document === 'undefined') return;
 
-  const resolved = resolveTheme(theme);
+  migrateThemeStorageToLight();
   const root = document.documentElement;
-  root.classList.toggle('dark', resolved === 'dark');
+  root.classList.remove('dark');
 
-  root.style.colorScheme = resolved;
+  root.style.colorScheme = 'light';
 };
 
-export const getThemeLabel = (theme: ThemePreference) => {
-  if (theme === 'light') return 'Terang';
-  if (theme === 'dark') return 'Gelap';
-  return 'Sistem';
+export const getThemeLabel = (_theme: ThemePreference) => {
+  return 'Terang';
 };

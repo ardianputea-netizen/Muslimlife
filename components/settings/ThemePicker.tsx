@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Check, MoonStar, Monitor, Sun } from 'lucide-react';
+import { Check, Sun } from 'lucide-react';
 import type { ThemePreference } from '../../lib/profileSettings';
 
 interface ThemePickerProps {
@@ -17,22 +17,10 @@ const THEME_OPTIONS: Array<{
   icon: React.ComponentType<{ size?: number; className?: string }>;
 }> = [
   {
-    value: 'system',
-    label: 'Sistem',
-    subtitle: 'Ikuti pengaturan perangkat',
-    icon: Monitor,
-  },
-  {
     value: 'light',
     label: 'Terang',
     subtitle: 'Warna terang sepanjang waktu',
     icon: Sun,
-  },
-  {
-    value: 'dark',
-    label: 'Gelap',
-    subtitle: 'Warna gelap untuk malam hari',
-    icon: MoonStar,
   },
 ];
 

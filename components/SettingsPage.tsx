@@ -26,13 +26,11 @@ import {
   type NotificationSettingsPreference,
   type PrayerCalcMethod,
   type ProfileSettingsRecord,
-  type ThemePreference,
 } from '../lib/profileSettings';
 import { savePrayerSettings } from '../lib/prayerTimes';
 import { applyThemePreference, getThemeLabel } from '../lib/themePreference';
 import { UserAccountCard } from './settings/UserAccountCard';
 import { SettingsRow } from './settings/SettingsRow';
-import { ThemePicker } from './settings/ThemePicker';
 import { NotificationSheet } from './settings/NotificationSheet';
 import { MethodPickerSheet } from './settings/MethodPickerSheet';
 import { CompassCalibrationSheet } from './settings/CompassCalibrationSheet';
@@ -44,7 +42,7 @@ interface ToastState {
 }
 
 type ProviderType = 'google' | 'apple' | 'unknown';
-type SavingKey = 'theme' | 'notification' | 'method' | 'compass' | 'logout' | null;
+type SavingKey = 'notification' | 'method' | 'compass' | 'logout' | null;
 
 const PROD_ORIGINS = new Set(['https://www.muslimlife.my.id', 'https://muslimlife.my.id']);
 
@@ -99,7 +97,6 @@ export const SettingsPage: React.FC = () => {
   const [savingKey, setSavingKey] = useState<SavingKey>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  const [themeOpen, setThemeOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [methodOpen, setMethodOpen] = useState(false);
   const [compassOpen, setCompassOpen] = useState(false);
@@ -163,6 +160,10 @@ export const SettingsPage: React.FC = () => {
         const normalized = normalizeProfileSettings(data || DEFAULT_PROFILE_SETTINGS);
         setProfile(normalized);
         applyProfileEffects(normalized);
+
+        if (data?.theme !== 'light') {
+          await supabaseClient.from('profiles').update({ theme: 'light' }).eq('id', userId);
+        }
       } catch (error) {
         console.error('Failed loading profile settings', error);
         showToast('Gagal memuat pengaturan profil.', 'error');
@@ -267,11 +268,6 @@ export const SettingsPage: React.FC = () => {
     [applyProfileEffects, profile, showToast, supabaseClient, supabaseConfigured, user]
   );
 
-  const handleThemeSave = async (value: ThemePreference) => {
-    await updateProfile({ theme: value }, 'theme');
-    setThemeOpen(false);
-  };
-
   const handleNotificationSave = async (value: NotificationSettingsPreference) => {
     await updateProfile({ notification_settings: value }, 'notification');
   };
@@ -341,10 +337,7 @@ export const SettingsPage: React.FC = () => {
     [permission, profile.notification_settings]
   );
 
-  const themeSubtitle = useMemo(
-    () => `Sistem / Terang / Gelap • ${getThemeLabel(profile.theme)}`,
-    [profile.theme]
-  );
+  const themeSubtitle = useMemo(() => `Tema: ${getThemeLabel(profile.theme)}`, [profile.theme]);
 
   const methodSubtitle = useMemo(
     () => getPrayerCalcLabel(profile.prayer_calc_method),
@@ -393,11 +386,11 @@ export const SettingsPage: React.FC = () => {
         <section className="rounded-2xl border border-slate-200 bg-white overflow-hidden dark:border-white/10 dark:bg-slate-900/70">
           <SettingsRow
             icon={Palette}
-            iconClassName="text-fuchsia-600 dark:text-fuchsia-200"
+            iconClassName="text-fuchsia-600"
             title="Tema Tampilan"
             subtitle={themeSubtitle}
-            onClick={() => setThemeOpen(true)}
-            disabled={disableRows}
+            onClick={() => {}}
+            disabled
           />
 
           <div className="h-px bg-slate-200 dark:bg-white/10" />
@@ -434,14 +427,6 @@ export const SettingsPage: React.FC = () => {
           />
         </section>
       </div>
-
-      <ThemePicker
-        open={themeOpen}
-        value={profile.theme}
-        isSaving={savingKey === 'theme'}
-        onClose={() => setThemeOpen(false)}
-        onSave={handleThemeSave}
-      />
 
       <NotificationSheet
         open={notifOpen}

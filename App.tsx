@@ -8,6 +8,7 @@ import { AppShell } from './components/AppShell';
 import { startNotificationEngine, stopNotificationEngine } from './lib/notifications';
 import { getCurrentPath, subscribePathChange } from './lib/appRouter';
 import { subscribeTabChange } from './lib/tabNavigation';
+import { applyThemePreference } from './lib/themePreference';
 
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
 const RamadhanTrackerPage = lazy(() =>
@@ -28,6 +29,10 @@ function AppContent() {
   const [path, setPath] = useState(getCurrentPath());
   const noopBack = useCallback(() => {}, []);
   const { stop } = useAudioPlayer();
+
+  useEffect(() => {
+    applyThemePreference('light');
+  }, []);
 
   useEffect(() => {
     startNotificationEngine();

@@ -1,6 +1,6 @@
 import type { CalculationMethodId } from './prayerTimes';
 
-export type ThemePreference = 'system' | 'light' | 'dark';
+export type ThemePreference = 'light';
 export type PrayerCalcMethod = 'KEMENAG' | 'MUIS' | 'MWL' | 'UMM_AL_QURA';
 
 export interface NotificationSettingsPreference {
@@ -25,7 +25,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsPreference = {
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettingsRecord = {
-  theme: 'system',
+  theme: 'light',
   notification_settings: DEFAULT_NOTIFICATION_SETTINGS,
   prayer_calc_method: 'KEMENAG',
   compass_calibrated_at: null,
@@ -61,8 +61,8 @@ export const PRAYER_METHOD_OPTIONS: Array<{
 ];
 
 const normalizeTheme = (value: unknown): ThemePreference => {
-  if (value === 'light' || value === 'dark' || value === 'system') return value;
-  return 'system';
+  if (value === 'light') return 'light';
+  return 'light';
 };
 
 const normalizePrayerMethod = (value: unknown): PrayerCalcMethod => {
