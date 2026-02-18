@@ -64,7 +64,11 @@ const LOCAL_TOPIC_STATS_KEY = 'ml_hadith_topic_stats_v1';
 const LOCAL_COLLECTIONS_CACHE_KEY = 'ml_hadith_collections_cache_v1';
 const LOCAL_COLLECTION_PAGE_CACHE_PREFIX = 'ml_hadith_collection_page_cache_v1';
 const API_SOURCE = 'API Hadis Malaysia';
-const API_BASE = '/api/hadith';
+const API_BASE = 'https://service.hadis.my/api/v1';
+export const HADITH_API_KEY_MISSING_MESSAGE = 'API key hadits belum terpasang (VITE_HADIST_API_KEY)';
+const HADITH_API_KEY = String(
+  import.meta.env.VITE_HADIST_API_KEY || import.meta.env.VITE_HADIS_API_KEY || ''
+).trim();
 const PAGE_LIMIT = 12;
 const TOPIC_SOURCE = 'Topik populer personal berbasis keyword terjemahan Indonesia';
 const COLLECTIONS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -248,6 +252,8 @@ const buildCollectionPageCacheKey = (collection: string, page: number) => {
   return `${LOCAL_COLLECTION_PAGE_CACHE_PREFIX}:${collection}:${page}`;
 };
 
+export const hasHadithApiKey = () => Boolean(HADITH_API_KEY);
+
 const hydrateCollectionCacheFromLocal = () => {
   if (collectionCache.length > 0) return;
   const cached = readTimedCache<HadithCollectionItem[]>(LOCAL_COLLECTIONS_CACHE_KEY);
@@ -425,23 +431,126 @@ const parseErrorMessage = (payload: unknown, fallbackMessage: string) => {
   return fallbackMessage;
 };
 
+const toQueryParams = (params: Record<string, string | number | undefined>) => {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '') continue;
+    search.set(key, String(value));
+  }
+  return search;
+};
+
+const resolveHadithEndpoint = (
+  path: string,
+  params: Record<string, string | number | undefined>
+) => {
+  if (path === '/collections') {
+    return {
+      url: `${API_BASE}/collections`,
+      query: toQueryParams({ lang: params.lang }),
+    };
+  }
+
+  if (path === '/list') {
+    const collection = normalizeCollectionId(String(params.collection || ''));
+    if (!collection) throw new Error('Query collection wajib diisi.');
+    return {
+      url: `${API_BASE}/collections/${collection}/hadis`,
+      query: toQueryParams({
+        lang: params.lang || 'id',
+        page: params.page,
+        per_page: params.per_page,
+      }),
+    };
+  }
+
+  if (path === '/search') {
+    const q = String(params.q || '').trim();
+    if (!q) throw new Error('Query q wajib diisi.');
+    const collection = normalizeCollectionId(String(params.collection || ''));
+    return {
+      url: `${API_BASE}/hadis/search`,
+      query: toQueryParams({
+        lang: params.lang || 'id',
+        q,
+        collection: collection && collection !== 'all' ? collection : undefined,
+        page: params.page,
+        per_page: params.per_page,
+      }),
+    };
+  }
+
+  if (path === '/get') {
+    const collection = normalizeCollectionId(String(params.collection || ''));
+    const hadithID = String(params.id || '').trim();
+    if (!collection || !hadithID) throw new Error('Query collection dan id wajib diisi.');
+    return {
+      url: `${API_BASE}/collections/${collection}/hadis/${hadithID}`,
+      query: toQueryParams({ lang: params.lang || 'id' }),
+    };
+  }
+
+  throw new Error(`Endpoint hadits tidak dikenali: ${path}`);
+};
+
 const requestHadithApi = async (path: string, params: Record<string, string | number | undefined>) => {
+  if (!hasHadithApiKey()) {
+    throw new Error(HADITH_API_KEY_MISSING_MESSAGE);
+  }
+
   const requestKey = buildHadithRequestKey(path, params);
   const inFlight = inFlightHadithRequests.get(requestKey);
   if (inFlight) return inFlight;
 
   const requestPromise = (async () => {
-    const search = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
-      if (value === undefined || value === null || value === '') continue;
-      search.set(key, String(value));
+    const endpoint = resolveHadithEndpoint(path, params);
+    const url = `${endpoint.url}?${endpoint.query.toString()}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'x-api-key': HADITH_API_KEY,
+        'X-API-Key': HADITH_API_KEY,
+      },
+    });
+    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+    const responseText = await response.text();
+    let payload: Record<string, unknown> = {};
+    if (contentType.includes('application/json')) {
+      try {
+        payload = JSON.parse(responseText) as Record<string, unknown>;
+      } catch {
+        if (import.meta.env.DEV) {
+          console.error('[HadithAPI] invalid json response', {
+            status: response.status,
+            url,
+            body: responseText.slice(0, 300),
+          });
+        }
+        throw new Error('Response API hadits tidak valid.');
+      }
     }
 
-    const response = await fetch(`${API_BASE}${path}?${search.toString()}`);
-    const payload = await response.json().catch(() => ({}));
-
     if (!response.ok) {
+      if (import.meta.env.DEV) {
+        console.error('[HadithAPI] request failed', {
+          status: response.status,
+          url,
+          body: responseText.slice(0, 300),
+        });
+      }
       throw new Error(parseErrorMessage(payload, `Request hadits gagal (${response.status})`));
+    }
+
+    if (!contentType.includes('application/json')) {
+      if (import.meta.env.DEV) {
+        console.error('[HadithAPI] non-json response', {
+          status: response.status,
+          url,
+          body: responseText.slice(0, 300),
+        });
+      }
+      throw new Error('Response API hadits tidak valid.');
     }
 
     const failed =

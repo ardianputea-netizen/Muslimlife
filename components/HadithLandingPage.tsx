@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, ChevronRight, Loader2 } from 'lucide-react';
 import {
+  HADITH_API_KEY_MISSING_MESSAGE,
   getHadithCollectionCatalog,
   getPopularHadithTopics,
+  hasHadithApiKey,
   type HadithCollectionItem,
   type PopularHadithTopic,
 } from '../lib/hadithApi';
@@ -30,11 +32,16 @@ export const HadithLandingPage: React.FC<HadithLandingPageProps> = ({
     setErrorMessage(null);
 
     try {
+      if (!hasHadithApiKey()) {
+        setErrorMessage(HADITH_API_KEY_MISSING_MESSAGE);
+        setCollections([]);
+        return;
+      }
       const catalog = await getHadithCollectionCatalog();
       setCollections(catalog);
     } catch (error) {
       console.error(error);
-      setErrorMessage('Gagal memuat katalog hadits.');
+      setErrorMessage(error instanceof Error ? error.message : 'Gagal memuat katalog hadits.');
       setCollections([]);
     } finally {
       setTopics(getPopularHadithTopics(10));

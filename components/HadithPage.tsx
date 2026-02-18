@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Bookmark, BookmarkCheck, Loader2, Search, WifiOff } from 'lucide-react';
 import {
+  HADITH_API_KEY_MISSING_MESSAGE,
   getHadithBookmarks,
   getHadithCollections,
   getHadithDetail,
   getHadithList,
+  hasHadithApiKey,
   setHadithBookmark,
   type HadithItem,
 } from '../lib/hadithApi';
@@ -103,6 +105,14 @@ export const HadithPage: React.FC<HadithPageProps> = ({
       return;
     }
 
+    if (!hasHadithApiKey()) {
+      setListData([]);
+      setHasNextPage(false);
+      setErrorMessage(HADITH_API_KEY_MISSING_MESSAGE);
+      setIsLoadingList(false);
+      return;
+    }
+
     setIsLoadingList(true);
     setErrorMessage(null);
     try {
@@ -116,13 +126,20 @@ export const HadithPage: React.FC<HadithPageProps> = ({
       setOfflineMode(false);
     } catch (error) {
       console.error(error);
-      setErrorMessage('Gagal memuat hadits dari API Hadis Malaysia.');
+      setErrorMessage(error instanceof Error ? error.message : 'Gagal memuat hadits dari API Hadis Malaysia.');
     } finally {
       setIsLoadingList(false);
     }
   }, [collection, collectionUnavailableMessage, debouncedQuery, page]);
 
   const loadBookmarks = useCallback(async () => {
+    if (!hasHadithApiKey()) {
+      setBookmarks([]);
+      setErrorMessage(HADITH_API_KEY_MISSING_MESSAGE);
+      setIsLoadingBookmarks(false);
+      return;
+    }
+
     setIsLoadingBookmarks(true);
     setErrorMessage(null);
     try {
