@@ -27,7 +27,7 @@ import { AdzanPage } from './AdzanPage';
 import { RamadhanTrackerPage } from './RamadhanTrackerPage';
 import { PrayerTimesPage } from './PrayerTimesPage';
 import { DuaDzikirPage } from './DuaDzikirPage';
-import { LastRead, Tab } from '../types';
+import { LastRead } from '../types';
 import { ASMAUL_HUSNA_99 } from '../data/asmaulHusna';
 import { AZKAR_CATALOG } from '../data/dua-dzikir/azkarCatalog';
 import { DuaItem, getDuaToday } from '../lib/duaApi';
@@ -47,15 +47,25 @@ import {
 import { getNextAlert, onNotificationScheduleUpdated } from '../lib/notifications';
 import { navigateTo } from '../lib/appRouter';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
-import { mergeProfileWithOverride, mapSupabaseUser, PROFILE_UPDATED_EVENT } from '../lib/accountProfile';
-import { requestTabChange } from '../lib/tabNavigation';
+import {
+  mergeProfileWithOverride,
+  mapSupabaseUser,
+  PROFILE_UPDATED_EVENT,
+  saveProfileOverride,
+} from '../lib/accountProfile';
 import { AppIcon, AppIconVariant } from './ui/AppIcon';
 import { AdzanReminderWidget } from './AdzanReminderWidget';
 import {
   cacheNotificationSettings,
+  DEFAULT_NOTIFICATION_SETTINGS,
   getCachedNotificationSettings,
   PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT,
 } from '../lib/profileSettings';
+
+interface HomePageProps {
+  isLoggedIn: boolean;
+  onRequireLogin: () => void;
+}
 
 const MENU_ITEMS = [
   { id: 'ADZAN', label: 'Ibadah', icon: CheckSquare, variant: 'mint' as AppIconVariant },
@@ -145,7 +155,7 @@ interface LocalReminderItem {
 
 const REMINDERS_KEY = 'ml_reminders';
 
-export const HomePage: React.FC = () => {
+export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }) => {
   const supabaseConfigured = isSupabaseConfigured();
   const supabaseClient = getSupabaseClient();
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
@@ -161,6 +171,11 @@ export const HomePage: React.FC = () => {
   const [nextAlert, setNextAlert] = useState(getNextAlert());
   const [tick, setTick] = useState(Date.now());
   const [notificationSettings, setNotificationSettings] = useState(() => getCachedNotificationSettings());
+  const [currentUserID, setCurrentUserID] = useState<string | null>(null);
+  const [profilePopupOpen, setProfilePopupOpen] = useState(false);
+  const [draftProfileName, setDraftProfileName] = useState('');
+  const [draftProfileAvatar, setDraftProfileAvatar] = useState('');
+  const [profilePopupError, setProfilePopupError] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('lastRead');
@@ -260,6 +275,30 @@ export const HomePage: React.FC = () => {
       window.removeEventListener(PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT, handleNotificationSettingsUpdate);
   }, []);
 
+  useEffect(() => {
+    const forcedEnabled = {
+      ...DEFAULT_NOTIFICATION_SETTINGS,
+      ...getCachedNotificationSettings(),
+      enabled: true,
+      adzan: true,
+      notes: true,
+      ramadhan: true,
+      adzan_prayers: {
+        subuh: true,
+        dzuhur: true,
+        ashar: true,
+        maghrib: true,
+        isya: true,
+      },
+    };
+    cacheNotificationSettings(forcedEnabled);
+    savePrayerSettings({
+      notificationsEnabled: true,
+      remindBeforeAdzan: true,
+    });
+    setNotificationSettings(forcedEnabled);
+  }, []);
+
   const nextPrayer = useMemo(() => {
     if (!todayTimes) return null;
     return getNextPrayer(todayTimes, new Date(tick));
@@ -331,6 +370,7 @@ export const HomePage: React.FC = () => {
 
   const refreshProfile = useCallback(async () => {
     if (!supabaseConfigured || !supabaseClient) {
+      setCurrentUserID(null);
       setProfileName(DUMMY_USER.name);
       setProfileAvatarUrl(DUMMY_USER.avatar);
       return;
@@ -342,11 +382,13 @@ export const HomePage: React.FC = () => {
 
       const account = mergeProfileWithOverride(mapSupabaseUser(data.session?.user || null));
       if (!account) {
+        setCurrentUserID(null);
         setProfileName(DUMMY_USER.name);
         setProfileAvatarUrl(DUMMY_USER.avatar);
         return;
       }
 
+      setCurrentUserID(account.id);
       setProfileName(account.fullName || DUMMY_USER.name);
       setProfileAvatarUrl(account.avatarUrl || DUMMY_USER.avatar);
     } catch (error) {
@@ -394,6 +436,58 @@ export const HomePage: React.FC = () => {
     });
     setNotificationSettings(next);
   }, [notificationSettings]);
+
+  const guardMenuAction = useCallback(
+    (action: () => void) => {
+      if (!isLoggedIn) {
+        onRequireLogin();
+        return;
+      }
+      action();
+    },
+    [isLoggedIn, onRequireLogin]
+  );
+
+  const openProfilePopup = useCallback(() => {
+    if (!isLoggedIn) {
+      onRequireLogin();
+      return;
+    }
+    setDraftProfileName(profileName);
+    setDraftProfileAvatar(profileAvatarUrl);
+    setProfilePopupError(null);
+    setProfilePopupOpen(true);
+  }, [isLoggedIn, onRequireLogin, profileAvatarUrl, profileName]);
+
+  const saveProfilePopup = useCallback(() => {
+    if (!currentUserID) return;
+
+    const trimmedName = draftProfileName.trim();
+    if (!trimmedName) {
+      setProfilePopupError('Nama pengguna wajib diisi.');
+      return;
+    }
+
+    saveProfileOverride(currentUserID, {
+      fullName: trimmedName,
+      avatarUrl: draftProfileAvatar.trim(),
+    });
+    setProfileName(trimmedName);
+    setProfileAvatarUrl(draftProfileAvatar.trim() || DUMMY_USER.avatar);
+    setProfilePopupOpen(false);
+  }, [currentUserID, draftProfileAvatar, draftProfileName]);
+
+  const handleAvatarFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setDraftProfileAvatar(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  }, []);
 
   // Render Sub-Feature Views (Modals/Overlays)
   const renderFeatureView = () => {
@@ -560,7 +654,7 @@ export const HomePage: React.FC = () => {
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => requestTabChange(Tab.SETTINGS)}
+              onClick={openProfilePopup}
               aria-label="Buka pengaturan profil"
               className="w-10 h-10 rounded-full border-2 border-white/50 overflow-hidden bg-white/20 flex items-center justify-center"
             >
@@ -659,11 +753,13 @@ export const HomePage: React.FC = () => {
                     <button 
                         key={item.id}
                         onClick={() => {
-                          if (item.id === 'HADITH') {
-                            navigateTo('/hadits');
-                            return;
-                          }
-                          setActiveFeature(item.id);
+                          guardMenuAction(() => {
+                            if (item.id === 'HADITH') {
+                              navigateTo('/hadits');
+                              return;
+                            }
+                            setActiveFeature(item.id);
+                          });
                         }}
                         className="group flex flex-col items-center gap-2"
                     >
@@ -676,7 +772,7 @@ export const HomePage: React.FC = () => {
 
         {/* Last Read / Daily Verse */}
         <div 
-          onClick={() => setActiveFeature('QURAN')}
+          onClick={() => guardMenuAction(() => setActiveFeature('QURAN'))}
           className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform"
         >
           <div className="flex justify-between items-center mb-3">
@@ -712,7 +808,7 @@ export const HomePage: React.FC = () => {
         </div>
 
         <div
-          onClick={() => setActiveFeature('DUAS')}
+          onClick={() => guardMenuAction(() => setActiveFeature('DUAS'))}
           className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform"
         >
           <div className="flex justify-between items-center mb-3 gap-3">
@@ -744,6 +840,73 @@ export const HomePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {profilePopupOpen ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4">
+          <button
+            type="button"
+            onClick={() => setProfilePopupOpen(false)}
+            className="absolute inset-0"
+            aria-label="Tutup popup profil"
+          />
+          <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
+            <h3 className="text-base font-bold text-slate-900">Edit Profil</h3>
+            <p className="mt-1 text-xs text-slate-600">Ubah nama pengguna dan foto profil dari sini.</p>
+
+            <div className="mt-3 flex items-center gap-3">
+              <div className="h-14 w-14 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                {draftProfileAvatar ? (
+                  <img src={draftProfileAvatar} alt="Preview profil" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-600">
+                    {profileInitial}
+                  </div>
+                )}
+              </div>
+              <label className="inline-flex cursor-pointer items-center rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
+                Upload Foto
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarFileChange} />
+              </label>
+            </div>
+
+            <input
+              value={draftProfileName}
+              onChange={(event) => setDraftProfileName(event.target.value)}
+              placeholder="Nama pengguna"
+              className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+            <input
+              value={draftProfileAvatar}
+              onChange={(event) => setDraftProfileAvatar(event.target.value)}
+              placeholder="URL foto profil (opsional)"
+              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+
+            {profilePopupError ? (
+              <p className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs text-rose-700">
+                {profilePopupError}
+              </p>
+            ) : null}
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setProfilePopupOpen(false)}
+                className="rounded-xl border border-slate-200 bg-slate-100 py-2 text-sm font-semibold text-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={saveProfilePopup}
+                className="rounded-xl border border-emerald-300 bg-emerald-100 py-2 text-sm font-semibold text-emerald-700"
+              >
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

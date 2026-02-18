@@ -11,6 +11,8 @@ import { getCurrentPath, subscribePathChange } from './lib/appRouter';
 import { subscribeTabChange } from './lib/tabNavigation';
 import { applyThemePreference } from './lib/themePreference';
 import { startNotesReminderScheduler, stopNotesReminderScheduler } from './lib/notesReminderScheduler';
+import { getSupabaseClient, isSupabaseConfigured } from './lib/supabase';
+import { AuthRequiredModal } from './components/AuthRequiredModal';
 
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
 const RamadhanTrackerPage = lazy(() =>
@@ -27,8 +29,12 @@ const HadithRoutesPage = lazy(() =>
 );
 
 function AppContent() {
+  const supabaseConfigured = isSupabaseConfigured();
+  const supabaseClient = getSupabaseClient();
   const [activeTab, setActiveTab] = useState<Tab>(Tab.HOME);
   const [path, setPath] = useState(getCurrentPath());
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const noopBack = useCallback(() => {}, []);
   const { stop } = useAudioPlayer();
 
@@ -50,7 +56,38 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
+    if (!supabaseConfigured || !supabaseClient) {
+      setIsLoggedIn(false);
+      return;
+    }
+
+    let mounted = true;
+    const hydrate = async () => {
+      const { data } = await supabaseClient.auth.getSession();
+      if (!mounted) return;
+      setIsLoggedIn(Boolean(data.session?.user));
+    };
+    void hydrate();
+
+    const { data } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(Boolean(session?.user));
+      if (session?.user) {
+        setShowLoginModal(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, [supabaseClient, supabaseConfigured]);
+
+  useEffect(() => {
     return subscribeTabChange((nextTab) => {
+      if (nextTab !== Tab.HOME && !isLoggedIn) {
+        setShowLoginModal(true);
+        return;
+      }
       setActiveTab((currentTab) => {
         if (currentTab !== nextTab) {
           stop();
@@ -58,16 +95,20 @@ function AppContent() {
         return nextTab;
       });
     });
-  }, [stop]);
+  }, [isLoggedIn, stop]);
 
   const handleTabChange = useCallback(
     (nextTab: Tab) => {
+      if (nextTab !== Tab.HOME && !isLoggedIn) {
+        setShowLoginModal(true);
+        return;
+      }
       if (nextTab !== activeTab) {
         stop();
       }
       setActiveTab(nextTab);
     },
-    [activeTab, stop]
+    [activeTab, isLoggedIn, stop]
   );
 
   const renderContent = () => {
@@ -77,7 +118,7 @@ function AppContent() {
 
     switch (activeTab) {
       case Tab.HOME:
-        return <HomePage />;
+        return <HomePage isLoggedIn={isLoggedIn} onRequireLogin={() => setShowLoginModal(true)} />;
       case Tab.PRAYER:
         return <RamadhanTrackerPage onBack={noopBack} embedded />;
       case Tab.IBADAH:
@@ -89,7 +130,7 @@ function AppContent() {
       case Tab.SETTINGS:
         return <SettingsPage />;
       default:
-        return <HomePage />;
+        return <HomePage isLoggedIn={isLoggedIn} onRequireLogin={() => setShowLoginModal(true)} />;
     }
   };
 
@@ -111,6 +152,7 @@ function AppContent() {
       </Suspense>
       <AdzanManager />
       <InAppReminderToasts />
+      <AuthRequiredModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
     </AppShell>
   );
 }
