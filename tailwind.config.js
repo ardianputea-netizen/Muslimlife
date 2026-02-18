@@ -1,21 +1,62 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './App.tsx', './components/**/*.{ts,tsx}', './lib/**/*.{ts,tsx}'],
+    darkMode: ['class'],
+    content: ['./index.html', './App.tsx', './components/**/*.{ts,tsx}', './lib/**/*.{ts,tsx}'],
   theme: {
-    extend: {
-      colors: {
-        primary: '#0F9D58',
-        secondary: '#F4E7BD',
-        text: '#333333',
-        accent: '#E0F2F1',
-      },
-      boxShadow: {
-        card: '0 6px 20px rgba(15, 23, 42, 0.06)',
-      },
-      borderRadius: {
-        '2xl': '1rem',
-      },
-    },
+  	extend: {
+  		colors: {
+  			primary: {
+  				DEFAULT: 'hsl(var(--primary))',
+  				foreground: 'hsl(var(--primary-foreground))'
+  			},
+  			secondary: {
+  				DEFAULT: 'hsl(var(--secondary))',
+  				foreground: 'hsl(var(--secondary-foreground))'
+  			},
+  			text: '#333333',
+  			accent: {
+  				DEFAULT: 'hsl(var(--accent))',
+  				foreground: 'hsl(var(--accent-foreground))'
+  			},
+  			background: 'hsl(var(--background))',
+  			foreground: 'hsl(var(--foreground))',
+  			card: {
+  				DEFAULT: 'hsl(var(--card))',
+  				foreground: 'hsl(var(--card-foreground))'
+  			},
+  			popover: {
+  				DEFAULT: 'hsl(var(--popover))',
+  				foreground: 'hsl(var(--popover-foreground))'
+  			},
+  			muted: {
+  				DEFAULT: 'hsl(var(--muted))',
+  				foreground: 'hsl(var(--muted-foreground))'
+  			},
+  			destructive: {
+  				DEFAULT: 'hsl(var(--destructive))',
+  				foreground: 'hsl(var(--destructive-foreground))'
+  			},
+  			border: 'hsl(var(--border))',
+  			input: 'hsl(var(--input))',
+  			ring: 'hsl(var(--ring))',
+  			chart: {
+  				'1': 'hsl(var(--chart-1))',
+  				'2': 'hsl(var(--chart-2))',
+  				'3': 'hsl(var(--chart-3))',
+  				'4': 'hsl(var(--chart-4))',
+  				'5': 'hsl(var(--chart-5))'
+  			}
+  		},
+  		boxShadow: {
+  			card: '0 6px 20px rgba(15, 23, 42, 0.06)'
+  		},
+  		borderRadius: {
+  			'2xl': '1rem',
+  			lg: 'var(--radius)',
+  			md: 'calc(var(--radius) - 2px)',
+  			sm: 'calc(var(--radius) - 4px)'
+  		}
+  	}
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 };

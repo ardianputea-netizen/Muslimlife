@@ -11,14 +11,18 @@
   },
   "dependencies": {
     "@google/genai": "^1.41.0",
+    "@radix-ui/react-slot": "^1.2.4",
     "@supabase/supabase-js": "^2.96.0",
     "adhan": "^4.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.564.0",
+    "maplibre-gl": "^5.18.0",
+    "motion": "^12.34.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "tailwind-merge": "^3.4.1"
+    "tailwind-merge": "^3.4.1",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

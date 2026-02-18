@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Home, Sparkles, BellRing, NotebookPen, Settings2 } from 'lucide-react';
+import { Home, Sparkles, BellRing, NotebookPen, Settings2, MapPinned } from 'lucide-react';
 import { Tab } from '../types';
 
 interface BottomNavigationProps {
@@ -47,6 +47,14 @@ export const BottomNavigation = memo<BottomNavigationProps>(({ activeTab, onTabC
         >
           <NotebookPen size={24} strokeWidth={activeTab === Tab.NOTES ? 2.5 : 2} />
           <span className="text-[10px] mt-1">Notes</span>
+        </button>
+
+        <button
+          onClick={() => onTabChange(Tab.MOSQUE)}
+          className={`flex flex-col items-center justify-center w-full ${getTabClass(Tab.MOSQUE)}`}
+        >
+          <MapPinned size={24} strokeWidth={activeTab === Tab.MOSQUE ? 2.5 : 2} />
+          <span className="text-[10px] mt-1">Masjid</span>
         </button>
 
         <button

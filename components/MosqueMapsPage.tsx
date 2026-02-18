@@ -1,147 +1,453 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { MapPin, Navigation, List } from 'lucide-react';
-import { DUMMY_MOSQUES } from '../constants';
-import { Mosque } from '../types';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ArrowLeft,
+  ExternalLink,
+  LoaderCircle,
+  LocateFixed,
+  MapPin,
+  Navigation,
+  RefreshCw,
+  TriangleAlert,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dock, DockIcon } from '@/components/ui/dock';
+import {
+  Map,
+  MapControls,
+  MapMarker,
+  MarkerContent,
+  MarkerLabel,
+  type MapRef,
+} from '@/components/ui/map';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { fetchNearbyMosques, type NearbyMosque } from '@/services/nearbyMosques';
 
-export const MosqueMapsPage: React.FC = () => {
-  const [selectedMosque, setSelectedMosque] = useState<Mosque | null>(null);
-  
-  // Logic to make the mock map draggable/pannable
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const startPos = useRef({ x: 0, y: 0 });
-  const mapRef = useRef<HTMLDivElement>(null);
+interface MosqueMapsPageProps {
+  onBack?: () => void;
+}
 
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    setIsDragging(true);
-    startPos.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
-    if (mapRef.current) mapRef.current.style.cursor = 'grabbing';
-  }, [offset.x, offset.y]);
+interface UserLocation {
+  lat: number;
+  lng: number;
+}
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return;
-    const newX = e.clientX - startPos.current.x;
-    const newY = e.clientY - startPos.current.y;
-    setOffset({ x: newX, y: newY });
-  }, [isDragging]);
+type RadiusMeters = 1000 | 3000 | 5000;
 
-  const handlePointerUp = useCallback(() => {
-    setIsDragging(false);
-    if (mapRef.current) mapRef.current.style.cursor = 'grab';
+const DEFAULT_CENTER: [number, number] = [106.8272, -6.1754];
+const RADIUS_OPTIONS: Array<{ label: string; short: string; value: RadiusMeters }> = [
+  { label: '1 km', short: '1K', value: 1000 },
+  { label: '3 km', short: '3K', value: 3000 },
+  { label: '5 km', short: '5K', value: 5000 },
+];
+
+const formatDistance = (meters: number) => {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  return `${(meters / 1000).toFixed(2)} km`;
+};
+
+const getLocationErrorMessage = (error: GeolocationPositionError) => {
+  switch (error.code) {
+    case error.PERMISSION_DENIED:
+      return 'Izin lokasi ditolak. Aktifkan lokasi lalu klik lagi "Gunakan Lokasi".';
+    case error.POSITION_UNAVAILABLE:
+      return 'Lokasi belum tersedia. Pastikan GPS atau jaringan aktif.';
+    case error.TIMEOUT:
+      return 'Permintaan lokasi timeout. Coba lagi.';
+    default:
+      return 'Gagal mengambil lokasi saat ini.';
+  }
+};
+
+const getFetchErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Gagal memuat masjid terdekat.';
+};
+
+export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
+  const mapRef = useRef<MapRef | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const [radiusMeters, setRadiusMeters] = useState<RadiusMeters>(3000);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [isLoadingMosques, setIsLoadingMosques] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mosques, setMosques] = useState<NearbyMosque[]>([]);
+  const [selectedMosqueId, setSelectedMosqueId] = useState<string | null>(null);
+
+  const selectedMosque = useMemo(
+    () => mosques.find((item) => item.id === selectedMosqueId) || null,
+    [mosques, selectedMosqueId]
+  );
+
+  const focusMap = useCallback((coords: UserLocation, zoom = 15) => {
+    mapRef.current?.flyTo({
+      center: [coords.lng, coords.lat],
+      zoom,
+      duration: 900,
+    });
   }, []);
 
+  const loadNearbyMosques = useCallback(async (coords: UserLocation, nextRadius: RadiusMeters) => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setIsLoadingMosques(true);
+    setErrorMessage(null);
+
+    try {
+      const result = await fetchNearbyMosques({
+        lat: coords.lat,
+        lng: coords.lng,
+        radiusMeters: nextRadius,
+        signal: controller.signal,
+      });
+
+      if (controller.signal.aborted) return;
+
+      const trimmed = result.slice(0, 60);
+      setMosques(trimmed);
+      setSelectedMosqueId((previous) => {
+        if (previous && trimmed.some((item) => item.id === previous)) {
+          return previous;
+        }
+        return trimmed[0]?.id || null;
+      });
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      setMosques([]);
+      setSelectedMosqueId(null);
+      setErrorMessage(getFetchErrorMessage(error));
+    } finally {
+      if (!controller.signal.aborted) {
+        setIsLoadingMosques(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!userLocation) return;
+    void loadNearbyMosques(userLocation, radiusMeters);
+  }, [loadNearbyMosques, radiusMeters, userLocation]);
+
+  const handleUseLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setErrorMessage('Browser tidak mendukung Geolocation.');
+      return;
+    }
+
+    setIsLocating(true);
+    setErrorMessage(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nextLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+
+        setUserLocation(nextLocation);
+        focusMap(nextLocation, 14.8);
+        setIsLocating(false);
+      },
+      (error) => {
+        setIsLocating(false);
+        setErrorMessage(getLocationErrorMessage(error));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
+  }, [focusMap]);
+
+  const handleSelectMosque = useCallback(
+    (mosque: NearbyMosque) => {
+      setSelectedMosqueId(mosque.id);
+      focusMap({ lat: mosque.lat, lng: mosque.lng });
+    },
+    [focusMap]
+  );
+
+  const handleRetryFetch = useCallback(() => {
+    if (!userLocation) return;
+    void loadNearbyMosques(userLocation, radiusMeters);
+  }, [loadNearbyMosques, radiusMeters, userLocation]);
+
   return (
-    <div className="h-full w-full flex flex-col relative bg-gray-100 overflow-hidden">
-      
-      {/* Search Bar Overlay */}
-      <div className="absolute top-4 left-4 right-4 z-20">
-        <div className="bg-white rounded-xl shadow-lg p-3 flex items-center gap-3">
-          <MapPin className="text-[#0F9D58]" />
-          <input 
-            type="text" 
-            placeholder="Cari masjid sekitar..." 
-            className="flex-1 outline-none text-gray-700"
-          />
-        </div>
-      </div>
-
-      {/* Map Container (Mock with Pan Support) */}
-      <div 
-        ref={mapRef}
-        className="absolute inset-0 w-full h-full bg-[#E5E7EB] cursor-grab touch-none"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-      >
-        {/* Placeholder Map Background - Moves based on offset */}
-        <div 
-            className="absolute -inset-[1000px] opacity-40"
-            style={{
-                backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)',
-                backgroundSize: '20px 20px',
-                backgroundColor: '#F1F5F9',
-                transform: `translate(${offset.x}px, ${offset.y}px)`,
-                transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-            }}
-        ></div>
-        
-        {/* Simulated Map Content Text */}
-        <div 
-            className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
-            style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
-        >
-            <span className="text-gray-400 text-sm font-semibold bg-white/50 px-2 py-1 rounded">
-                Geser Peta untuk Menjelajah
-            </span>
-        </div>
-
-        {/* User Location Marker - Moves with map */}
-        <div 
-            className="absolute top-1/2 left-1/2 z-10 pointer-events-none"
-            style={{ transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))` }}
-        >
-            <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
-            <div className="w-12 h-12 bg-blue-500/20 rounded-full absolute -top-4 -left-4 animate-ping"></div>
-        </div>
-
-        {/* Mosque Markers (Move with map) */}
-        {DUMMY_MOSQUES.map((mosque, idx) => {
-            // Fixed relative positions based on index to simulate geography
-            const relX = (idx % 2 === 0 ? 80 : -80) * (idx + 1);
-            const relY = (idx % 2 !== 0 ? 60 : -60) * (idx + 1);
-            
-            return (
-                <button
-                    key={mosque.id}
-                    onClick={() => setSelectedMosque(mosque)}
-                    className="absolute top-1/2 left-1/2 z-10 transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-110 active:scale-95"
-                    style={{ 
-                        transform: `translate(calc(-50% + ${offset.x + relX}px), calc(-50% + ${offset.y + relY}px))` 
-                    }}
-                >
-                    <div className={`p-2 rounded-full shadow-lg ${selectedMosque?.id === mosque.id ? 'bg-[#0F9D58] scale-125' : 'bg-white'}`}>
-                        <img src="https://cdn-icons-png.flaticon.com/512/3758/3758159.png" alt="mosque" className="w-6 h-6" />
-                    </div>
-                </button>
-            );
-        })}
-      </div>
-
-      {/* Bottom List View - Absolute positioned to stay at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-5px_20px_-5px_rgba(0,0,0,0.1)] z-30 pb-20">
-        <div className="flex justify-center pt-3 pb-1">
-            <div className="w-12 h-1.5 bg-gray-200 rounded-full"></div>
-        </div>
-        
-        <div className="px-4 mb-2 flex justify-between items-center">
-            <h3 className="font-bold text-gray-800">Masjid Terdekat</h3>
-            <button className="text-xs text-[#0F9D58] font-semibold flex items-center gap-1 active:opacity-70">
-                <List size={14} /> Lihat Semua
+    <div className="min-h-full bg-gray-50 pb-24">
+      <header className="sticky top-0 z-20 border-b border-emerald-100 bg-gray-50/95 px-4 pb-3 pt-4 backdrop-blur">
+        <div className="flex items-center gap-3">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-full p-2 text-slate-700 transition-colors hover:bg-white hover:text-slate-900"
+              aria-label="Kembali"
+            >
+              <ArrowLeft size={18} />
             </button>
-        </div>
+          ) : null}
 
-        <div className="flex overflow-x-auto gap-4 px-4 pb-4 no-scrollbar">
-            {DUMMY_MOSQUES.map((mosque) => (
-                <div 
-                    key={mosque.id}
-                    onClick={() => setSelectedMosque(mosque)}
-                    className={`min-w-[240px] p-3 rounded-2xl border transition-all cursor-pointer ${selectedMosque?.id === mosque.id ? 'border-[#0F9D58] bg-green-50' : 'border-gray-100 bg-white shadow-sm'}`}
-                >
-                    <div className="flex gap-3">
-                        <img src={mosque.image} className="w-16 h-16 rounded-xl object-cover bg-gray-200" alt={mosque.name} />
-                        <div className="flex-1">
-                            <h4 className="font-bold text-gray-800 text-sm line-clamp-1">{mosque.name}</h4>
-                            <p className="text-xs text-gray-500 line-clamp-1 mt-1">{mosque.address}</p>
-                            <div className="flex items-center gap-1 mt-2 text-[#0F9D58]">
-                                <Navigation size={12} fill="currentColor" />
-                                <span className="text-xs font-bold">{mosque.distance} km</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ))}
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Masjid Terdekat</h2>
+            <p className="text-xs text-slate-500">MapLibre + OpenStreetMap (tanpa API key)</p>
+          </div>
         </div>
+      </header>
+
+      <div className="space-y-4 px-4 pb-6 pt-4">
+        <Card className="overflow-hidden border border-emerald-100">
+          <CardContent className="space-y-3 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-slate-600">Radius pencarian masjid</p>
+              {selectedMosque ? (
+                <span className="line-clamp-1 max-w-[65%] text-right text-xs text-emerald-700">
+                  Fokus: {selectedMosque.name}
+                </span>
+              ) : null}
+            </div>
+
+            <Dock className="mx-auto" iconSize={48}>
+              {RADIUS_OPTIONS.map((option) => (
+                <DockIcon
+                  key={option.value}
+                  href="#"
+                  name={`Radius ${option.label}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setRadiusMeters(option.value);
+                  }}
+                  className={cn(
+                    radiusMeters === option.value &&
+                      '[&_a]:border-emerald-300 [&_a]:from-emerald-50 [&_a]:to-white [&_a]:shadow-[0_0_0_2px_rgba(16,185,129,0.25)]'
+                  )}
+                >
+                  <span className="flex h-full w-full items-center justify-center text-[11px] font-semibold text-slate-700">
+                    {option.short}
+                  </span>
+                </DockIcon>
+              ))}
+            </Dock>
+
+            <Button
+              type="button"
+              onClick={handleUseLocation}
+              disabled={isLocating}
+              className="w-full rounded-xl bg-[#0F9D58] text-white hover:bg-[#0c7f46]"
+            >
+              {isLocating ? (
+                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <LocateFixed className="mr-2 h-4 w-4" />
+              )}
+              Gunakan Lokasi
+            </Button>
+
+            <div className="relative h-[310px] overflow-hidden rounded-2xl border border-emerald-100">
+              <Map
+                ref={mapRef}
+                center={DEFAULT_CENTER}
+                zoom={11}
+                minZoom={4}
+                maxZoom={18}
+                dragRotate={false}
+                className="h-full w-full"
+              >
+                <MapControls position="top-right" showZoom showCompass showLocate={false} />
+
+                {userLocation ? (
+                  <MapMarker latitude={userLocation.lat} longitude={userLocation.lng}>
+                    <MarkerContent>
+                      <div className="relative flex h-6 w-6 items-center justify-center">
+                        <span className="absolute inline-flex h-6 w-6 animate-ping rounded-full bg-sky-400/35" />
+                        <span className="relative h-3.5 w-3.5 rounded-full border-2 border-white bg-sky-500 shadow-sm" />
+                      </div>
+                    </MarkerContent>
+                    <MarkerLabel className="rounded-full bg-white/90 px-2 py-1 shadow-sm">
+                      Lokasi Anda
+                    </MarkerLabel>
+                  </MapMarker>
+                ) : null}
+
+                {mosques.map((mosque) => {
+                  const isSelected = selectedMosqueId === mosque.id;
+
+                  return (
+                    <MapMarker
+                      key={mosque.id}
+                      latitude={mosque.lat}
+                      longitude={mosque.lng}
+                      onClick={() => handleSelectMosque(mosque)}
+                    >
+                      <MarkerContent>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectMosque(mosque)}
+                          className={cn(
+                            'flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-white shadow-md transition-transform hover:scale-105',
+                            isSelected ? 'bg-emerald-600' : 'bg-emerald-500'
+                          )}
+                          aria-label={`Fokus ke ${mosque.name}`}
+                        >
+                          <MapPin className="h-3.5 w-3.5" />
+                        </button>
+                      </MarkerContent>
+
+                      {isSelected ? (
+                        <MarkerLabel className="rounded-full bg-white/95 px-2 py-1 shadow-sm">
+                          {formatDistance(mosque.distanceMeters)}
+                        </MarkerLabel>
+                      ) : null}
+                    </MapMarker>
+                  );
+                })}
+              </Map>
+
+              {!userLocation ? (
+                <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-xl bg-white/95 px-3 py-2 text-xs text-slate-600 shadow-sm">
+                  Klik tombol "Gunakan Lokasi" untuk memuat masjid dalam radius terpilih.
+                </div>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-emerald-100">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900">Daftar Masjid</h3>
+              {userLocation ? (
+                <span className="text-xs font-medium text-emerald-700">{mosques.length} hasil</span>
+              ) : null}
+            </div>
+
+            {errorMessage ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                <div className="flex items-start gap-2 text-red-700">
+                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="text-xs leading-relaxed">{errorMessage}</p>
+                </div>
+
+                {userLocation ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRetryFetch}
+                    className="mt-3 border-red-200 bg-white text-red-700 hover:bg-red-100"
+                  >
+                    <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                    Coba lagi
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {isLoadingMosques ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-3"
+                  >
+                    <div className="flex flex-1 items-center gap-3">
+                      <Skeleton className="h-9 w-9 rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-7 w-16 rounded-md" />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {!isLoadingMosques && !errorMessage && !userLocation ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs text-slate-500">
+                Lokasi belum diaktifkan.
+              </div>
+            ) : null}
+
+            {!isLoadingMosques && !errorMessage && userLocation && mosques.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs text-slate-500">
+                Tidak ada masjid ditemukan pada radius ini.
+              </div>
+            ) : null}
+
+            {!isLoadingMosques && !errorMessage && mosques.length > 0 ? (
+              <div className="max-h-[36dvh] space-y-2 overflow-y-auto pr-1">
+                {mosques.map((mosque) => {
+                  const isSelected = mosque.id === selectedMosqueId;
+
+                  return (
+                    <div
+                      key={mosque.id}
+                      className={cn(
+                        'flex items-center justify-between gap-3 rounded-xl border bg-white px-3 py-3 transition-colors',
+                        isSelected
+                          ? 'border-emerald-300 bg-emerald-50/60'
+                          : 'border-slate-100 hover:border-emerald-200'
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleSelectMosque(mosque)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        <span
+                          className={cn(
+                            'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+                            isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                          )}
+                        >
+                          <Navigation className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block line-clamp-1 text-sm font-semibold text-slate-900">
+                            {mosque.name}
+                          </span>
+                          <span className="block line-clamp-1 text-xs text-slate-500">
+                            {mosque.address || 'Alamat belum tersedia'}
+                          </span>
+                        </span>
+                      </button>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        <span className="text-xs font-semibold text-emerald-700">
+                          {formatDistance(mosque.distanceMeters)}
+                        </span>
+                        <a
+                          href={mosque.googleMapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+                          aria-label={`Buka ${mosque.name} di Google Maps`}
+                        >
+                          Maps
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

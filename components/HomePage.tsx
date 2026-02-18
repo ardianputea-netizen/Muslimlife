@@ -258,15 +258,7 @@ export const HomePage: React.FC = () => {
       case 'QURAN':
         return <QuranPage onBack={() => setActiveFeature(null)} />;
       case 'MASJID':
-        return (
-          <div className="fixed inset-0 z-50 bg-white">
-            <div className="bg-[#0F9D58] p-4 text-white flex gap-2 items-center sticky top-0 z-10">
-              <button onClick={() => setActiveFeature(null)}><X /></button>
-              <h2 className="font-bold">Masjid Terdekat</h2>
-            </div>
-            <MosqueMapsPage />
-          </div>
-        );
+        return <MosqueMapsPage onBack={() => setActiveFeature(null)} />;
       case 'TASBIH':
         return (
           <div className="fixed inset-0 z-50 bg-gray-900/95 flex flex-col items-center justify-center text-white p-6">

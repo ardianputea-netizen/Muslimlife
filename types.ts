@@ -3,6 +3,7 @@ export enum Tab {
   PRAYER = 'prayer',
   IBADAH = 'ibadah',
   NOTES = 'notes',
+  MOSQUE = 'mosque',
   SETTINGS = 'settings',
 }
 
