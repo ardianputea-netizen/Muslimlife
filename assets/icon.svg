@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="20" stdDeviation="25" flood-color="#000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  <!-- Background Squircle (Rounded Square) - Cream Color -->
+  <rect x="56" y="56" width="400" height="400" rx="90" fill="#F4E7BD" filter="url(#shadow)"/>
+  
+  <!-- Icon: Wallet (Line Art) - Dark Grey -->
+  <g transform="translate(126, 166)">
+    <!-- Main Wallet Body -->
+    <rect x="0" y="0" width="260" height="180" rx="24" fill="none" stroke="#333333" stroke-width="18"/>
+    <!-- Flap Line -->
+    <path d="M0 60 H260" stroke="#333333" stroke-width="18"/>
+    <!-- Button/Clasp -->
+    <circle cx="130" cy="100" r="20" fill="#333333"/>
+    <!-- Texture Lines -->
+    <path d="M60 140 H200" stroke="#333333" stroke-width="18" stroke-opacity="0.2" stroke-linecap="round"/>
+  </g>
+</svg>

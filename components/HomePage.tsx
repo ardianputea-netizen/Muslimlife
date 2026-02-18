@@ -1,0 +1,494 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { DUMMY_USER } from '../constants';
+import { BookOpen, Calendar, ChevronRight, Compass, Moon, Hash, MapPin, Activity, List, Heart, X, RotateCcw, Wallet, CheckSquare2, Sparkles, ScrollText, BellRing } from 'lucide-react';
+import { QuranPage } from './QuranPage';
+import { MosqueMapsPage } from './MosqueMapsPage';
+import { WalletPage } from './WalletPage';
+import { IbadahPage } from './IbadahPage';
+import { AdzanPage } from './AdzanPage';
+import { RamadhanTrackerPage } from './RamadhanTrackerPage';
+import { HadithPage } from './HadithPage';
+import { DuaDzikirPage } from './DuaDzikirPage';
+import { LastRead } from '../types';
+import { ASMAUL_HUSNA, AZKAR_MORNING } from '../data/islamicContent';
+import { useUser } from '../context/UserContext';
+import { DuaItem, getDuaToday } from '../lib/duaApi';
+import {
+  PRAYER_SETTINGS_UPDATED_EVENT,
+  PrayerName,
+  PrayerTimesResult,
+  computeTimes,
+  formatCountdown,
+  formatTime,
+  getCoords,
+  getNextPrayer,
+  loadPrayerSettings,
+  toDateKey,
+} from '../lib/prayerTimes';
+import { getNextAlert, onNotificationScheduleUpdated } from '../lib/notifications';
+
+const MENU_ITEMS = [
+  { id: 'ADZAN', label: 'Adzan', icon: BellRing, color: 'text-emerald-700', bg: 'bg-emerald-100' },
+  { id: 'HADITH', label: 'Hadits', icon: ScrollText, color: 'text-lime-700', bg: 'bg-lime-100' },
+  { id: 'RAMADHAN', label: 'Ramadhan', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-100' },
+  { id: 'IBADAH', label: 'Ibadah', icon: CheckSquare2, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+  { id: 'QURAN', label: 'Quran', icon: BookOpen, color: 'text-green-600', bg: 'bg-green-100' },
+  { id: 'AZKAR', label: 'Azkar', icon: Moon, color: 'text-purple-600', bg: 'bg-purple-100' },
+  { id: 'TASBIH', label: 'Tasbih', icon: Hash, color: 'text-blue-600', bg: 'bg-blue-100' },
+  { id: 'QIBLA', label: 'Qibla', icon: Compass, color: 'text-orange-600', bg: 'bg-orange-100' },
+  { id: 'MASJID', label: 'Masjid', icon: MapPin, color: 'text-red-600', bg: 'bg-red-100' },
+  { id: 'PELACAK', label: 'Pelacak', icon: Activity, color: 'text-teal-600', bg: 'bg-teal-100' },
+  { id: 'KALENDER', label: 'Kalender', icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-100' },
+  { id: 'DUAS', label: 'Doa&Dzikir', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-100' },
+  { id: '99NAMA', label: '99 Nama', icon: List, color: 'text-cyan-600', bg: 'bg-cyan-100' },
+] as const;
+
+const getHijriDate = () => {
+  try {
+    return new Intl.DateTimeFormat('id-TN-u-ca-islamic', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(Date.now());
+  } catch (e) {
+    return "1445 Hijriah";
+  }
+};
+
+const PRAYER_ORDER: PrayerName[] = ['subuh', 'dzuhur', 'ashar', 'maghrib', 'isya'];
+const PRAYER_LABELS: Record<PrayerName, string> = {
+  subuh: 'Subuh',
+  dzuhur: 'Dzuhur',
+  ashar: 'Ashar',
+  maghrib: 'Maghrib',
+  isya: 'Isya',
+};
+
+export const HomePage: React.FC = () => {
+  const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  const [lastRead, setLastRead] = useState<LastRead | null>(null);
+  const [tasbihCount, setTasbihCount] = useState(0);
+  const [todayDua, setTodayDua] = useState<DuaItem | null>(null);
+  const [todayDuaDate, setTodayDuaDate] = useState('');
+  const [isLoadingTodayDua, setIsLoadingTodayDua] = useState(true);
+  const [todayTimes, setTodayTimes] = useState<PrayerTimesResult | null>(null);
+  const [nextAlert, setNextAlert] = useState(getNextAlert());
+  const [tick, setTick] = useState(Date.now());
+  
+  // Use Context
+  const { coinBalance } = useUser();
+
+  useEffect(() => {
+    const saved = localStorage.getItem('lastRead');
+    if (saved) setLastRead(JSON.parse(saved));
+  }, [activeFeature]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadTodayDua = async () => {
+      setIsLoadingTodayDua(true);
+      try {
+        const result = await getDuaToday();
+        if (!mounted) return;
+        setTodayDua(result.data);
+        setTodayDuaDate(result.date);
+      } catch (error) {
+        console.error(error);
+        if (!mounted) return;
+        setTodayDua(null);
+        setTodayDuaDate('');
+      } finally {
+        if (mounted) {
+          setIsLoadingTodayDua(false);
+        }
+      }
+    };
+
+    void loadTodayDua();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const loadTodayPrayerTimes = useCallback(async () => {
+    const settings = loadPrayerSettings();
+    const coords = await getCoords({ askPermission: false });
+    if (!coords) {
+      setTodayTimes(null);
+      return;
+    }
+
+    const result = computeTimes(new Date(), coords.lat, coords.lng, {
+      calculationMethod: settings.calculationMethod,
+      madhab: settings.madhab,
+      imsakOffsetMinutes: settings.imsakOffsetMinutes,
+    });
+    setTodayTimes(result);
+  }, []);
+
+  useEffect(() => {
+    void loadTodayPrayerTimes();
+  }, [loadTodayPrayerTimes]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setTick(Date.now());
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (todayTimes && todayTimes.dateKey !== toDateKey(new Date())) {
+      void loadTodayPrayerTimes();
+    }
+    setNextAlert(getNextAlert());
+  }, [loadTodayPrayerTimes, tick, todayTimes]);
+
+  useEffect(() => {
+    const unsubscribeSchedule = onNotificationScheduleUpdated(() => setNextAlert(getNextAlert()));
+    const handleSettingsUpdate = () => {
+      void loadTodayPrayerTimes();
+    };
+    window.addEventListener(PRAYER_SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
+
+    return () => {
+      unsubscribeSchedule();
+      window.removeEventListener(PRAYER_SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
+    };
+  }, [loadTodayPrayerTimes]);
+
+  const nextPrayer = useMemo(() => {
+    if (!todayTimes) return null;
+    return getNextPrayer(todayTimes, new Date(tick));
+  }, [todayTimes, tick]);
+
+  const prayerTimeline = useMemo(() => {
+    if (!todayTimes) return [];
+    return PRAYER_ORDER.map((prayer) => ({
+      prayer,
+      label: PRAYER_LABELS[prayer],
+      time: formatTime(todayTimes[prayer]),
+    }));
+  }, [todayTimes]);
+
+  // Render Sub-Feature Views (Modals/Overlays)
+  const renderFeatureView = () => {
+    switch (activeFeature) {
+      case 'ADZAN':
+        return <AdzanPage onBack={() => setActiveFeature(null)} />;
+      case 'HADITH':
+        return <HadithPage onBack={() => setActiveFeature(null)} />;
+      case 'RAMADHAN':
+        return <RamadhanTrackerPage onBack={() => setActiveFeature(null)} />;
+      case 'IBADAH':
+        return <IbadahPage onBack={() => setActiveFeature(null)} />;
+      case 'QURAN':
+        return <QuranPage onBack={() => setActiveFeature(null)} />;
+      case 'WALLET':
+        return (
+            <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
+               <div className="bg-[#0F9D58] p-4 text-white flex gap-2 items-center sticky top-0 z-30 shadow-md">
+                <button onClick={() => setActiveFeature(null)}><X /></button>
+                <h2 className="font-bold">Dompet & Reward</h2>
+              </div>
+              <WalletPage />
+            </div>
+        );
+      case 'MASJID':
+        return (
+          <div className="fixed inset-0 z-50 bg-white">
+            <div className="bg-[#0F9D58] p-4 text-white flex gap-2 items-center sticky top-0 z-10">
+              <button onClick={() => setActiveFeature(null)}><X /></button>
+              <h2 className="font-bold">Masjid Terdekat</h2>
+            </div>
+            <MosqueMapsPage />
+          </div>
+        );
+      case 'TASBIH':
+        return (
+          <div className="fixed inset-0 z-50 bg-gray-900/95 flex flex-col items-center justify-center text-white p-6">
+            <button onClick={() => setActiveFeature(null)} className="absolute top-6 right-6 p-2 bg-white/10 rounded-full"><X /></button>
+            <h2 className="text-2xl font-bold mb-8 text-[#F4E7BD]">Tasbih Digital</h2>
+            
+            <div 
+              onClick={() => setTasbihCount(prev => prev + 1)}
+              className="w-64 h-64 rounded-full bg-gradient-to-br from-[#0F9D58] to-[#00695C] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(15,157,88,0.3)] active:scale-95 transition-transform cursor-pointer border-4 border-[#F4E7BD]/20 select-none"
+            >
+              <span className="text-7xl font-mono font-bold">{tasbihCount}</span>
+              <span className="text-sm opacity-70 mt-2">Ketuk untuk hitung</span>
+            </div>
+            
+            <button 
+              onClick={() => setTasbihCount(0)}
+              className="mt-12 flex items-center gap-2 text-sm text-gray-400 hover:text-white"
+            >
+              <RotateCcw size={16} /> Reset
+            </button>
+          </div>
+        );
+      case 'QIBLA':
+        return (
+          <div className="fixed inset-0 z-50 bg-gray-900 flex flex-col items-center justify-center text-white p-6">
+             <button onClick={() => setActiveFeature(null)} className="absolute top-6 right-6 p-2 bg-white/10 rounded-full"><X /></button>
+             <h2 className="text-xl font-bold mb-10 text-[#F4E7BD]">Arah Kiblat</h2>
+             <div className="relative w-72 h-72 border-4 border-gray-700 rounded-full flex items-center justify-center bg-gray-800">
+                <div className="absolute top-4 text-xs font-bold text-gray-500">U</div>
+                <div className="absolute bottom-4 text-xs font-bold text-gray-500">S</div>
+                <div className="absolute right-4 text-xs font-bold text-gray-500">T</div>
+                <div className="absolute left-4 text-xs font-bold text-gray-500">B</div>
+                
+                {/* Simulated Needle */}
+                <div className="w-2 h-32 bg-red-500 absolute top-4 rounded-full origin-bottom rotate-[-45deg] shadow-[0_0_15px_rgba(239,68,68,0.5)]"></div>
+                <div className="w-4 h-4 bg-white rounded-full z-10"></div>
+                
+                <div className="absolute bottom-[-60px] text-center">
+                    <p className="text-2xl font-bold">295° NW</p>
+                    <p className="text-xs text-gray-400">Arah Kiblat dari Jakarta</p>
+                </div>
+             </div>
+          </div>
+        );
+      case 'AZKAR':
+        return (
+          <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col">
+            <div className="bg-[#0F9D58] p-4 text-white flex gap-2 items-center sticky top-0 z-10 shadow-md">
+              <button onClick={() => setActiveFeature(null)}><X /></button>
+              <h2 className="font-bold">Dzikir Pagi</h2>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {AZKAR_MORNING.map((dzikir, idx) => (
+                <div key={idx} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                  <h3 className="font-bold text-[#0F9D58] mb-2">{dzikir.title}</h3>
+                  <p className="font-serif text-2xl text-right leading-loose mb-3 text-gray-800">{dzikir.arab}</p>
+                  <p className="text-sm text-gray-600">{dzikir.arti}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case 'DUAS':
+        return <DuaDzikirPage onBack={() => setActiveFeature(null)} />;
+      case 'PELACAK':
+        return (
+          <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6">
+            <button onClick={() => setActiveFeature(null)} className="absolute top-6 right-6 p-2 bg-gray-100 rounded-full">
+              <X />
+            </button>
+            <Activity size={64} className="text-[#0F9D58] mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800">Pelacak Harian</h2>
+            <p className="text-gray-500 mt-2 text-center">Fitur ini sedang disiapkan.</p>
+          </div>
+        );
+      case '99NAMA':
+         return (
+          <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col">
+             <div className="bg-[#0F9D58] p-4 text-white flex gap-2 items-center sticky top-0 z-10 shadow-md">
+              <button onClick={() => setActiveFeature(null)}><X /></button>
+              <h2 className="font-bold">Asmaul Husna</h2>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+               {ASMAUL_HUSNA.map((nama, idx) => (
+                <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <span className="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center text-[#0F9D58] font-bold text-xs">{idx + 1}</span>
+                    <div>
+                        <p className="font-bold text-gray-800">{nama.latin}</p>
+                        <p className="text-xs text-gray-500">{nama.arti}</p>
+                    </div>
+                  </div>
+                  <p className="font-serif text-xl text-[#0F9D58]">{nama.arab}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case 'KALENDER':
+         return (
+            <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6">
+                <button onClick={() => setActiveFeature(null)} className="absolute top-6 right-6 p-2 bg-gray-100 rounded-full"><X /></button>
+                <Calendar size={64} className="text-[#0F9D58] mb-4" />
+                <h2 className="text-2xl font-bold text-gray-800">{getHijriDate()}</h2>
+                <p className="text-gray-500 mt-2">Kalender Hijriah Penuh</p>
+                <p className="text-xs text-gray-400 mt-8">(Fitur Kalender Full akan segera hadir)</p>
+            </div>
+         );
+      default:
+        return null;
+    }
+  };
+
+  if (activeFeature) {
+    return renderFeatureView();
+  }
+
+  return (
+    <div className="pb-24 pt-safe bg-gray-50 min-h-screen">
+      {/* Header / Salam */}
+      <div className="bg-gradient-to-br from-[#0F9D58] to-[#00695C] p-6 pb-12 rounded-b-[2rem] text-white shadow-lg">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <p className="text-sm opacity-90">Assalamualaikum,</p>
+            <h1 className="text-2xl font-bold">{DUMMY_USER.name.split(' ')[0]}</h1>
+            <div className="mt-2 flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full w-fit">
+               <Calendar size={14} className="text-[#F4E7BD]" />
+               <span className="text-xs font-medium">{getHijriDate()}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+             <img 
+                src={DUMMY_USER.avatar} 
+                alt="Profile" 
+                className="w-10 h-10 rounded-full border-2 border-white/50"
+            />
+          </div>
+        </div>
+
+        {/* Highlight Section: Next Prayer & WALLET (Side by Side) */}
+        <div className="flex gap-3">
+            {/* Wallet Button - Now prominent */}
+             <button 
+              onClick={() => setActiveFeature('WALLET')}
+              className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-left active:scale-95 transition-transform"
+            >
+               <div className="flex items-center gap-2 mb-2">
+                 <div className="bg-[#F4E7BD] p-1.5 rounded-full text-[#0F9D58]">
+                     <Wallet size={16} fill="currentColor" />
+                 </div>
+                 <span className="text-xs font-bold text-[#F4E7BD]">Saldo Saya</span>
+               </div>
+               <p className="text-lg font-mono font-bold tracking-tight">
+                 {coinBalance.toLocaleString()} <span className="text-xs font-sans font-normal opacity-80">Koin</span>
+               </p>
+            </button>
+
+            {/* Prayer Time */}
+            <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+                <p className="text-xs opacity-80 mb-1">{nextPrayer ? `Next: ${nextPrayer.label}` : 'Next Prayer'}</p>
+                <h2 className="text-2xl font-bold text-[#F4E7BD]">
+                  {nextPrayer ? formatTime(nextPrayer.time) : '--:--'}
+                </h2>
+                <p className="text-[10px] opacity-80">
+                  {nextPrayer ? formatCountdown(nextPrayer.time, new Date(tick)) : 'Semua jadwal hari ini selesai'}
+                </p>
+                <p className="text-[10px] opacity-75 mt-1">
+                  {nextAlert ? `Next alert: ${formatCountdown(new Date(nextAlert.fireAt), new Date(tick))}` : 'Alert belum disinkronkan'}
+                </p>
+            </div>
+        </div>
+      </div>
+
+      {/* Prayer Times Horizontal Scroll */}
+      <div className="-mt-6 px-4 mb-6">
+        <div className="bg-white rounded-2xl shadow-md p-4 flex justify-between items-center overflow-x-auto no-scrollbar">
+          {prayerTimeline.length > 0 ? (
+            prayerTimeline.map((item) => {
+              const isNext = nextPrayer?.name === item.prayer;
+              return (
+                <div key={item.prayer} className="flex flex-col items-center min-w-[60px] mx-1">
+                  <span className="text-xs text-gray-400 mb-1">{item.label}</span>
+                  <span className={`font-semibold ${isNext ? 'text-[#0F9D58]' : 'text-[#333333]'}`}>{item.time}</span>
+                  {isNext && <div className="w-1 h-1 bg-[#0F9D58] rounded-full mt-1" />}
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-xs text-gray-500">Set lokasi di Settings untuk memuat jadwal sholat.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="px-4 space-y-6">
+        
+        {/* 2x5 Menu Grid */}
+        <div>
+            <h3 className="font-bold text-gray-800 mb-3">Menu Utama</h3>
+            <div className="grid grid-cols-5 gap-y-4 gap-x-2">
+                {MENU_ITEMS.map((item) => (
+                    <button 
+                        key={item.id}
+                        onClick={() => setActiveFeature(item.id)}
+                        className="flex flex-col items-center gap-1 group"
+                    >
+                        <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center shadow-sm group-active:scale-90 transition-transform`}>
+                            <item.icon className={item.color} size={24} />
+                        </div>
+                        <span className="text-[10px] font-medium text-gray-600 truncate w-full text-center">{item.label}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+
+        {/* Last Read / Daily Verse */}
+        <div 
+          onClick={() => setActiveFeature('QURAN')}
+          className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform"
+        >
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-bold text-[#333333] flex items-center gap-2">
+              <BookOpen size={18} className="text-[#0F9D58]" />
+              {lastRead ? 'Terakhir Dibaca' : 'Ayat Hari Ini'}
+            </h3>
+            {lastRead && (
+              <span className="text-xs text-[#0F9D58] bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
+                Lanjut <ChevronRight size={12} />
+              </span>
+            )}
+            {!lastRead && (
+              <span className="text-xs text-[#0F9D58] bg-green-50 px-2 py-1 rounded-full">QS. Al-Baqarah: 152</span>
+            )}
+          </div>
+          
+          {lastRead ? (
+            <div>
+              <p className="text-[#333333] font-bold text-lg">{lastRead.surahName}</p>
+              <p className="text-sm text-gray-500">Ayat ke-{lastRead.ayatNumber}</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-right font-serif text-xl leading-relaxed text-[#333333] mb-2">
+                فَٱذۡكُرُونِیۤ أَذۡكُرۡكُمۡ وَٱشۡكُرُوا۟ لِی وَلَا تَكۡفُرُونِ
+              </p>
+              <p className="text-sm text-gray-500 leading-snug">
+                "Maka ingatlah kepada-Ku, Aku pun akan ingat kepadamu. Bersyukurlah kepada-Ku, dan janganlah kamu ingkar kepada-Ku."
+              </p>
+            </>
+          )}
+        </div>
+
+        <div
+          onClick={() => setActiveFeature('DUAS')}
+          className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform"
+        >
+          <div className="flex justify-between items-center mb-3 gap-3">
+            <h3 className="font-bold text-[#333333] flex items-center gap-2">
+              <Heart size={18} className="text-pink-600" />
+              Doa Hari Ini
+            </h3>
+            <span className="text-xs text-[#0F9D58] bg-green-50 px-2 py-1 rounded-full whitespace-nowrap">
+              {todayDuaDate || '-'}
+            </span>
+          </div>
+
+          {isLoadingTodayDua ? (
+            <div className="space-y-2 animate-pulse">
+              <div className="h-4 bg-gray-100 rounded w-3/4" />
+              <div className="h-3 bg-gray-100 rounded w-full" />
+              <div className="h-3 bg-gray-100 rounded w-5/6" />
+            </div>
+          ) : todayDua ? (
+            <>
+              <p className="text-[#0F9D58] font-semibold text-sm">{todayDua.title}</p>
+              <p className="text-sm text-gray-600 mt-2 line-clamp-2">{todayDua.translation}</p>
+              <p className="text-xs text-gray-500 mt-2 line-clamp-1">Sumber: {todayDua.source_name}</p>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500">Data doa belum tersedia.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

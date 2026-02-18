@@ -1,0 +1,8 @@
+{
+  "name": "MuslimLife Super App",
+  "description": "A mobile-first Muslim lifestyle app with prayer times, ibadah tracker, notes, reminders, and adzan notifications.",
+  "requestFramePermissions": [
+    "geolocation",
+    "notifications"
+  ]
+}
