@@ -7,7 +7,6 @@ import { IbadahPage } from './IbadahPage';
 import { AdzanPage } from './AdzanPage';
 import { RamadhanTrackerPage } from './RamadhanTrackerPage';
 import { PrayerTimesPage } from './PrayerTimesPage';
-import { HadithPage } from './HadithPage';
 import { DuaDzikirPage } from './DuaDzikirPage';
 import { LastRead } from '../types';
 import { ASMAUL_HUSNA_99 } from '../data/asmaulHusna';
@@ -26,6 +25,7 @@ import {
   toDateKey,
 } from '../lib/prayerTimes';
 import { getNextAlert, onNotificationScheduleUpdated } from '../lib/notifications';
+import { navigateTo } from '../lib/appRouter';
 
 const MENU_ITEMS = [
   { id: 'ADZAN', label: 'Ibadah', icon: CheckSquare2, color: 'text-emerald-700', bg: 'bg-emerald-100' },
@@ -239,8 +239,6 @@ export const HomePage: React.FC = () => {
     switch (activeFeature) {
       case 'ADZAN':
         return <IbadahPage onBack={() => setActiveFeature(null)} />;
-      case 'HADITH':
-        return <HadithPage onBack={() => setActiveFeature(null)} />;
       case 'PRAYER':
         return <RamadhanTrackerPage onBack={() => setActiveFeature(null)} />;
       case 'RAMADHAN':
@@ -483,7 +481,13 @@ export const HomePage: React.FC = () => {
                 {MENU_ITEMS.map((item) => (
                     <button 
                         key={item.id}
-                        onClick={() => setActiveFeature(item.id)}
+                        onClick={() => {
+                          if (item.id === 'HADITH') {
+                            navigateTo('/hadits');
+                            return;
+                          }
+                          setActiveFeature(item.id);
+                        }}
                         className="flex flex-col items-center gap-1 group"
                     >
                         <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center shadow-sm group-active:scale-90 transition-transform`}>

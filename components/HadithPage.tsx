@@ -1,12 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ArrowLeft,
-  Bookmark,
-  BookmarkCheck,
-  Loader2,
-  Search,
-  WifiOff,
-} from 'lucide-react';
+import { ArrowLeft, Bookmark, BookmarkCheck, Loader2, Search, WifiOff } from 'lucide-react';
 import {
   getHadithBookmarks,
   getHadithCollections,
@@ -26,6 +19,13 @@ import {
 
 interface HadithPageProps {
   onBack: () => void;
+  title?: string;
+  subtitle?: string;
+  initialCollection?: string;
+  initialQuery?: string;
+  lockCollection?: boolean;
+  collectionUnavailableMessage?: string | null;
+  collectionOptions?: Array<{ id: string; label: string }>;
 }
 
 const HadithListSkeleton = () => (
@@ -36,16 +36,28 @@ const HadithListSkeleton = () => (
   </div>
 );
 
-const collectionLabel = (collection: string) => {
+const collectionLabel = (collection: string, options?: Array<{ id: string; label: string }>) => {
+  const fromProps = options?.find((row) => row.id === collection);
+  if (fromProps) return fromProps.label;
+
   const found = getHadithCollections().find((row) => row.id === collection);
   return found?.label || collection;
 };
 
-export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
+export const HadithPage: React.FC<HadithPageProps> = ({
+  onBack,
+  title = 'Hadits',
+  subtitle = 'Sumber: Sahih Bukhari/Muslim + koleksi lain, tersimpan lokal',
+  initialCollection = 'bukhari',
+  initialQuery = '',
+  lockCollection = false,
+  collectionUnavailableMessage = null,
+  collectionOptions,
+}) => {
   const [tab, setTab] = useState<'search' | 'bookmarks'>('search');
-  const [collection, setCollection] = useState<string>('bukhari');
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [collection, setCollection] = useState<string>(initialCollection);
+  const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery.trim());
   const [page, setPage] = useState(1);
 
   const [listData, setListData] = useState<HadithItem[]>([]);
@@ -61,8 +73,19 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
   const [offlineMode, setOfflineMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const collections = useMemo(() => getHadithCollections(), []);
+  const availableCollections = useMemo(() => getHadithCollections(), []);
+  const collections = collectionOptions || availableCollections;
   const bookmarkedIds = useMemo(() => new Set(bookmarks.map((item) => item.id)), [bookmarks]);
+
+  useEffect(() => {
+    setCollection(initialCollection);
+  }, [initialCollection]);
+
+  useEffect(() => {
+    setQuery(initialQuery);
+    setDebouncedQuery(initialQuery.trim());
+    setPage(1);
+  }, [initialQuery]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -73,6 +96,13 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
   }, [query]);
 
   const loadSearchList = useCallback(async () => {
+    if (collectionUnavailableMessage) {
+      setListData([]);
+      setHasNextPage(false);
+      setIsLoadingList(false);
+      return;
+    }
+
     setIsLoadingList(true);
     setErrorMessage(null);
     try {
@@ -90,7 +120,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
     } finally {
       setIsLoadingList(false);
     }
-  }, [collection, debouncedQuery, page]);
+  }, [collection, collectionUnavailableMessage, debouncedQuery, page]);
 
   const loadBookmarks = useCallback(async () => {
     setIsLoadingBookmarks(true);
@@ -215,7 +245,8 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
       <div key={hadith.id} className="bg-white rounded-xl border border-gray-100 p-3 shadow-sm">
         <button className="w-full text-left" onClick={() => void openDetail(hadith.id)}>
           <p className="text-xs text-gray-500">
-            {collectionLabel(hadith.collection)} - Kitab {hadith.referenceBook} - No. {hadith.referenceHadith}
+            {collectionLabel(hadith.collection, collections)} - Kitab {hadith.referenceBook} - No.{' '}
+            {hadith.referenceHadith}
           </p>
           <p className="text-sm font-semibold text-gray-900 mt-1 line-clamp-2">{hadith.title}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{hadith.sourceLabel}</p>
@@ -243,8 +274,8 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
           <ArrowLeft size={22} />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-bold text-gray-900">Hadits</h1>
-          <p className="text-xs text-gray-500">Sumber: Sahih Bukhari/Muslim + koleksi lain, tersimpan lokal</p>
+          <h1 className="text-lg font-bold text-gray-900">{title}</h1>
+          <p className="text-xs text-gray-500">{subtitle}</p>
         </div>
         {offlineMode && (
           <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700 inline-flex items-center gap-1">
@@ -255,6 +286,12 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
       </div>
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
+        {collectionUnavailableMessage ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+            {collectionUnavailableMessage}
+          </div>
+        ) : null}
+
         {errorMessage && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
             {errorMessage}
@@ -278,7 +315,8 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
                 setCollection(event.target.value);
                 setPage(1);
               }}
-              className="border border-gray-200 rounded-xl px-2 text-sm bg-white"
+              disabled={lockCollection}
+              className="border border-gray-200 rounded-xl px-2 text-sm bg-white disabled:bg-gray-100 disabled:text-gray-500"
             >
               <option value="all">Semua Koleksi</option>
               {collections.map((option) => (
@@ -380,7 +418,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
             <div className="flex items-center justify-between mb-3 gap-3">
               <div>
                 <p className="text-xs text-gray-500">
-                  {collectionLabel(activeHadith.collection)} - Kitab {activeHadith.referenceBook} - No.{' '}
+                  {collectionLabel(activeHadith.collection, collections)} - Kitab {activeHadith.referenceBook} - No.{' '}
                   {activeHadith.referenceHadith}
                 </p>
                 <p className="text-sm font-bold text-gray-900">{activeHadith.title}</p>

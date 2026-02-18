@@ -5,6 +5,7 @@ import { UserProvider } from './context/UserContext';
 import { AudioPlayerProvider, useAudioPlayer } from './context/AudioPlayerContext';
 import { AdzanManager } from './components/AdzanManager';
 import { startNotificationEngine, stopNotificationEngine } from './lib/notifications';
+import { getCurrentPath, subscribePathChange } from './lib/appRouter';
 
 // Lazy load pages - mengurangi initial bundle & re-render
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
@@ -14,9 +15,13 @@ const RamadhanTrackerPage = lazy(() =>
 const AdzanPage = lazy(() => import('./components/AdzanPage').then((m) => ({ default: m.AdzanPage })));
 const NotesPage = lazy(() => import('./components/NotesPage').then((m) => ({ default: m.NotesPage })));
 const SettingsPage = lazy(() => import('./components/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const HadithRoutesPage = lazy(() =>
+  import('./components/HadithRoutesPage').then((m) => ({ default: m.HadithRoutesPage }))
+);
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.HOME);
+  const [path, setPath] = useState(getCurrentPath());
   const noopBack = useCallback(() => {}, []);
   const { stop } = useAudioPlayer();
 
@@ -25,6 +30,10 @@ function AppContent() {
     return () => {
       stopNotificationEngine();
     };
+  }, []);
+
+  useEffect(() => {
+    return subscribePathChange((nextPath) => setPath(nextPath));
   }, []);
 
   const handleTabChange = useCallback(
@@ -38,6 +47,10 @@ function AppContent() {
   );
 
   const renderContent = () => {
+    if (path.startsWith('/hadits')) {
+      return <HadithRoutesPage path={path} />;
+    }
+
     switch (activeTab) {
       case Tab.HOME:
         return <HomePage />;
@@ -68,7 +81,9 @@ function AppContent() {
         </Suspense>
       </main>
 
-      <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
+      {!path.startsWith('/hadits') ? (
+        <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
+      ) : null}
       <AdzanManager />
     </div>
   );
