@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Home, Sparkles, Bell, NotebookPen, SlidersHorizontal, MapPin } from 'lucide-react';
+import { Home, Sparkles, NotebookPen, SlidersHorizontal, MapPin, CheckSquare } from 'lucide-react';
 import { Tab } from '../types';
 import { cn } from '../lib/utils';
 import { AppIcon, AppIconVariant } from './ui/AppIcon';
@@ -19,7 +19,7 @@ export const BottomNavigation = memo<BottomNavigationProps>(({ activeTab, onTabC
   }> = [
     { tab: Tab.HOME, label: 'Home', icon: Home, variant: 'mint' },
     { tab: Tab.PRAYER, label: 'Ramadhan', icon: Sparkles, variant: 'lemon' },
-    { tab: Tab.IBADAH, label: 'Adzan', icon: Bell, variant: 'aqua' },
+    { tab: Tab.IBADAH, label: 'Ibadah', icon: CheckSquare, variant: 'aqua' },
     { tab: Tab.NOTES, label: 'Notes', icon: NotebookPen, variant: 'sky' },
     { tab: Tab.MOSQUE, label: 'Masjid', icon: MapPin, variant: 'rose' },
     { tab: Tab.SETTINGS, label: 'Settings', icon: SlidersHorizontal, variant: 'lavender' },

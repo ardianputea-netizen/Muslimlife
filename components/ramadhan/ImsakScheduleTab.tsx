@@ -166,6 +166,8 @@ export const ImsakScheduleTab: React.FC<ImsakScheduleTabProps> = ({ selectedDate
         <p className="mt-1 text-xs text-gray-500">Tanggal dipilih: {selectedDateLabel}</p>
       </section>
 
+      <LocationPicker value={locationPreference} onChange={setLocationPreference} />
+
       <CountdownPanel targetLabel={nextTarget?.label || '-'} countdown={countdown} />
 
       <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
@@ -179,9 +181,6 @@ export const ImsakScheduleTab: React.FC<ImsakScheduleTabProps> = ({ selectedDate
           <TimeRow label="Maghrib" value={selectedTimes?.maghrib || null} />
         </div>
       </section>
-
-      <LocationPicker value={locationPreference} onChange={setLocationPreference} />
     </div>
   );
 };
-

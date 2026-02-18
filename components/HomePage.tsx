@@ -5,7 +5,6 @@ import {
   Bell,
   BookOpen,
   Calendar,
-  CheckSquare,
   ChevronRight,
   Clock,
   Clock3,
@@ -13,11 +12,9 @@ import {
   Hash,
   Heart,
   List,
-  MapPin,
   Moon,
   RotateCcw,
   ScrollText,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { QuranPage } from './QuranPage';
@@ -68,16 +65,13 @@ interface HomePageProps {
 }
 
 const MENU_ITEMS = [
-  { id: 'ADZAN', label: 'Ibadah', icon: CheckSquare, variant: 'mint' as AppIconVariant },
+  { id: 'ADZAN', label: 'Adzan', icon: Bell, variant: 'aqua' as AppIconVariant },
   { id: 'HADITH', label: 'Hadits', icon: ScrollText, variant: 'lime' as AppIconVariant },
-  { id: 'PRAYER', label: 'Ramadhan', icon: Sparkles, variant: 'lemon' as AppIconVariant },
-  { id: 'IBADAH', label: 'Adzan', icon: Bell, variant: 'aqua' as AppIconVariant },
   { id: 'RAMADHAN', label: 'Prayer', icon: Clock, variant: 'sky' as AppIconVariant },
   { id: 'QURAN', label: 'Quran', icon: BookOpen, variant: 'mint' as AppIconVariant },
   { id: 'AZKAR', label: 'Azkar', icon: Moon, variant: 'lavender' as AppIconVariant },
   { id: 'TASBIH', label: 'Tasbih', icon: Hash, variant: 'sky' as AppIconVariant },
   { id: 'QIBLA', label: 'Qibla', icon: Compass, variant: 'peach' as AppIconVariant },
-  { id: 'MASJID', label: 'Masjid', icon: MapPin, variant: 'rose' as AppIconVariant },
   { id: 'PELACAK', label: 'Pelacak', icon: Activity, variant: 'aqua' as AppIconVariant },
   { id: 'KALENDER', label: 'Kalender', icon: Calendar, variant: 'sky' as AppIconVariant },
   { id: 'DUAS', label: 'Doa&Dzikir', icon: Heart, variant: 'rose' as AppIconVariant },
@@ -493,7 +487,7 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
   const renderFeatureView = () => {
     switch (activeFeature) {
       case 'ADZAN':
-        return <IbadahPage onBack={() => setActiveFeature(null)} />;
+        return <AdzanPage onBack={() => setActiveFeature(null)} />;
       case 'PRAYER':
         return <RamadhanTrackerPage onBack={() => setActiveFeature(null)} />;
       case 'RAMADHAN':
@@ -509,7 +503,7 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
           </div>
         );
       case 'IBADAH':
-        return <AdzanPage onBack={() => setActiveFeature(null)} />;
+        return <IbadahPage onBack={() => setActiveFeature(null)} />;
       case 'QURAN':
         return <QuranPage onBack={() => setActiveFeature(null)} />;
       case 'MASJID':
@@ -874,12 +868,6 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
               onChange={(event) => setDraftProfileName(event.target.value)}
               placeholder="Nama pengguna"
               className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            />
-            <input
-              value={draftProfileAvatar}
-              onChange={(event) => setDraftProfileAvatar(event.target.value)}
-              placeholder="URL foto profil (opsional)"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
             />
 
             {profilePopupError ? (

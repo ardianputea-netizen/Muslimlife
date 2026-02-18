@@ -19,6 +19,7 @@ const RamadhanTrackerPage = lazy(() =>
   import('./components/RamadhanTrackerPage').then((m) => ({ default: m.RamadhanTrackerPage }))
 );
 const AdzanPage = lazy(() => import('./components/AdzanPage').then((m) => ({ default: m.AdzanPage })));
+const IbadahPage = lazy(() => import('./components/IbadahPage').then((m) => ({ default: m.IbadahPage })));
 const NotesPage = lazy(() => import('./components/NotesPage').then((m) => ({ default: m.NotesPage })));
 const MosqueMapsPage = lazy(() =>
   import('./components/MosqueMapsPage').then((m) => ({ default: m.MosqueMapsPage }))
@@ -122,7 +123,7 @@ function AppContent() {
       case Tab.PRAYER:
         return <RamadhanTrackerPage onBack={noopBack} embedded />;
       case Tab.IBADAH:
-        return <AdzanPage onBack={noopBack} embedded />;
+        return <IbadahPage onBack={noopBack} embedded />;
       case Tab.NOTES:
         return <NotesPage />;
       case Tab.MOSQUE:
