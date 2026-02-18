@@ -65,9 +65,14 @@ const LOCAL_COLLECTIONS_CACHE_KEY = 'ml_hadith_collections_cache_v1';
 const LOCAL_COLLECTION_PAGE_CACHE_PREFIX = 'ml_hadith_collection_page_cache_v1';
 const API_SOURCE = 'API Hadis Malaysia';
 const API_BASE = 'https://service.hadis.my/api/v1';
-export const HADITH_API_KEY_MISSING_MESSAGE = 'API key hadits belum terpasang (VITE_HADIST_API_KEY)';
+export const HADITH_API_KEY_MISSING_MESSAGE =
+  'API key hadits belum terpasang (pakai VITE_HADIST_API_KEY / VITE_HADIS_API_KEY / HADIS_API_KEY)';
 const HADITH_API_KEY = String(
-  import.meta.env.VITE_HADIST_API_KEY || import.meta.env.VITE_HADIS_API_KEY || ''
+  import.meta.env.VITE_HADIST_API_KEY ||
+    import.meta.env.VITE_HADIS_API_KEY ||
+    import.meta.env.NEXT_PUBLIC_HADIS_API_KEY ||
+    import.meta.env.HADIS_API_KEY ||
+    ''
 ).trim();
 const PAGE_LIMIT = 12;
 const TOPIC_SOURCE = 'Topik populer personal berbasis keyword terjemahan Indonesia';
