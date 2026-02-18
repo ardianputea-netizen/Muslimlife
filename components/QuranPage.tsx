@@ -29,6 +29,28 @@ const QARI_OPTIONS = [
 const SOURCE_NOTE = 'Sumber: Kemenag (jika token ada) / Fallback: QuranFoundation (dev)';
 
 const stripHtml = (value: string) => String(value || '').replace(/<[^>]+>/g, '').trim();
+const takeSnippet = (value: string) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+
+const requestJson = async <T,>(url: string): Promise<T> => {
+  const response = await fetch(url);
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+
+  if (!response.ok) {
+    const body = takeSnippet(await response.text());
+    throw new Error(body || `Request gagal (${response.status})`);
+  }
+
+  if (!contentType.includes('application/json')) {
+    const body = takeSnippet(await response.text());
+    throw new Error(`Response API tidak valid: ${body || 'non-JSON'}`);
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new Error('Response API tidak valid: JSON rusak');
+  }
+};
 
 export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const [tab, setTab] = useState<QuranTab>('all');
@@ -57,8 +79,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
 
   const loadConfig = useCallback(async () => {
     try {
-      const response = await fetch('/api/quran/config');
-      const payload = await response.json();
+      const payload = await requestJson<any>('/api/quran/config');
       if (payload?.sourceLabel) setSourceLabel(String(payload.sourceLabel));
     } catch {
       // no-op
@@ -69,9 +90,8 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     setIsLoadingList(true);
     setListError(null);
     try {
-      const response = await fetch('/api/quran/chapters');
-      const payload = await response.json();
-      if (!response.ok || !payload?.success) {
+      const payload = await requestJson<any>('/api/quran/chapters');
+      if (!payload?.success) {
         throw new Error(String(payload?.message || 'Gagal memuat daftar surah.'));
       }
       const rows = Array.isArray(payload?.chapters) ? payload.chapters : [];
@@ -101,8 +121,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     setAudioURL('');
     setAudioError(null);
     try {
-      const response = await fetch(`/api/quran/surah?id=${surahID}`);
-      const payload = (await response.json()) as SurahResponse;
+      const payload = await requestJson<SurahResponse>(`/api/quran/surah?id=${surahID}`);
       if (!payload.success || !payload.chapter) return;
 
       setSelectedChapter(payload.chapter);
@@ -126,8 +145,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     setAudioLoading(true);
     setAudioError(null);
     try {
-      const response = await fetch(`/api/quran/audio?surah_id=${surahID}&reciter_id=${nextReciterID}`);
-      const payload = await response.json();
+      const payload = await requestJson<any>(`/api/quran/audio?surah_id=${surahID}&reciter_id=${nextReciterID}`);
       const nextURL = String(payload?.audioURL || '');
       if (!nextURL) {
         setAudioError('Audio surah tidak tersedia untuk qari ini.');

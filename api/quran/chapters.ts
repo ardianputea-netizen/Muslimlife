@@ -4,6 +4,7 @@ const CACHE_CONTROL = 'public, max-age=0, s-maxage=3600, stale-while-revalidate=
 
 export default async function handler(req: ServerlessRequestLike, res: ServerlessResponseLike) {
   if (!ensureGet(req, res)) return;
+  // Smoke test cepat: buka `/api/quran/chapters` dan pastikan JSON berisi field `chapters`.
 
   try {
     const { provider, sourceLabel } = resolveQuranProvider();
@@ -23,4 +24,3 @@ export default async function handler(req: ServerlessRequestLike, res: Serverles
     sendJson(res, 500, { success: false, message }, CACHE_CONTROL);
   }
 }
-

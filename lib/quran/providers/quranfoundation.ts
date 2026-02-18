@@ -1,13 +1,45 @@
 import type { QuranChapter, QuranProvider, SurahDetailPayload } from '../provider';
 
-const DEFAULT_QF_BASE_BROWSER = '/quran-api/api/v4';
-const DEFAULT_QF_BASE_SERVER = 'https://api.quran.com/api/v4';
+type QuranComCtx = 'server' | 'client';
 
-const resolveBase = () => {
-  const envBase = process.env.QF_API_BASE?.trim();
-  if (envBase) return envBase;
-  if (typeof window !== 'undefined') return DEFAULT_QF_BASE_BROWSER;
-  return DEFAULT_QF_BASE_SERVER;
+const QURAN_COM_BASE_ABSOLUTE = 'https://api.quran.com/api/v4';
+const QURAN_COM_BASE_PROXY = '/quran-api/api/v4';
+
+export const getQuranComBaseUrl = (ctx: QuranComCtx): string => {
+  if (ctx === 'server') return QURAN_COM_BASE_ABSOLUTE;
+  if (import.meta.env.DEV) return QURAN_COM_BASE_PROXY;
+  return QURAN_COM_BASE_ABSOLUTE;
+};
+
+const getQuranComUrl = (ctx: QuranComCtx, path: string) => {
+  const suffix = path.startsWith('/') ? path : `/${path}`;
+  return `${getQuranComBaseUrl(ctx)}${suffix}`;
+};
+
+const takeSnippet = (value: string) => value.replace(/\s+/g, ' ').trim().slice(0, 120);
+
+const fetchQuranJson = async <T>(ctx: QuranComCtx, path: string): Promise<T> => {
+  const url = getQuranComUrl(ctx, path);
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const bodyText = takeSnippet(await response.text());
+    throw new Error(
+      `Quran.com request failed (${response.status}) ${url}${bodyText ? `: ${bodyText}` : ''}`
+    );
+  }
+
+  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+  if (!contentType.includes('application/json')) {
+    const bodyText = takeSnippet(await response.text());
+    throw new Error(`Quran.com non-JSON response ${url}: ${bodyText || 'empty response'}`);
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new Error(`Quran.com invalid JSON response ${url}`);
+  }
 };
 
 const parseRevelationPlace = (value: string) => {
@@ -28,28 +60,17 @@ export const quranFoundationProvider: QuranProvider = {
   id: 'quranfoundation',
   label: 'QuranFoundation',
   async getChapters() {
-    const response = await fetch(`${resolveBase()}/chapters?language=id`);
-    if (!response.ok) throw new Error(`QuranFoundation chapters error (${response.status})`);
-    const payload = await response.json();
+    const payload = await fetchQuranJson<any>('server', '/chapters?language=id');
     const list = Array.isArray(payload?.chapters) ? payload.chapters : [];
     return list.map(toChapter);
   },
   async getSurahDetail(surahID: number): Promise<SurahDetailPayload> {
-    const [chapterRes, arabRes, translitRes, translationRes] = await Promise.all([
-      fetch(`${resolveBase()}/chapters/${surahID}?language=id`),
-      fetch(`${resolveBase()}/quran/verses/uthmani?chapter_number=${surahID}`),
-      fetch(`${resolveBase()}/quran/translations/84?chapter_number=${surahID}`),
-      fetch(`${resolveBase()}/quran/translations/33?chapter_number=${surahID}`),
+    const [chapterData, arabData, translitData, translationData] = await Promise.all([
+      fetchQuranJson<any>('server', `/chapters/${surahID}?language=id`),
+      fetchQuranJson<any>('server', `/quran/verses/uthmani?chapter_number=${surahID}`),
+      fetchQuranJson<any>('server', `/quran/translations/84?chapter_number=${surahID}`),
+      fetchQuranJson<any>('server', `/quran/translations/33?chapter_number=${surahID}`),
     ]);
-
-    if (!chapterRes.ok || !arabRes.ok || !translitRes.ok || !translationRes.ok) {
-      throw new Error('QuranFoundation surah detail gagal dimuat.');
-    }
-
-    const chapterData = await chapterRes.json();
-    const arabData = await arabRes.json();
-    const translitData = await translitRes.json();
-    const translationData = await translationRes.json();
 
     const chapter = toChapter(chapterData?.chapter || {});
     const arabList = Array.isArray(arabData?.verses) ? arabData.verses : [];
@@ -81,9 +102,7 @@ export const quranFoundationProvider: QuranProvider = {
     return { chapter, verses };
   },
   async getChapterAudioURL(surahID: number, reciterID: number) {
-    const response = await fetch(`${resolveBase()}/chapter_recitations/${reciterID}/${surahID}`);
-    if (!response.ok) throw new Error(`QuranFoundation audio error (${response.status})`);
-    const payload = await response.json();
+    const payload = await fetchQuranJson<any>('server', `/chapter_recitations/${reciterID}/${surahID}`);
     const rawURL = String(payload?.audio_file?.audio_url || '').trim();
     if (!rawURL) throw new Error('Audio URL tidak tersedia.');
     if (rawURL.startsWith('http://') || rawURL.startsWith('https://')) return rawURL;
