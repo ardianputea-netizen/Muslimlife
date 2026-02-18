@@ -405,7 +405,15 @@ const normalizeCollectionCatalogPayload = (payload: Record<string, unknown>): Ha
 
 const toHadisRows = (payload: Record<string, unknown>) => {
   const data = payload?.data as Record<string, unknown> | undefined;
-  const candidates = [data?.hadis, data?.hadiths, payload?.hadis, payload?.data, payload];
+  const candidates = [
+    data?.hadis,
+    data?.hadiths,
+    data?.results,
+    payload?.hadis,
+    payload?.results,
+    payload?.data,
+    payload,
+  ];
 
   for (const candidate of candidates) {
     if (Array.isArray(candidate)) return candidate as Record<string, unknown>[];
@@ -552,7 +560,7 @@ export const getHadithList = async (params: {
   const page = toPositiveNumber(params.page, 1);
   const q = (params.q || '').trim();
   let collection = normalizeCollectionId(params.collection || 'bukhari');
-  const requestedCollection = collection === 'all' ? '_' : collection;
+  const isAllCollections = collection === 'all';
 
   if (q && q.length < 3) {
     return {
@@ -562,19 +570,20 @@ export const getHadithList = async (params: {
         limit: PAGE_LIMIT,
         total: 0,
         has_next: false,
-        collection: collection === 'all' ? 'all' : collection,
+        collection: isAllCollections ? 'all' : collection,
         source: API_SOURCE,
       },
     };
   }
 
-  if (collection === 'all' && !q) {
+  if (isAllCollections && !q) {
     collection = collectionCache[0]?.id || 'bukhari';
   }
 
   const endpoint = q ? '/search' : '/list';
+  const searchCollection = isAllCollections ? undefined : collection;
   const payload = await requestHadithApi(endpoint, {
-    collection: q ? requestedCollection : collection,
+    collection: q ? searchCollection : collection,
     q: q || undefined,
     page,
     per_page: PAGE_LIMIT,
@@ -593,7 +602,7 @@ export const getHadithList = async (params: {
       limit: pagination.limit,
       total: pagination.total,
       has_next: pagination.hasNext,
-      collection: q ? (requestedCollection === '_' ? 'all' : requestedCollection) : collection,
+      collection: isAllCollections && q ? 'all' : collection,
       source: API_SOURCE,
     },
   };

@@ -21,7 +21,7 @@ export default async function handler(req: ServerlessRequestLike, res: Serverles
   const collectionInput = readQueryString(req, 'collection');
   const normalizedCollection =
     !collectionInput || collectionInput === '_' || collectionInput === 'all'
-      ? '_'
+      ? ''
       : normalizeCollectionID(collectionInput);
   const page = readQueryNumber(req, 'page', 1);
   const perPage = readQueryNumber(req, 'per_page', 12);
@@ -31,7 +31,7 @@ export default async function handler(req: ServerlessRequestLike, res: Serverles
     const payload = await proxyHadis('/hadis/search', {
       lang,
       q,
-      collection: normalizedCollection,
+      collection: normalizedCollection || undefined,
       page,
       per_page: perPage,
     });
