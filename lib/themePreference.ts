@@ -11,12 +11,7 @@ export const applyThemePreference = (theme: ThemePreference) => {
 
   const resolved = resolveTheme(theme);
   const root = document.documentElement;
-
-  if (resolved === 'dark') {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
-  }
+  root.classList.toggle('dark', resolved === 'dark');
 
   root.style.colorScheme = resolved;
 };

@@ -94,10 +94,10 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange 
   };
 
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <p className="mb-2 text-xs font-semibold text-gray-500 dark:text-slate-400">Mode Lokasi</p>
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <p className="mb-2 text-xs font-semibold text-muted-foreground">Mode Lokasi</p>
 
-      <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1 dark:border-slate-700 dark:bg-slate-800">
+      <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted p-1">
         {MODES.map((mode) => (
           <button
             key={mode.id}
@@ -106,8 +106,8 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange 
             className={cn(
               'px-2 py-1.5 text-xs rounded-lg transition-all',
               value.mode === mode.id
-                ? 'bg-white border border-gray-200 text-gray-900 font-semibold dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100'
-                : 'text-gray-600 font-medium dark:text-slate-300'
+                ? 'bg-background border border-border text-foreground font-semibold'
+                : 'text-muted-foreground font-medium'
             )}
           >
             {mode.label}
@@ -121,17 +121,17 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange 
             type="button"
             onClick={handleUseMyLocation}
             disabled={isGettingLocation}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground"
           >
             <LocateFixed size={14} className={isGettingLocation ? 'animate-spin' : ''} />
             {isGettingLocation ? 'Memproses...' : 'Gunakan Lokasi'}
           </button>
           {coordsLabel ? (
-            <p className="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-slate-300">
+            <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <MapPin size={12} /> {coordsLabel}
             </p>
           ) : (
-            <p className="text-xs text-gray-500 dark:text-slate-400">Lokasi belum dipilih.</p>
+            <p className="text-xs text-muted-foreground">Lokasi belum dipilih.</p>
           )}
         </div>
       ) : (
@@ -141,12 +141,12 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange 
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Ketik nama kota (Min. 3 huruf)"
-              className="flex-1 bg-white text-slate-900 placeholder:text-slate-400 border-slate-200 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:border-slate-700 dark:caret-slate-100"
+              className="flex-1 bg-background text-foreground placeholder:text-muted-foreground border-border caret-foreground focus-visible:ring-2 focus-visible:ring-ring"
             />
             <button
               type="button"
               onClick={handleSearch}
-              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              className="inline-flex items-center gap-1 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-secondary-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <Search size={14} />
               Cari
@@ -169,7 +169,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange 
                     });
                     setMessage(`Kota dipilih: ${city.name}`);
                   }}
-                  className="w-full rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-left text-sm text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                  className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-left text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
                 >
                   {city.name}
                 </button>
@@ -177,11 +177,11 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({ value, onChange 
             </div>
           ) : null}
 
-          {value.cityName ? <p className="text-xs text-gray-600 dark:text-slate-300">Kota aktif: {value.cityName}</p> : null}
+          {value.cityName ? <p className="text-xs text-muted-foreground">Kota aktif: {value.cityName}</p> : null}
         </div>
       )}
 
-      {message ? <p className="mt-2 text-xs text-gray-500 dark:text-slate-400">{message}</p> : null}
+      {message ? <p className="mt-2 text-xs text-muted-foreground">{message}</p> : null}
     </section>
   );
 };
