@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { DUMMY_USER } from '../constants';
-import { BookOpen, Calendar, ChevronRight, Compass, Moon, Hash, MapPin, Activity, List, Heart, X, RotateCcw, CheckSquare2, Sparkles, ScrollText, BellRing, Clock3 } from 'lucide-react';
+import { BookOpen, Calendar, ChevronRight, Compass, Moon, Hash, Activity, List, Heart, X, RotateCcw, CheckSquare2, Sparkles, ScrollText, BellRing, Clock3 } from 'lucide-react';
 import { QuranPage } from './QuranPage';
 import { MosqueMapsPage } from './MosqueMapsPage';
 import { IbadahPage } from './IbadahPage';
@@ -31,20 +31,19 @@ import { mergeProfileWithOverride, mapSupabaseUser, PROFILE_UPDATED_EVENT } from
 import { requestTabChange } from '../lib/tabNavigation';
 
 const MENU_ITEMS = [
-  { id: 'ADZAN', label: 'Ibadah', icon: CheckSquare2, color: 'text-emerald-700', bg: 'bg-emerald-100' },
-  { id: 'HADITH', label: 'Hadits', icon: ScrollText, color: 'text-lime-700', bg: 'bg-lime-100' },
-  { id: 'PRAYER', label: 'Ramadhan', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-100' },
-  { id: 'IBADAH', label: 'Adzan', icon: BellRing, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-  { id: 'RAMADHAN', label: 'Prayer', icon: Clock3, color: 'text-teal-700', bg: 'bg-teal-100' },
-  { id: 'QURAN', label: 'Quran', icon: BookOpen, color: 'text-green-600', bg: 'bg-green-100' },
-  { id: 'AZKAR', label: 'Azkar', icon: Moon, color: 'text-purple-600', bg: 'bg-purple-100' },
-  { id: 'TASBIH', label: 'Tasbih', icon: Hash, color: 'text-blue-600', bg: 'bg-blue-100' },
-  { id: 'QIBLA', label: 'Qibla', icon: Compass, color: 'text-orange-600', bg: 'bg-orange-100' },
-  { id: 'MASJID', label: 'Masjid', icon: MapPin, color: 'text-red-600', bg: 'bg-red-100' },
-  { id: 'PELACAK', label: 'Pelacak', icon: Activity, color: 'text-teal-600', bg: 'bg-teal-100' },
-  { id: 'KALENDER', label: 'Kalender', icon: Calendar, color: 'text-indigo-600', bg: 'bg-indigo-100' },
-  { id: 'DUAS', label: 'Doa&Dzikir', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-100' },
-  { id: '99NAMA', label: '99 Nama', icon: List, color: 'text-cyan-600', bg: 'bg-cyan-100' },
+  { id: 'IBADAH', label: 'Adzan', icon: BellRing, iconColor: 'text-sky-700', tile: 'from-sky-100 via-sky-50 to-white' },
+  { id: 'HADITH', label: 'Hadits', icon: ScrollText, iconColor: 'text-lime-700', tile: 'from-lime-100 via-lime-50 to-white' },
+  { id: 'PRAYER', label: 'Ramadhan', icon: Sparkles, iconColor: 'text-amber-700', tile: 'from-amber-100 via-amber-50 to-white' },
+  { id: 'ADZAN', label: 'Ibadah', icon: CheckSquare2, iconColor: 'text-emerald-700', tile: 'from-emerald-100 via-emerald-50 to-white' },
+  { id: 'RAMADHAN', label: 'Prayer', icon: Clock3, iconColor: 'text-teal-700', tile: 'from-teal-100 via-teal-50 to-white' },
+  { id: 'QURAN', label: 'Quran', icon: BookOpen, iconColor: 'text-blue-700', tile: 'from-blue-100 via-blue-50 to-white' },
+  { id: 'AZKAR', label: 'Azkar', icon: Moon, iconColor: 'text-violet-700', tile: 'from-violet-100 via-violet-50 to-white' },
+  { id: 'TASBIH', label: 'Tasbih', icon: Hash, iconColor: 'text-rose-700', tile: 'from-rose-100 via-rose-50 to-white' },
+  { id: 'QIBLA', label: 'Qibla', icon: Compass, iconColor: 'text-orange-700', tile: 'from-orange-100 via-orange-50 to-white' },
+  { id: 'PELACAK', label: 'Pelacak', icon: Activity, iconColor: 'text-teal-700', tile: 'from-teal-100 via-teal-50 to-white' },
+  { id: 'KALENDER', label: 'Kalender', icon: Calendar, iconColor: 'text-indigo-700', tile: 'from-indigo-100 via-indigo-50 to-white' },
+  { id: 'DUAS', label: 'Doa&Dzikir', icon: Heart, iconColor: 'text-pink-700', tile: 'from-pink-100 via-pink-50 to-white' },
+  { id: '99NAMA', label: '99 Nama', icon: List, iconColor: 'text-cyan-700', tile: 'from-cyan-100 via-cyan-50 to-white' },
 ] as const;
 
 const getHijriDate = () => {
@@ -555,8 +554,11 @@ export const HomePage: React.FC = () => {
                         }}
                         className="flex flex-col items-center gap-1 group"
                     >
-                        <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center shadow-sm group-active:scale-90 transition-transform`}>
-                            <item.icon className={item.color} size={24} />
+                        <div
+                          className={`relative w-12 h-12 rounded-2xl border border-white/80 bg-gradient-to-br ${item.tile} shadow-[0_10px_18px_-14px_rgba(2,6,23,0.85)] flex items-center justify-center transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_12px_20px_-12px_rgba(2,6,23,0.6)] group-active:scale-95`}
+                        >
+                            <item.icon className={item.iconColor} size={22} strokeWidth={2.3} />
+                            <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1 rounded-full bg-white/55 blur-[1px]" />
                         </div>
                         <span className="text-[10px] font-medium text-gray-600 truncate w-full text-center">{item.label}</span>
                     </button>
