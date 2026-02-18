@@ -8,7 +8,7 @@ import { AdzanPage } from './AdzanPage';
 import { RamadhanTrackerPage } from './RamadhanTrackerPage';
 import { PrayerTimesPage } from './PrayerTimesPage';
 import { DuaDzikirPage } from './DuaDzikirPage';
-import { LastRead } from '../types';
+import { LastRead, Tab } from '../types';
 import { ASMAUL_HUSNA_99 } from '../data/asmaulHusna';
 import { AZKAR_CATALOG } from '../data/dua-dzikir/azkarCatalog';
 import { DuaItem, getDuaToday } from '../lib/duaApi';
@@ -26,6 +26,9 @@ import {
 } from '../lib/prayerTimes';
 import { getNextAlert, onNotificationScheduleUpdated } from '../lib/notifications';
 import { navigateTo } from '../lib/appRouter';
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
+import { mergeProfileWithOverride, mapSupabaseUser, PROFILE_UPDATED_EVENT } from '../lib/accountProfile';
+import { requestTabChange } from '../lib/tabNavigation';
 
 const MENU_ITEMS = [
   { id: 'ADZAN', label: 'Ibadah', icon: CheckSquare2, color: 'text-emerald-700', bg: 'bg-emerald-100' },
@@ -75,7 +78,11 @@ interface LocalReminderItem {
 const REMINDERS_KEY = 'ml_reminders';
 
 export const HomePage: React.FC = () => {
+  const supabaseConfigured = isSupabaseConfigured();
+  const supabaseClient = getSupabaseClient();
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState(DUMMY_USER.name);
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState(DUMMY_USER.avatar);
   const [lastRead, setLastRead] = useState<LastRead | null>(null);
   const [tasbihCount, setTasbihCount] = useState(0);
   const [todayDua, setTodayDua] = useState<DuaItem | null>(null);
@@ -234,6 +241,58 @@ export const HomePage: React.FC = () => {
     }));
   }, [todayTimes]);
 
+  const refreshProfile = useCallback(async () => {
+    if (!supabaseConfigured || !supabaseClient) {
+      setProfileName(DUMMY_USER.name);
+      setProfileAvatarUrl(DUMMY_USER.avatar);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabaseClient.auth.getSession();
+      if (error) throw error;
+
+      const account = mergeProfileWithOverride(mapSupabaseUser(data.session?.user || null));
+      if (!account) {
+        setProfileName(DUMMY_USER.name);
+        setProfileAvatarUrl(DUMMY_USER.avatar);
+        return;
+      }
+
+      setProfileName(account.fullName || DUMMY_USER.name);
+      setProfileAvatarUrl(account.avatarUrl || DUMMY_USER.avatar);
+    } catch (error) {
+      console.error('Failed reading user profile', error);
+    }
+  }, [supabaseClient, supabaseConfigured]);
+
+  useEffect(() => {
+    void refreshProfile();
+
+    if (!supabaseConfigured || !supabaseClient) return;
+
+    const { data } = supabaseClient.auth.onAuthStateChange(() => {
+      void refreshProfile();
+    });
+
+    const handleProfileUpdated = () => {
+      void refreshProfile();
+    };
+    window.addEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdated);
+
+    return () => {
+      data.subscription.unsubscribe();
+      window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdated);
+    };
+  }, [refreshProfile, supabaseClient, supabaseConfigured]);
+
+  const greetingName = useMemo(() => {
+    const firstName = profileName.trim().split(/\s+/)[0];
+    return firstName || 'Sahabat';
+  }, [profileName]);
+
+  const profileInitial = useMemo(() => greetingName.charAt(0).toUpperCase(), [greetingName]);
+
   // Render Sub-Feature Views (Modals/Overlays)
   const renderFeatureView = () => {
     switch (activeFeature) {
@@ -389,7 +448,7 @@ export const HomePage: React.FC = () => {
         <div className="flex justify-between items-start mb-6">
           <div>
             <p className="text-sm opacity-90">Assalamualaikum,</p>
-            <h1 className="text-2xl font-bold">{DUMMY_USER.name.split(' ')[0]}</h1>
+            <h1 className="text-2xl font-bold">{greetingName}</h1>
             <div className="mt-2 flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full w-fit">
                <Calendar size={14} className="text-[#F4E7BD]" />
                <span className="text-xs font-medium">{getHijriDate()}</span>
@@ -397,11 +456,25 @@ export const HomePage: React.FC = () => {
           </div>
 
           <div className="flex gap-3">
-             <img 
-                src={DUMMY_USER.avatar} 
-                alt="Profile" 
-                className="w-10 h-10 rounded-full border-2 border-white/50"
-            />
+            <button
+              type="button"
+              onClick={() => requestTabChange(Tab.SETTINGS)}
+              aria-label="Buka pengaturan profil"
+              className="w-10 h-10 rounded-full border-2 border-white/50 overflow-hidden bg-white/20 flex items-center justify-center"
+            >
+              {profileAvatarUrl ? (
+                <img
+                  src={profileAvatarUrl}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  onError={(event) => {
+                    event.currentTarget.src = DUMMY_USER.avatar;
+                  }}
+                />
+              ) : (
+                <span className="text-sm font-semibold text-white">{profileInitial}</span>
+              )}
+            </button>
           </div>
         </div>
 

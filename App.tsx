@@ -6,6 +6,7 @@ import { AudioPlayerProvider, useAudioPlayer } from './context/AudioPlayerContex
 import { AdzanManager } from './components/AdzanManager';
 import { startNotificationEngine, stopNotificationEngine } from './lib/notifications';
 import { getCurrentPath, subscribePathChange } from './lib/appRouter';
+import { subscribeTabChange } from './lib/tabNavigation';
 
 // Lazy load pages - mengurangi initial bundle & re-render
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
@@ -38,6 +39,17 @@ function AppContent() {
   useEffect(() => {
     return subscribePathChange((nextPath) => setPath(nextPath));
   }, []);
+
+  useEffect(() => {
+    return subscribeTabChange((nextTab) => {
+      setActiveTab((currentTab) => {
+        if (currentTab !== nextTab) {
+          stop();
+        }
+        return nextTab;
+      });
+    });
+  }, [stop]);
 
   const handleTabChange = useCallback(
     (nextTab: Tab) => {

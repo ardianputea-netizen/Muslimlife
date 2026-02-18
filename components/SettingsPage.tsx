@@ -14,7 +14,6 @@ import {
   Smartphone,
   UserRound,
 } from 'lucide-react';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import {
@@ -40,6 +39,13 @@ import {
   syncDailyNotificationSchedule,
 } from '../lib/notifications';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
+import {
+  AccountSummary,
+  mapSupabaseUser,
+  mergeProfileWithOverride,
+  PROFILE_UPDATED_EVENT,
+  saveProfileOverride,
+} from '../lib/accountProfile';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -66,27 +72,6 @@ const formatDateTime = (value: number | null) => {
   }).format(new Date(value));
 };
 
-interface AccountSummary {
-  id: string;
-  email: string;
-  fullName: string;
-  avatarUrl: string;
-}
-
-const mapSupabaseUser = (user: SupabaseUser | null): AccountSummary | null => {
-  if (!user) return null;
-  const metadata = (user.user_metadata || {}) as Record<string, unknown>;
-  const fullName = String(metadata.full_name || metadata.name || user.email || 'Google User');
-  const avatarUrl = String(metadata.avatar_url || '');
-
-  return {
-    id: user.id,
-    email: user.email || '-',
-    fullName,
-    avatarUrl,
-  };
-};
-
 const getOAuthRedirectTo = () => {
   const origin = window.location.origin.replace(/\/+$/, '');
   const host = window.location.hostname.toLowerCase();
@@ -98,6 +83,39 @@ const getOAuthRedirectTo = () => {
   }
 
   return 'https://www.muslimlife.my.id/';
+};
+
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
+    reader.readAsDataURL(file);
+  });
+
+const toOptimizedAvatarDataUrl = async (file: File) => {
+  const sourceDataUrl = await readFileAsDataUrl(file);
+  const image = new Image();
+  image.src = sourceDataUrl;
+
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error('Format gambar tidak didukung.'));
+  });
+
+  const maxSize = 320;
+  const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) return sourceDataUrl;
+
+  context.drawImage(image, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', 0.84);
 };
 
 const ToggleRow: React.FC<{
@@ -144,6 +162,9 @@ export const SettingsPage: React.FC = () => {
   const [authInitialized, setAuthInitialized] = useState(false);
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState('');
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
 
   const refreshSettings = useCallback(() => {
     const next = loadPrayerSettings();
@@ -206,13 +227,18 @@ export const SettingsPage: React.FC = () => {
     }
 
     let mounted = true;
+    const applyAccount = (nextAccount: AccountSummary | null) => {
+      if (!mounted) return;
+      setAccount(mergeProfileWithOverride(nextAccount));
+    };
+
     const hydrateSession = async () => {
       setAuthLoading(true);
       try {
         const { data, error } = await supabaseClient.auth.getSession();
         if (error) throw error;
         if (!mounted) return;
-        setAccount(mapSupabaseUser(data.session?.user || null));
+        applyAccount(mapSupabaseUser(data.session?.user || null));
       } catch (error) {
         console.error('Failed reading Google auth session', error);
         if (mounted) setAuthMessage('Gagal membaca sesi login Google.');
@@ -227,15 +253,38 @@ export const SettingsPage: React.FC = () => {
 
     const { data } = supabaseClient.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
-      setAccount(mapSupabaseUser(session?.user || null));
+      applyAccount(mapSupabaseUser(session?.user || null));
       setAuthInitialized(true);
     });
+
+    const handleProfileUpdated = async () => {
+      try {
+        const { data: sessionData, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
+        applyAccount(mapSupabaseUser(sessionData.session?.user || null));
+      } catch (error) {
+        console.error('Failed to sync profile update', error);
+      }
+    };
+    window.addEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdated);
 
     return () => {
       mounted = false;
       data.subscription.unsubscribe();
+      window.removeEventListener(PROFILE_UPDATED_EVENT, handleProfileUpdated);
     };
   }, [supabaseClient, supabaseConfigured]);
+
+  useEffect(() => {
+    if (!account) {
+      setProfileName('');
+      setProfileAvatarUrl('');
+      return;
+    }
+
+    setProfileName(account.fullName);
+    setProfileAvatarUrl(account.avatarUrl);
+  }, [account]);
 
   const iosNeedInstruction = useMemo(() => isIOS() && !isStandalone(), []);
   const timezone = useMemo(() => settings.timezone || getTimezone(), [settings.timezone]);
@@ -279,6 +328,77 @@ export const SettingsPage: React.FC = () => {
       setAuthMessage('Gagal logout.');
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleProfileImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.currentTarget.value = '';
+    if (!file) return;
+
+    setAuthMessage(null);
+    if (!file.type.startsWith('image/')) {
+      setAuthMessage('File harus berupa gambar.');
+      return;
+    }
+
+    try {
+      const dataUrl = await toOptimizedAvatarDataUrl(file);
+      setProfileAvatarUrl(dataUrl);
+    } catch (error) {
+      console.error('Profile image processing failed', error);
+      setAuthMessage('Gagal memproses gambar profil.');
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!account) return;
+
+    const nextName = profileName.trim();
+    const nextAvatar = profileAvatarUrl.trim();
+    if (!nextName) {
+      setAuthMessage('Nama profil tidak boleh kosong.');
+      return;
+    }
+
+    setAuthMessage(null);
+    setProfileSaving(true);
+
+    try {
+      const metadataAvatarUrl =
+        nextAvatar.startsWith('https://') || nextAvatar.startsWith('http://') ? nextAvatar : account.avatarUrl;
+
+      if (supabaseClient) {
+        const { error } = await supabaseClient.auth.updateUser({
+          data: {
+            full_name: nextName,
+            name: nextName,
+            avatar_url: metadataAvatarUrl,
+          },
+        });
+        if (error) throw error;
+      }
+
+      saveProfileOverride(account.id, {
+        fullName: nextName,
+        avatarUrl: nextAvatar,
+      });
+
+      setAccount((prev) =>
+        prev
+          ? {
+              ...prev,
+              fullName: nextName,
+              avatarUrl: nextAvatar,
+            }
+          : prev
+      );
+      setAuthMessage('Profil berhasil diperbarui.');
+    } catch (error) {
+      console.error('Failed saving profile', error);
+      setAuthMessage('Gagal menyimpan profil. Coba lagi.');
+    } finally {
+      setProfileSaving(false);
     }
   };
 
@@ -429,6 +549,51 @@ export const SettingsPage: React.FC = () => {
                     <p className="text-sm font-semibold text-gray-800 truncate">{account.fullName}</p>
                     <p className="text-xs text-gray-500 truncate">{account.email}</p>
                   </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-100 bg-white p-3 space-y-3">
+                  <p className="text-xs font-semibold text-gray-600">Edit Profil</p>
+
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full border border-gray-200 overflow-hidden bg-gray-100 flex items-center justify-center">
+                      {profileAvatarUrl ? (
+                        <img src={profileAvatarUrl} alt={profileName || account.fullName} className="w-full h-full object-cover" />
+                      ) : (
+                        <UserRound size={18} className="text-gray-500" />
+                      )}
+                    </div>
+                    <label className="text-xs font-medium text-[#0F9D58] cursor-pointer">
+                      Ganti Foto
+                      <input type="file" accept="image/*" className="hidden" onChange={handleProfileImageChange} />
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Nama tampilan</label>
+                    <input
+                      type="text"
+                      value={profileName}
+                      onChange={(event) => setProfileName(event.target.value)}
+                      placeholder="Masukkan nama"
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">URL Foto (opsional)</label>
+                    <input
+                      type="url"
+                      value={profileAvatarUrl}
+                      onChange={(event) => setProfileAvatarUrl(event.target.value)}
+                      placeholder="https://..."
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                    />
+                  </div>
+
+                  <Button onClick={() => void handleSaveProfile()} disabled={profileSaving || authLoading} className="w-full">
+                    {profileSaving ? <RefreshCw size={14} className="mr-2 animate-spin" /> : null}
+                    Simpan Profil
+                  </Button>
                 </div>
 
                 <Button
