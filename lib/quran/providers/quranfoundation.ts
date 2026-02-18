@@ -1,8 +1,14 @@
 import type { QuranChapter, QuranProvider, SurahDetailPayload } from '../provider';
 
-const DEFAULT_QF_BASE = '/quran-api/api/v4';
+const DEFAULT_QF_BASE_BROWSER = '/quran-api/api/v4';
+const DEFAULT_QF_BASE_SERVER = 'https://api.quran.com/api/v4';
 
-const resolveBase = () => process.env.QF_API_BASE?.trim() || DEFAULT_QF_BASE;
+const resolveBase = () => {
+  const envBase = process.env.QF_API_BASE?.trim();
+  if (envBase) return envBase;
+  if (typeof window !== 'undefined') return DEFAULT_QF_BASE_BROWSER;
+  return DEFAULT_QF_BASE_SERVER;
+};
 
 const parseRevelationPlace = (value: string) => {
   const normalized = String(value || '').toLowerCase();
