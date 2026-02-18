@@ -24,9 +24,10 @@ const weightOf = (text: string) => {
   return Math.max(1, words * 2 + chars / 10);
 };
 
-export const useQuranAudioPlayer = ({ mode, verses }: UseQuranAudioPlayerOptions) => {
+export const useQuranAudioPlayer = ({ reciterId: _reciterId, mode, verses }: UseQuranAudioPlayerOptions) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentSurahId, setCurrentSurahId] = useState<number | null>(null);
   const [currentAyahKey, setCurrentAyahKey] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -88,7 +89,7 @@ export const useQuranAudioPlayer = ({ mode, verses }: UseQuranAudioPlayerOptions
     }
   }, [currentTime, mode, timings, verses]);
 
-  const play = useCallback(async ({ src }: PlayPayload) => {
+  const play = useCallback(async ({ surahID, src }: PlayPayload) => {
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.src !== src) {
@@ -96,9 +97,11 @@ export const useQuranAudioPlayer = ({ mode, verses }: UseQuranAudioPlayerOptions
       audio.currentTime = 0;
       audio.src = src;
       audio.load();
+      setCurrentAyahKey(verses[0] ? toKey(verses[0]) : null);
     }
+    setCurrentSurahId(surahID);
     await audio.play();
-  }, []);
+  }, [verses]);
 
   const pause = useCallback(() => {
     audioRef.current?.pause();
@@ -130,8 +133,20 @@ export const useQuranAudioPlayer = ({ mode, verses }: UseQuranAudioPlayerOptions
     [playAyah]
   );
 
+  const stop = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setCurrentAyahKey(null);
+    setCurrentSurahId(null);
+  }, []);
+
   return {
     isPlaying,
+    currentSurahId,
     currentAyahKey,
     currentTime,
     duration,
@@ -140,6 +155,6 @@ export const useQuranAudioPlayer = ({ mode, verses }: UseQuranAudioPlayerOptions
     seek,
     playAyah,
     playFromAyah,
+    stop,
   };
 };
-

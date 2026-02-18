@@ -200,11 +200,6 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
     }
   }, [monthData, selectedDate, selectedDateKey, monthKey, viewMonth]);
 
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    console.log('selectedDate:', selectedDate.toISOString());
-  }, [selectedDate]);
-
   const upsertFromDay = useCallback(
     async (date: string, next: { sahur: boolean; puasa: boolean; tarawih: boolean; sedekah: boolean }) => {
       await upsertRamadhanCheckin({

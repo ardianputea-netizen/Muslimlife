@@ -13,26 +13,27 @@ interface QuranPageProps {
   onBack: () => void;
 }
 
+interface SurahResponse {
+  success: boolean;
+  sourceLabel?: string;
+  chapter?: QuranChapter;
+  verses?: QuranVerse[];
+}
+
 const QARI_OPTIONS = [
   { id: 7, label: 'Mishary Alafasy' },
   { id: 1, label: 'AbdulBasit Murattal' },
   { id: 2, label: 'AbdulBasit Mujawwad' },
 ];
 
-interface SurahResponse {
-  success: boolean;
-  sourceLabel?: string;
-  chapter?: QuranChapter;
-  verses?: QuranVerse[];
-  message?: string;
-}
+const SOURCE_NOTE = 'Sumber: Kemenag (jika token ada) / Fallback: QuranFoundation (dev)';
 
 const stripHtml = (value: string) => String(value || '').replace(/<[^>]+>/g, '').trim();
 
 export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const [tab, setTab] = useState<QuranTab>('all');
   const [chapters, setChapters] = useState<QuranChapter[]>([]);
-  const [sourceLabel, setSourceLabel] = useState('Kemenag (jika token ada) / Fallback: QuranFoundation (dev)');
+  const [sourceLabel, setSourceLabel] = useState('QuranFoundation');
   const [isLoadingList, setIsLoadingList] = useState(true);
 
   const [selectedChapter, setSelectedChapter] = useState<QuranChapter | null>(null);
@@ -42,7 +43,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const [reciterId, setReciterId] = useState(7);
   const [audioURL, setAudioURL] = useState('');
   const [audioLoading, setAudioLoading] = useState(false);
-
+  const [audioError, setAudioError] = useState<string | null>(null);
   const [lastRead, setLastRead] = useState<QuranLastRead | null>(null);
 
   const refs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -71,6 +72,8 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
       const rows = Array.isArray(payload?.chapters) ? payload.chapters : [];
       setChapters(rows);
       if (payload?.sourceLabel) setSourceLabel(String(payload.sourceLabel));
+    } catch {
+      setChapters([]);
     } finally {
       setIsLoadingList(false);
     }
@@ -90,18 +93,24 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const loadSurahDetail = useCallback(async (surahID: number) => {
     setIsLoadingDetail(true);
     setAudioURL('');
+    setAudioError(null);
     try {
       const response = await fetch(`/api/quran/surah?id=${surahID}`);
       const payload = (await response.json()) as SurahResponse;
       if (!payload.success || !payload.chapter) return;
 
       setSelectedChapter(payload.chapter);
-      setVerses((payload.verses || []).map((item) => ({
-        ...item,
-        transliterationLatin: stripHtml(item.transliterationLatin),
-        translationId: stripHtml(item.translationId),
-      })));
+      setVerses(
+        (payload.verses || []).map((item) => ({
+          ...item,
+          transliterationLatin: stripHtml(item.transliterationLatin),
+          translationId: stripHtml(item.translationId),
+        }))
+      );
       if (payload.sourceLabel) setSourceLabel(String(payload.sourceLabel));
+    } catch {
+      setSelectedChapter(null);
+      setVerses([]);
     } finally {
       setIsLoadingDetail(false);
     }
@@ -109,10 +118,18 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
 
   const loadAudioURL = useCallback(async (surahID: number, nextReciterID: number) => {
     setAudioLoading(true);
+    setAudioError(null);
     try {
       const response = await fetch(`/api/quran/audio?surah_id=${surahID}&reciter_id=${nextReciterID}`);
       const payload = await response.json();
-      setAudioURL(String(payload?.audioURL || ''));
+      const nextURL = String(payload?.audioURL || '');
+      if (!nextURL) {
+        setAudioError('Audio surah tidak tersedia untuk qari ini.');
+      }
+      setAudioURL(nextURL);
+    } catch {
+      setAudioURL('');
+      setAudioError('Gagal memuat audio surah.');
     } finally {
       setAudioLoading(false);
     }
@@ -130,26 +147,30 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [player.currentAyahKey]);
 
+  useEffect(() => {
+    if (!selectedChapter) return;
+    if (player.currentSurahId === null) return;
+    if (player.currentSurahId !== selectedChapter.id) {
+      player.stop();
+    }
+  }, [player, selectedChapter]);
+
   const visibleChapters = useMemo(
     () => (tab === 'juz_amma' ? chapters.filter((item) => item.id >= 78) : chapters),
     [chapters, tab]
   );
 
-  const handleContinueLastRead = () => {
-    if (!lastRead) return;
-    void loadSurahDetail(lastRead.surahID);
-  };
-
   const shareAyah = async (verse: QuranVerse) => {
     if (!selectedChapter) return;
     const shareURL = `${window.location.origin}/quran/surah/${selectedChapter.id}?ayah=${verse.verseNumber}`;
     const text = `QS. ${selectedChapter.nameSimple} ayat ${verse.verseNumber}\n\n${verse.arabText}\n\n${verse.translationId}\n\n${shareURL}`;
+
     if (navigator.share) {
       try {
         await navigator.share({ title: `QS. ${selectedChapter.nameSimple}`, text, url: shareURL });
         return;
       } catch {
-        // fallback copy
+        // fallback copy below
       }
     }
     await navigator.clipboard.writeText(text);
@@ -174,6 +195,12 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     await player.play({ surahID: selectedChapter.id, src: audioURL });
   };
 
+  const playFromAyah = async (ayahKey: string) => {
+    if (!selectedChapter || !audioURL) return;
+    await player.play({ surahID: selectedChapter.id, src: audioURL });
+    player.playFromAyah(ayahKey);
+  };
+
   if (selectedChapter) {
     return (
       <div className="fixed inset-0 z-50 min-h-screen bg-gray-50 pt-safe">
@@ -181,7 +208,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
-                player.pause();
+                player.stop();
                 setSelectedChapter(null);
                 setVerses([]);
               }}
@@ -192,7 +219,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-base font-bold text-gray-900">{selectedChapter.nameSimple}</h1>
               <p className="truncate text-xs text-gray-500">
-                {selectedChapter.revelationPlace} · {selectedChapter.versesCount} ayat
+                {selectedChapter.revelationPlace} - {selectedChapter.versesCount} ayat
               </p>
             </div>
             <select
@@ -208,11 +235,17 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
             </select>
           </div>
           <p className="mt-2 text-[11px] text-gray-500">
-            Sumber: Kemenag (jika token ada) / Fallback: QuranFoundation (dev) · Aktif: {sourceLabel}
+            {SOURCE_NOTE} - Aktif: {sourceLabel}
           </p>
         </div>
 
         <div className="h-[calc(100vh-72px)] overflow-y-auto px-4 py-4 pb-44 space-y-3">
+          {audioError ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              {audioError}
+            </div>
+          ) : null}
+
           {isLoadingDetail ? (
             <div className="py-12 text-center text-sm text-gray-500">Memuat surah...</div>
           ) : (
@@ -233,7 +266,9 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
                   onBookmark={() => {
                     void bookmarkAyah(verse);
                   }}
-                  onPlayFromHere={() => player.playFromAyah(verse.verseKey)}
+                  onPlayFromHere={() => {
+                    void playFromAyah(verse.verseKey);
+                  }}
                 />
               </div>
             ))
@@ -268,9 +303,15 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
           </button>
           <h1 className="text-xl font-bold">Al-Quran</h1>
         </div>
-        <LastReadCard lastRead={lastRead} onContinue={handleContinueLastRead} />
+        <LastReadCard
+          lastRead={lastRead}
+          onContinue={() => {
+            if (!lastRead) return;
+            void loadSurahDetail(lastRead.surahID);
+          }}
+        />
         <p className="mt-3 text-[11px] text-white/90">
-          Sumber: Kemenag (jika token ada) / Fallback: QuranFoundation (dev) · Aktif: {sourceLabel}
+          {SOURCE_NOTE} - Aktif: {sourceLabel}
         </p>
       </div>
 
