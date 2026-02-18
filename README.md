@@ -38,6 +38,18 @@ Catatan:
 - Jangan expose key ke frontend.
 - Semua request hadits lewat proxy serverless: `api/hadith/*`.
 
+## Env Vercel (Wajib Untuk Fitur Online)
+
+- `HADIS_API_KEY` (server-side, tanpa `VITE_`)
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Opsional sesuai fitur:
+
+- `VITE_API_BASE_URL` (backend Go untuk auth/ibadah/ramadhan API)
+- `VITE_GROQ_API_KEY`
+- `VITE_GROQ_MODEL`
+
 ## 3) Deploy ke Vercel (Dari GitHub)
 
 1. Buka Vercel Dashboard.

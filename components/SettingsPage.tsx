@@ -4,12 +4,16 @@ import {
   BellRing,
   Download,
   Info,
+  LogIn,
+  LogOut,
   LocateFixed,
   MapPin,
   Navigation,
   RefreshCw,
   Smartphone,
+  UserRound,
 } from 'lucide-react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import {
@@ -34,6 +38,7 @@ import {
   scheduleTestNotification,
   syncDailyNotificationSchedule,
 } from '../lib/notifications';
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -57,6 +62,27 @@ const formatDateTime = (value: number | null) => {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+};
+
+interface AccountSummary {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl: string;
+}
+
+const mapSupabaseUser = (user: SupabaseUser | null): AccountSummary | null => {
+  if (!user) return null;
+  const metadata = (user.user_metadata || {}) as Record<string, unknown>;
+  const fullName = String(metadata.full_name || metadata.name || user.email || 'Google User');
+  const avatarUrl = String(metadata.avatar_url || '');
+
+  return {
+    id: user.id,
+    email: user.email || '-',
+    fullName,
+    avatarUrl,
+  };
 };
 
 const ToggleRow: React.FC<{
@@ -84,6 +110,8 @@ const ToggleRow: React.FC<{
 };
 
 export const SettingsPage: React.FC = () => {
+  const supabaseConfigured = isSupabaseConfigured();
+  const supabaseClient = getSupabaseClient();
   const [settings, setSettings] = useState<PrayerSettings>(loadPrayerSettings());
   const [locationStatus, setLocationStatus] = useState<LocationPermissionState>('pending');
   const [notificationStatus, setNotificationStatus] = useState<BrowserNotificationPermission>(
@@ -97,6 +125,10 @@ export const SettingsPage: React.FC = () => {
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(getLastSyncedAt());
   const [nextAlert, setNextAlert] = useState(getNextAlert());
   const [tick, setTick] = useState(Date.now());
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authInitialized, setAuthInitialized] = useState(false);
+  const [account, setAccount] = useState<AccountSummary | null>(null);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
 
   const refreshSettings = useCallback(() => {
     const next = loadPrayerSettings();
@@ -142,8 +174,89 @@ export const SettingsPage: React.FC = () => {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (!supabaseConfigured || !supabaseClient) {
+      setAuthInitialized(true);
+      setAccount(null);
+      return;
+    }
+
+    let mounted = true;
+    const hydrateSession = async () => {
+      setAuthLoading(true);
+      try {
+        const { data, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
+        if (!mounted) return;
+        setAccount(mapSupabaseUser(data.session?.user || null));
+      } catch (error) {
+        console.error('Failed reading Google auth session', error);
+        if (mounted) setAuthMessage('Gagal membaca sesi login Google.');
+      } finally {
+        if (!mounted) return;
+        setAuthLoading(false);
+        setAuthInitialized(true);
+      }
+    };
+
+    void hydrateSession();
+
+    const { data } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setAccount(mapSupabaseUser(session?.user || null));
+      setAuthInitialized(true);
+    });
+
+    return () => {
+      mounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, [supabaseClient, supabaseConfigured]);
+
   const iosNeedInstruction = useMemo(() => isIOS() && !isStandalone(), []);
   const timezone = useMemo(() => settings.timezone || getTimezone(), [settings.timezone]);
+
+  const handleGoogleSignIn = async () => {
+    setAuthMessage(null);
+    if (!supabaseConfigured || !supabaseClient) {
+      setAuthMessage('Supabase belum dikonfigurasi di environment Vercel.');
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const redirectTo = `${window.location.origin}${window.location.pathname}`;
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Google sign-in failed', error);
+      setAuthMessage('Gagal memulai login Google.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleSignOut = async () => {
+    setAuthMessage(null);
+    if (!supabaseClient) return;
+
+    setAuthLoading(true);
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) throw error;
+      setAuthMessage('Berhasil logout.');
+    } catch (error) {
+      console.error('Google sign-out failed', error);
+      setAuthMessage('Gagal logout.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   const requestLocation = async () => {
     setMessage(null);
@@ -252,6 +365,70 @@ export const SettingsPage: React.FC = () => {
 
       <div className="p-4 space-y-4">
         {message && <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">{message}</div>}
+        {authMessage ? (
+          <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700">{authMessage}</div>
+        ) : null}
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="inline-flex items-center gap-2">
+              <UserRound size={16} />
+              Akun Google
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!supabaseConfigured ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                Supabase belum aktif. Isi <code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code> di
+                Vercel.
+              </div>
+            ) : !authInitialized ? (
+              <div className="text-sm text-gray-600 inline-flex items-center gap-2">
+                <RefreshCw size={14} className="animate-spin" />
+                Membaca sesi login...
+              </div>
+            ) : account ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-gray-100 bg-gray-50 p-3 flex items-center gap-3">
+                  {account.avatarUrl ? (
+                    <img
+                      src={account.avatarUrl}
+                      alt={account.fullName}
+                      className="w-10 h-10 rounded-full border border-gray-200 object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full border border-gray-200 bg-white flex items-center justify-center">
+                      <UserRound size={16} className="text-gray-500" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{account.fullName}</p>
+                    <p className="text-xs text-gray-500 truncate">{account.email}</p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => void handleGoogleSignOut()}
+                  disabled={authLoading}
+                  className="w-full"
+                >
+                  {authLoading ? <RefreshCw size={14} className="mr-2 animate-spin" /> : <LogOut size={14} className="mr-2" />}
+                  Logout Google
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={() => void handleGoogleSignIn()} disabled={authLoading} className="w-full">
+                {authLoading ? <RefreshCw size={14} className="mr-2 animate-spin" /> : <LogIn size={14} className="mr-2" />}
+                Login dengan Google
+              </Button>
+            )}
+
+            <p className="text-xs text-gray-500">
+              Aktifkan provider Google di Supabase: Authentication {'>'} Providers {'>'} Google.
+            </p>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
