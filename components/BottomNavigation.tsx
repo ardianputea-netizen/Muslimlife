@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Home, Clock3, CheckSquare2, NotebookPen, Settings2 } from 'lucide-react';
+import { Home, Sparkles, BellRing, NotebookPen, Settings2 } from 'lucide-react';
 import { Tab } from '../types';
 
 interface BottomNavigationProps {
@@ -29,16 +29,16 @@ export const BottomNavigation = memo<BottomNavigationProps>(({ activeTab, onTabC
           onClick={() => onTabChange(Tab.PRAYER)}
           className={`flex flex-col items-center justify-center w-full ${getTabClass(Tab.PRAYER)}`}
         >
-          <Clock3 size={24} strokeWidth={activeTab === Tab.PRAYER ? 2.5 : 2} />
-          <span className="text-[10px] mt-1">Prayer</span>
+          <Sparkles size={24} strokeWidth={activeTab === Tab.PRAYER ? 2.5 : 2} />
+          <span className="text-[10px] mt-1">Ramadhan</span>
         </button>
 
         <button
           onClick={() => onTabChange(Tab.IBADAH)}
           className={`flex flex-col items-center justify-center w-full ${getTabClass(Tab.IBADAH)}`}
         >
-          <CheckSquare2 size={24} strokeWidth={activeTab === Tab.IBADAH ? 2.5 : 2} />
-          <span className="text-[10px] mt-1">Ibadah</span>
+          <BellRing size={24} strokeWidth={activeTab === Tab.IBADAH ? 2.5 : 2} />
+          <span className="text-[10px] mt-1">Adzan</span>
         </button>
 
         <button

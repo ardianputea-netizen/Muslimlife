@@ -8,10 +8,10 @@ import { startNotificationEngine, stopNotificationEngine } from './lib/notificat
 
 // Lazy load pages - mengurangi initial bundle & re-render
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
-const PrayerTimesPage = lazy(() =>
-  import('./components/PrayerTimesPage').then((m) => ({ default: m.PrayerTimesPage }))
+const RamadhanTrackerPage = lazy(() =>
+  import('./components/RamadhanTrackerPage').then((m) => ({ default: m.RamadhanTrackerPage }))
 );
-const IbadahPage = lazy(() => import('./components/IbadahPage').then((m) => ({ default: m.IbadahPage })));
+const AdzanPage = lazy(() => import('./components/AdzanPage').then((m) => ({ default: m.AdzanPage })));
 const NotesPage = lazy(() => import('./components/NotesPage').then((m) => ({ default: m.NotesPage })));
 const SettingsPage = lazy(() => import('./components/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 
@@ -42,9 +42,9 @@ function AppContent() {
       case Tab.HOME:
         return <HomePage />;
       case Tab.PRAYER:
-        return <PrayerTimesPage />;
+        return <RamadhanTrackerPage onBack={noopBack} embedded />;
       case Tab.IBADAH:
-        return <IbadahPage onBack={noopBack} embedded />;
+        return <AdzanPage onBack={noopBack} embedded />;
       case Tab.NOTES:
         return <NotesPage />;
       case Tab.SETTINGS:

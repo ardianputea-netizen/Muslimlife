@@ -71,9 +71,17 @@ export const getCachedBookmarks = async (): Promise<HadithItem[]> => {
     request.onsuccess = () => {
       const data = (request.result as HadithItem[]) || [];
       resolve(
-        data.sort((a, b) =>
-          `${b.collection}${b.hadith_number}`.localeCompare(`${a.collection}${a.hadith_number}`)
-        )
+        data.sort((a, b) => {
+          if (a.collection !== b.collection) {
+            return a.collection.localeCompare(b.collection);
+          }
+          const bookA = Number(a.referenceBook) || 0;
+          const bookB = Number(b.referenceBook) || 0;
+          if (bookA !== bookB) return bookA - bookB;
+          const hadithA = Number(a.referenceHadith) || 0;
+          const hadithB = Number(b.referenceHadith) || 0;
+          return hadithA - hadithB;
+        })
       );
     };
     request.onerror = () => reject(request.error);

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
-  CalendarDays,
   CheckCircle2,
   Flame,
   Loader2,
@@ -21,13 +20,12 @@ import {
   getPrayerTimes,
   upsertPrayerCheckin,
 } from '../lib/ibadahApi';
+import { MiniCalendarItem, MiniCalendarStrip } from './MiniCalendarStrip';
 
 interface IbadahPageProps {
   onBack?: () => void;
   embedded?: boolean;
 }
-
-const WEEK_DAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
 const toMonthKey = (date: Date) => {
   const year = date.getFullYear();
@@ -48,6 +46,11 @@ const formatMonthLabel = (monthKey: string) => {
     month: 'long',
     year: 'numeric',
   }).format(new Date(year, (month || 1) - 1, 1));
+};
+
+const formatWeekday = (date: string) => {
+  const d = new Date(date);
+  return new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(d);
 };
 
 const findDayByDate = (data: PrayerMonthResponse | null, date: string) => {
@@ -109,21 +112,7 @@ const applyStatusLocally = (
   }
 };
 
-const PrayerTodaySkeleton = () => (
-  <div className="space-y-3 animate-pulse">
-    {Array.from({ length: 5 }).map((_, index) => (
-      <div key={index} className="h-14 rounded-xl bg-gray-100" />
-    ))}
-  </div>
-);
-
-const CalendarSkeleton = () => (
-  <div className="grid grid-cols-7 gap-2 animate-pulse">
-    {Array.from({ length: 42 }).map((_, index) => (
-      <div key={index} className="h-14 rounded-lg bg-gray-100" />
-    ))}
-  </div>
-);
+const labelPrayer = (value: PrayerName) => value.charAt(0).toUpperCase() + value.slice(1);
 
 export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false }) => {
   const today = useMemo(() => new Date(), []);
@@ -181,6 +170,17 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
     void loadStats();
   }, [loadStats]);
 
+  useEffect(() => {
+    if (!monthData) return;
+    const selectedExists = Boolean(findDayByDate(monthData, selectedDate));
+    if (!selectedExists) {
+      const firstInMonth = monthData.weeks.flat().find((day) => day.in_month);
+      if (firstInMonth) {
+        setSelectedDate(firstInMonth.date);
+      }
+    }
+  }, [monthData, selectedDate]);
+
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setErrorMessage('Geolocation tidak tersedia di perangkat ini.');
@@ -227,25 +227,20 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
   }, [geoLocation, selectedDate]);
 
   const selectedDay = useMemo(() => findDayByDate(monthData, selectedDate), [monthData, selectedDate]);
-  const todayDay = useMemo(() => findDayByDate(monthData, todayDateKey), [monthData, todayDateKey]);
 
-  const handleStatusUpdate = async (
-    date: string,
-    prayer: PrayerName,
-    status: 'done' | 'missed'
-  ) => {
-    if (!monthData || !date || savingPrayer) return;
+  const handleStatusUpdate = async (prayer: PrayerName, status: 'done' | 'missed') => {
+    if (!monthData || !selectedDate || savingPrayer) return;
 
     const previous = cloneValue(monthData);
     const optimistic = cloneValue(monthData);
-    applyStatusLocally(optimistic, date, prayer, status);
+    applyStatusLocally(optimistic, selectedDate, prayer, status);
     setMonthData(optimistic);
     setSavingPrayer(prayer);
     setErrorMessage(null);
 
     try {
       await upsertPrayerCheckin({
-        date,
+        date: selectedDate,
         prayer_name: prayer,
         status,
       });
@@ -263,6 +258,28 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
     ? stats.most_missed_prayer.charAt(0).toUpperCase() + stats.most_missed_prayer.slice(1)
     : '-';
 
+  const inMonthDays = useMemo(() => {
+    return (monthData?.weeks.flat() || []).filter((day) => day.in_month);
+  }, [monthData]);
+
+  const miniCalendarItems = useMemo<MiniCalendarItem[]>(() => {
+    return inMonthDays.map((day) => {
+      const dayNumber = Number(day.date.split('-')[2]);
+      return {
+        date: day.date,
+        dayLabel: String(dayNumber),
+        weekdayLabel: formatWeekday(day.date),
+        badge: `${day.done_count}/5`,
+        dotCount: Math.max(0, Math.min(4, day.done_count)),
+        isToday: day.date === todayDateKey,
+      };
+    });
+  }, [inMonthDays, todayDateKey]);
+
+  const doneToday = selectedDay
+    ? PRAYER_NAMES.reduce((total, prayer) => (selectedDay.statuses[prayer] === 'done' ? total + 1 : total), 0)
+    : 0;
+
   return (
     <div className={`${embedded ? 'bg-gray-50 min-h-full pb-24' : 'fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24'}`}>
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
@@ -275,7 +292,7 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
         )}
         <div>
           <h1 className="text-lg font-bold text-gray-900">Ibadah Harian</h1>
-          <p className="text-xs text-gray-500">Check-in sholat, kalender, dan statistik 30 hari</p>
+          <p className="text-xs text-gray-500">Check-in sholat, mini kalender, statistik 30 hari</p>
         </div>
       </div>
 
@@ -289,19 +306,23 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
 
         <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-800">Hari Ini</h2>
-            <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">
-              {todayDateKey}
-            </span>
+            <div>
+              <h2 className="font-bold text-gray-800">Checklist Sholat</h2>
+              <p className="text-xs text-gray-500">Tanggal: {selectedDate}</p>
+            </div>
+            <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">{doneToday}/5 done</span>
           </div>
 
-          {!todayDay && isLoadingMonth ? (
-            <PrayerTodaySkeleton />
+          {isLoadingMonth || !selectedDay ? (
+            <div className="space-y-3 animate-pulse">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="h-14 rounded-xl bg-gray-100" />
+              ))}
+            </div>
           ) : (
             <div className="space-y-3">
               {PRAYER_NAMES.map((prayer) => {
-                const currentStatus = todayDay?.statuses[prayer] || 'pending';
-                const todayStatus = todayDay?.statuses[prayer] || 'pending';
+                const currentStatus = selectedDay.statuses[prayer] || 'pending';
 
                 return (
                   <div
@@ -309,14 +330,14 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
                     className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-2.5"
                   >
                     <div>
-                      <p className="text-sm font-semibold text-gray-800 capitalize">{prayer}</p>
+                      <p className="text-sm font-semibold text-gray-800 capitalize">{labelPrayer(prayer)}</p>
                       <p className="text-xs text-gray-500">
-                        Hari ini: {todayStatus === 'done' ? 'Sudah' : todayStatus === 'missed' ? 'Bolong' : 'Belum'}
+                        {currentStatus === 'done' ? 'Sudah' : currentStatus === 'missed' ? 'Bolong' : 'Belum'}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => void handleStatusUpdate(todayDateKey, prayer, 'done')}
+                        onClick={() => void handleStatusUpdate(prayer, 'done')}
                         disabled={savingPrayer === prayer}
                         className={`px-3 py-1.5 text-xs rounded-lg font-semibold border transition-colors ${
                           currentStatus === 'done'
@@ -330,7 +351,7 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
                         </span>
                       </button>
                       <button
-                        onClick={() => void handleStatusUpdate(todayDateKey, prayer, 'missed')}
+                        onClick={() => void handleStatusUpdate(prayer, 'missed')}
                         disabled={savingPrayer === prayer}
                         className={`px-3 py-1.5 text-xs rounded-lg font-semibold border transition-colors ${
                           currentStatus === 'missed'
@@ -339,8 +360,7 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
                         } disabled:opacity-60`}
                       >
                         <span className="inline-flex items-center gap-1">
-                          <XCircle size={12} />
-                          Missed
+                          <XCircle size={12} /> Missed
                         </span>
                       </button>
                     </div>
@@ -353,10 +373,7 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
 
         <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <CalendarDays size={18} className="text-[#0F9D58]" />
-              <h2 className="font-bold text-gray-800">Kalender {formatMonthLabel(monthKey)}</h2>
-            </div>
+            <h2 className="font-bold text-gray-800">Mini Kalender {formatMonthLabel(monthKey)}</h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setMonthCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
@@ -373,45 +390,22 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
             </div>
           </div>
 
-          <div className="grid grid-cols-7 mb-2">
-            {WEEK_DAYS.map((label) => (
-              <div key={label} className="text-center text-xs font-semibold text-gray-400 py-1">
-                {label}
-              </div>
-            ))}
-          </div>
-
-          {isLoadingMonth || !monthData ? (
-            <CalendarSkeleton />
+          {isLoadingMonth ? (
+            <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />
+          ) : miniCalendarItems.length === 0 ? (
+            <p className="text-sm text-gray-500">Konten belum tersedia.</p>
           ) : (
-            <div className="grid grid-cols-7 gap-2">
-              {monthData.weeks.flat().map((day) => {
-                const isSelected = day.date === selectedDate;
-                const dayNumber = Number(day.date.split('-')[2]);
-                return (
-                  <button
-                    key={day.date}
-                    onClick={() => setSelectedDate(day.date)}
-                    className={`rounded-lg border p-1.5 min-h-14 text-left transition-colors ${
-                      isSelected
-                        ? 'border-[#0F9D58] bg-green-50'
-                        : day.in_month
-                        ? 'border-gray-100 bg-white'
-                        : 'border-gray-100 bg-gray-50 text-gray-400'
-                    }`}
-                  >
-                    <p className="text-xs font-semibold">{dayNumber}</p>
-                    <p className="text-[10px] text-gray-500 mt-1">{day.done_count}/5 done</p>
-                  </button>
-                );
-              })}
-            </div>
+            <MiniCalendarStrip
+              items={miniCalendarItems}
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+            />
           )}
         </section>
 
         <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-800">Detail {selectedDate}</h2>
+            <h2 className="font-bold text-gray-800">Waktu Sholat per Lokasi</h2>
             <div className="flex items-center gap-2">
               <button
                 onClick={requestLocation}
@@ -438,10 +432,9 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
             {PRAYER_NAMES.map((prayer) => (
               <div key={prayer} className="rounded-xl border border-gray-100 p-2.5 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold capitalize text-gray-800">{prayer}</p>
+                  <p className="text-sm font-semibold capitalize text-gray-800">{labelPrayer(prayer)}</p>
                   <p className="text-xs text-gray-500">
-                    Waktu:{' '}
-                    {isLoadingTimes ? 'Memuat...' : prayerTimes?.[prayer] || '--:--'}
+                    Waktu: {isLoadingTimes ? 'Memuat...' : prayerTimes?.[prayer] || '--:--'}
                   </p>
                 </div>
                 <span
@@ -461,7 +454,9 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
 
           <div className="mt-3 text-xs text-gray-500 flex items-center gap-2">
             <MapPin size={14} />
-            {geoLocation ? 'Waktu adzan menyesuaikan lokasi perangkat.' : 'Lokasi belum aktif, waktu adzan tidak tersedia.'}
+            {geoLocation
+              ? 'Waktu adzan menyesuaikan lokasi perangkat.'
+              : 'Lokasi belum aktif, waktu adzan tidak tersedia.'}
           </div>
         </section>
 
@@ -472,8 +467,7 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
               <div className="h-7 w-20 rounded bg-gray-100 animate-pulse" />
             ) : (
               <p className="text-2xl font-bold text-[#0F9D58] flex items-center gap-2">
-                <Flame size={20} />
-                {stats.streak_days} hari
+                <Flame size={20} /> {stats.streak_days} hari
               </p>
             )}
           </div>
@@ -496,19 +490,6 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
             )}
           </div>
         </section>
-
-        {stats && (
-          <section className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-2 text-sm">Missed per Sholat (30 hari)</h3>
-            <div className="flex flex-wrap gap-2">
-              {PRAYER_NAMES.map((prayer) => (
-                <span key={prayer} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full capitalize">
-                  {prayer}: {stats.missed_count[prayer]}
-                </span>
-              ))}
-            </div>
-          </section>
-        )}
       </div>
     </div>
   );

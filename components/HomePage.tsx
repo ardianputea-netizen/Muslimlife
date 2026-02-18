@@ -6,10 +6,12 @@ import { MosqueMapsPage } from './MosqueMapsPage';
 import { IbadahPage } from './IbadahPage';
 import { AdzanPage } from './AdzanPage';
 import { RamadhanTrackerPage } from './RamadhanTrackerPage';
+import { PrayerTimesPage } from './PrayerTimesPage';
 import { HadithPage } from './HadithPage';
 import { DuaDzikirPage } from './DuaDzikirPage';
 import { LastRead } from '../types';
-import { ASMAUL_HUSNA, AZKAR_MORNING } from '../data/islamicContent';
+import { ASMAUL_HUSNA_99 } from '../data/asmaulHusna';
+import { AZKAR_CATALOG } from '../data/dua-dzikir/azkarCatalog';
 import { DuaItem, getDuaToday } from '../lib/duaApi';
 import {
   PRAYER_SETTINGS_UPDATED_EVENT,
@@ -26,10 +28,11 @@ import {
 import { getNextAlert, onNotificationScheduleUpdated } from '../lib/notifications';
 
 const MENU_ITEMS = [
-  { id: 'ADZAN', label: 'Adzan', icon: BellRing, color: 'text-emerald-700', bg: 'bg-emerald-100' },
+  { id: 'ADZAN', label: 'Ibadah', icon: CheckSquare2, color: 'text-emerald-700', bg: 'bg-emerald-100' },
   { id: 'HADITH', label: 'Hadits', icon: ScrollText, color: 'text-lime-700', bg: 'bg-lime-100' },
-  { id: 'RAMADHAN', label: 'Ramadhan', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-100' },
-  { id: 'IBADAH', label: 'Ibadah', icon: CheckSquare2, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+  { id: 'PRAYER', label: 'Ramadhan', icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-100' },
+  { id: 'IBADAH', label: 'Adzan', icon: BellRing, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+  { id: 'RAMADHAN', label: 'Prayer', icon: Clock3, color: 'text-teal-700', bg: 'bg-teal-100' },
   { id: 'QURAN', label: 'Quran', icon: BookOpen, color: 'text-green-600', bg: 'bg-green-100' },
   { id: 'AZKAR', label: 'Azkar', icon: Moon, color: 'text-purple-600', bg: 'bg-purple-100' },
   { id: 'TASBIH', label: 'Tasbih', icon: Hash, color: 'text-blue-600', bg: 'bg-blue-100' },
@@ -235,13 +238,25 @@ export const HomePage: React.FC = () => {
   const renderFeatureView = () => {
     switch (activeFeature) {
       case 'ADZAN':
-        return <AdzanPage onBack={() => setActiveFeature(null)} />;
+        return <IbadahPage onBack={() => setActiveFeature(null)} />;
       case 'HADITH':
         return <HadithPage onBack={() => setActiveFeature(null)} />;
-      case 'RAMADHAN':
+      case 'PRAYER':
         return <RamadhanTrackerPage onBack={() => setActiveFeature(null)} />;
+      case 'RAMADHAN':
+        return (
+          <div className="fixed inset-0 z-50 bg-white">
+            <div className="bg-[#0F9D58] p-4 text-white flex gap-2 items-center sticky top-0 z-10 shadow-md">
+              <button onClick={() => setActiveFeature(null)}>
+                <X />
+              </button>
+              <h2 className="font-bold">Prayer Times</h2>
+            </div>
+            <PrayerTimesPage />
+          </div>
+        );
       case 'IBADAH':
-        return <IbadahPage onBack={() => setActiveFeature(null)} />;
+        return <AdzanPage onBack={() => setActiveFeature(null)} />;
       case 'QURAN':
         return <QuranPage onBack={() => setActiveFeature(null)} />;
       case 'MASJID':
@@ -306,11 +321,14 @@ export const HomePage: React.FC = () => {
               <h2 className="font-bold">Dzikir Pagi</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {AZKAR_MORNING.map((dzikir, idx) => (
-                <div key={idx} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+              {AZKAR_CATALOG.map((dzikir) => (
+                <div key={dzikir.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                   <h3 className="font-bold text-[#0F9D58] mb-2">{dzikir.title}</h3>
-                  <p className="font-serif text-2xl text-right leading-loose mb-3 text-gray-800">{dzikir.arab}</p>
-                  <p className="text-sm text-gray-600">{dzikir.arti}</p>
+                  <p className="font-serif text-2xl text-right leading-loose mb-3 text-gray-800">
+                    {dzikir.arabicText}
+                  </p>
+                  <p className="text-sm text-gray-600">{dzikir.meaningId}</p>
+                  <p className="text-xs text-gray-500 mt-2">{dzikir.sourceLabel}</p>
                 </div>
               ))}
             </div>
@@ -337,16 +355,19 @@ export const HomePage: React.FC = () => {
               <h2 className="font-bold">Asmaul Husna</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-               {ASMAUL_HUSNA.map((nama, idx) => (
-                <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+              <div className="text-xs text-gray-500 px-1">
+                Sumber: Asma&apos; al-Husna (Al-Qur&apos;an & Hadits sahih - disusun dari rujukan klasik)
+              </div>
+               {ASMAUL_HUSNA_99.map((nama) => (
+                <div key={nama.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <span className="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center text-[#0F9D58] font-bold text-xs">{idx + 1}</span>
+                    <span className="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center text-[#0F9D58] font-bold text-xs">{nama.order}</span>
                     <div>
                         <p className="font-bold text-gray-800">{nama.latin}</p>
-                        <p className="text-xs text-gray-500">{nama.arti}</p>
+                        <p className="text-xs text-gray-500">{nama.meaningId}</p>
                     </div>
                   </div>
-                  <p className="font-serif text-xl text-[#0F9D58]">{nama.arab}</p>
+                  <p className="font-serif text-xl text-[#0F9D58]">{nama.arabic}</p>
                 </div>
               ))}
             </div>
@@ -500,14 +521,14 @@ export const HomePage: React.FC = () => {
               <p className="text-sm text-gray-500">Ayat ke-{lastRead.ayatNumber}</p>
             </div>
           ) : (
-            <>
-              <p className="text-right font-serif text-xl leading-relaxed text-[#333333] mb-2">
-                فَٱذۡكُرُونِیۤ أَذۡكُرۡكُمۡ وَٱشۡكُرُوا۟ لِی وَلَا تَكۡفُرُونِ
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600 leading-snug">
+                Buka menu Quran untuk melanjutkan tilawah harian.
               </p>
-              <p className="text-sm text-gray-500 leading-snug">
-                "Maka ingatlah kepada-Ku, Aku pun akan ingat kepadamu. Bersyukurlah kepada-Ku, dan janganlah kamu ingkar kepada-Ku."
+              <p className="text-xs text-gray-500 leading-snug">
+                Sumber teks Arab: Al-Qur&apos;an (Tanzil verified text) / Quran.com API (Arabic text)
               </p>
-            </>
+            </div>
           )}
         </div>
 
@@ -534,8 +555,10 @@ export const HomePage: React.FC = () => {
           ) : todayDua ? (
             <>
               <p className="text-[#0F9D58] font-semibold text-sm">{todayDua.title}</p>
-              <p className="text-sm text-gray-600 mt-2 line-clamp-2">{todayDua.translation}</p>
-              <p className="text-xs text-gray-500 mt-2 line-clamp-1">Sumber: {todayDua.source_name}</p>
+              <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+                {todayDua.meaningId || 'Konten belum tersedia.'}
+              </p>
+              <p className="text-xs text-gray-500 mt-2 line-clamp-1">Sumber: {todayDua.sourceLabel}</p>
             </>
           ) : (
             <p className="text-sm text-gray-500">Data doa belum tersedia.</p>
@@ -545,3 +568,4 @@ export const HomePage: React.FC = () => {
     </div>
   );
 };
+

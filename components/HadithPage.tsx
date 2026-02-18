@@ -3,13 +3,13 @@ import {
   ArrowLeft,
   Bookmark,
   BookmarkCheck,
-  ExternalLink,
   Loader2,
   Search,
   WifiOff,
 } from 'lucide-react';
 import {
   getHadithBookmarks,
+  getHadithCollections,
   getHadithDetail,
   getHadithList,
   setHadithBookmark,
@@ -28,15 +28,6 @@ interface HadithPageProps {
   onBack: () => void;
 }
 
-const COLLECTION_OPTIONS = [
-  { value: 'bukhari', label: 'Bukhari' },
-  { value: 'muslim', label: 'Muslim' },
-  { value: 'abudawud', label: 'Abu Dawud' },
-  { value: 'tirmidhi', label: 'Tirmidhi' },
-  { value: 'nasai', label: 'An-Nasa’i' },
-  { value: 'ibnmajah', label: 'Ibnu Majah' },
-];
-
 const HadithListSkeleton = () => (
   <div className="space-y-3 animate-pulse">
     {Array.from({ length: 6 }).map((_, idx) => (
@@ -45,9 +36,14 @@ const HadithListSkeleton = () => (
   </div>
 );
 
+const collectionLabel = (collection: string) => {
+  const found = getHadithCollections().find((row) => row.id === collection);
+  return found?.label || collection;
+};
+
 export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
   const [tab, setTab] = useState<'search' | 'bookmarks'>('search');
-  const [collection, setCollection] = useState('bukhari');
+  const [collection, setCollection] = useState<string>('bukhari');
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -65,6 +61,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
   const [offlineMode, setOfflineMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const collections = useMemo(() => getHadithCollections(), []);
   const bookmarkedIds = useMemo(() => new Set(bookmarks.map((item) => item.id)), [bookmarks]);
 
   useEffect(() => {
@@ -89,7 +86,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
       setOfflineMode(false);
     } catch (error) {
       console.error(error);
-      setErrorMessage('Gagal memuat hadits dari server.');
+      setErrorMessage('Gagal memuat hadits dari dataset lokal.');
     } finally {
       setIsLoadingList(false);
     }
@@ -104,7 +101,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
       await cacheBookmarkItems(response.data);
       setOfflineMode(false);
     } catch (error) {
-      console.warn('Bookmark API unavailable, fallback offline cache', error);
+      console.warn('Bookmark fallback offline cache', error);
       const cached = await getCachedBookmarks();
       setBookmarks(cached);
       setOfflineMode(true);
@@ -145,7 +142,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
         await loadLastViewed();
         setOfflineMode(false);
       } catch (error) {
-        console.warn('Detail fetch failed, fallback cached data', error);
+        console.warn('Detail fallback cached data', error);
         const localCandidate =
           listData.find((item) => item.id === id) ||
           bookmarks.find((item) => item.id === id) ||
@@ -154,7 +151,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
           setActiveHadith(localCandidate);
           setOfflineMode(true);
         } else {
-          setErrorMessage('Hadits tidak tersedia offline.');
+          setErrorMessage('Konten hadits belum tersedia.');
         }
       } finally {
         setIsLoadingDetail(false);
@@ -215,27 +212,17 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
     const isBookmarked = hadith.is_bookmarked || bookmarkedIds.has(hadith.id);
 
     return (
-      <div
-        key={hadith.id}
-        className="bg-white rounded-xl border border-gray-100 p-3 shadow-sm"
-      >
+      <div key={hadith.id} className="bg-white rounded-xl border border-gray-100 p-3 shadow-sm">
         <button className="w-full text-left" onClick={() => void openDetail(hadith.id)}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs text-gray-500 capitalize">
-                {hadith.collection} • Book {hadith.book_number} • #{hadith.hadith_number}
-              </p>
-              <p className="text-sm font-semibold text-gray-900 mt-1 line-clamp-2">
-                {hadith.translation || 'Terjemahan belum tersedia.'}
-              </p>
-            </div>
-          </div>
+          <p className="text-xs text-gray-500">
+            {collectionLabel(hadith.collection)} - Kitab {hadith.referenceBook} - No. {hadith.referenceHadith}
+          </p>
+          <p className="text-sm font-semibold text-gray-900 mt-1 line-clamp-2">{hadith.title}</p>
+          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{hadith.sourceLabel}</p>
         </button>
 
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-gray-500 truncate max-w-[70%]">
-            {hadith.grade ? `Grade: ${hadith.grade}` : hadith.reference}
-          </p>
+          <p className="text-[11px] text-gray-500 line-clamp-1">sourceLabel wajib aktif</p>
           <button
             onClick={() => void toggleBookmark(hadith, !isBookmarked)}
             className="text-[#0F9D58] p-1.5 rounded-lg hover:bg-green-50"
@@ -257,7 +244,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-bold text-gray-900">Hadits</h1>
-          <p className="text-xs text-gray-500">Sumber: Sunnah.com API + cache lokal</p>
+          <p className="text-xs text-gray-500">Sumber: Sahih Bukhari/Muslim + koleksi lain, tersimpan lokal</p>
         </div>
         {offlineMode && (
           <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700 inline-flex items-center gap-1">
@@ -281,7 +268,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cari hadits..."
+                placeholder="Cari topik hadits / kata kunci..."
                 className="w-full border border-gray-200 rounded-xl py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#0F9D58]"
               />
             </div>
@@ -293,8 +280,9 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
               }}
               className="border border-gray-200 rounded-xl px-2 text-sm bg-white"
             >
-              {COLLECTION_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
+              <option value="all">Semua Koleksi</option>
+              {collections.map((option) => (
+                <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
               ))}
@@ -327,7 +315,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
               <HadithListSkeleton />
             ) : listData.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm text-gray-500">
-                Tidak ada hasil hadits untuk pencarian ini.
+                Konten belum tersedia untuk filter ini.
               </div>
             ) : (
               <div className="space-y-3">{listData.map((item) => renderCard(item))}</div>
@@ -361,10 +349,8 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
                       onClick={() => void openDetail(item.id)}
                       className="w-full text-left text-xs p-2 rounded-lg hover:bg-gray-50 border border-gray-100"
                     >
-                      <p className="font-semibold capitalize">
-                        {item.collection} #{item.hadith_number}
-                      </p>
-                      <p className="text-gray-500 line-clamp-1">{item.translation}</p>
+                      <p className="font-semibold">{item.title}</p>
+                      <p className="text-gray-500 line-clamp-1">{item.sourceLabel}</p>
                     </button>
                   ))}
                 </div>
@@ -391,12 +377,13 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
       {activeHadith && (
         <div className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm p-4 flex items-end sm:items-center justify-center">
           <div className="bg-white rounded-2xl w-full max-w-xl max-h-[85vh] overflow-y-auto p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 gap-3">
               <div>
-                <p className="text-xs text-gray-500 capitalize">
-                  {activeHadith.collection} • Book {activeHadith.book_number} • #{activeHadith.hadith_number}
+                <p className="text-xs text-gray-500">
+                  {collectionLabel(activeHadith.collection)} - Kitab {activeHadith.referenceBook} - No.{' '}
+                  {activeHadith.referenceHadith}
                 </p>
-                <p className="text-sm font-bold text-gray-900">{activeHadith.reference}</p>
+                <p className="text-sm font-bold text-gray-900">{activeHadith.title}</p>
               </div>
               <button
                 onClick={() => setActiveHadith(null)}
@@ -414,16 +401,23 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
             ) : (
               <>
                 <p className="font-serif text-2xl leading-loose text-right text-gray-800 mb-4">
-                  {activeHadith.arab}
+                  {activeHadith.arabicText}
                 </p>
-                <p className="text-sm text-gray-700 leading-relaxed mb-4">{activeHadith.translation}</p>
 
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {activeHadith.grade && (
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-50 text-green-700 border border-green-200">
-                      Grade: {activeHadith.grade}
-                    </span>
-                  )}
+                {activeHadith.transliteration ? (
+                  <p className="text-xs text-[#0F9D58] mb-3">{activeHadith.transliteration}</p>
+                ) : null}
+
+                <p className="text-sm text-gray-700 leading-relaxed mb-4">
+                  {activeHadith.summaryId || 'Konten belum tersedia.'}
+                </p>
+
+                <div className="text-xs rounded-lg border border-gray-100 bg-gray-50 p-3 mb-3">
+                  <p className="font-semibold text-gray-700 mb-1">Sumber</p>
+                  <p className="text-gray-600">{activeHadith.sourceLabel}</p>
+                </div>
+
+                <div className="flex justify-end">
                   <button
                     onClick={() =>
                       void toggleBookmark(
@@ -431,7 +425,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
                         !(activeHadith.is_bookmarked || bookmarkedIds.has(activeHadith.id))
                       )
                     }
-                    className="text-xs px-2 py-1 rounded-full border border-gray-200 inline-flex items-center gap-1"
+                    className="text-xs px-3 py-2 rounded-lg border border-gray-200 inline-flex items-center gap-1"
                     disabled={isSavingBookmark}
                   >
                     {activeHadith.is_bookmarked || bookmarkedIds.has(activeHadith.id) ? (
@@ -443,14 +437,6 @@ export const HadithPage: React.FC<HadithPageProps> = ({ onBack }) => {
                       ? 'Bookmarked'
                       : 'Bookmark'}
                   </button>
-                  <a
-                    href={activeHadith.source_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs px-2 py-1 rounded-full border border-gray-200 inline-flex items-center gap-1"
-                  >
-                    Source <ExternalLink size={12} />
-                  </a>
                 </div>
               </>
             )}

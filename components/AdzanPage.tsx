@@ -27,7 +27,8 @@ import {
 } from '../lib/adzanScheduler';
 
 interface AdzanPageProps {
-  onBack: () => void;
+  onBack?: () => void;
+  embedded?: boolean;
 }
 
 const MODE_OPTIONS: Array<{ id: AdzanSettings['mode']; label: string; subtitle: string }> = [
@@ -74,7 +75,7 @@ const PrayerListSkeleton = () => (
   </div>
 );
 
-export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack }) => {
+export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }) => {
   const [settings, setSettings] = useState<AdzanSettings>(DEFAULT_ADZAN_SETTINGS);
   const [events, setEvents] = useState<PrayerEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -173,11 +174,19 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack }) => {
     : 'Mode web fallback (notifikasi paling andal saat app tetap aktif)';
 
   return (
-    <div className="fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24">
+    <div
+      className={`${
+        embedded ? 'bg-gray-50 min-h-full pb-24' : 'fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24'
+      }`}
+    >
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100">
-          <ArrowLeft size={22} />
-        </button>
+        {!embedded && onBack ? (
+          <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100">
+            <ArrowLeft size={22} />
+          </button>
+        ) : (
+          <div className="w-2" />
+        )}
         <div>
           <h1 className="text-lg font-bold text-gray-900">Adzan Otomatis</h1>
           <p className="text-xs text-gray-500">Notifikasi saat masuk waktu sholat + mode adzan 20 detik</p>

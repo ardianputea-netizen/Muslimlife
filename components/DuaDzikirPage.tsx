@@ -1,12 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ArrowLeft,
-  Bookmark,
-  BookmarkCheck,
-  ExternalLink,
-  Loader2,
-  Search,
-} from 'lucide-react';
+import { ArrowLeft, Bookmark, BookmarkCheck, Loader2, Search } from 'lucide-react';
 import {
   DuaItem,
   getDuaBookmarks,
@@ -19,17 +12,15 @@ interface DuaDzikirPageProps {
   onBack: () => void;
 }
 
-const CATEGORY_OPTIONS = [
+const DEFAULT_CATEGORIES = [
   'all',
   'pagi',
   'petang',
-  'tidur',
+  'setelah sholat',
+  'sebelum tidur',
   'bangun tidur',
-  'rezeki',
-  'masjid',
-  'perjalanan',
-  'makan',
-  'kecemasan',
+  'masuk rumah',
+  'keluar rumah',
 ];
 
 const DuaSkeleton = () => (
@@ -58,10 +49,18 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
   const [isSavingBookmark, setIsSavingBookmark] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const bookmarkedIds = useMemo(
-    () => new Set(bookmarkItems.map((item) => item.id)),
-    [bookmarkItems]
-  );
+  const bookmarkedIds = useMemo(() => new Set(bookmarkItems.map((item) => item.id)), [bookmarkItems]);
+
+  const categoryOptions = useMemo(() => {
+    const set = new Set(DEFAULT_CATEGORIES);
+    for (const item of listItems) {
+      set.add(item.category);
+    }
+    for (const item of bookmarkItems) {
+      set.add(item.category);
+    }
+    return Array.from(set);
+  }, [bookmarkItems, listItems]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -81,7 +80,7 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
       setListItems(result.data);
     } catch (error) {
       console.error(error);
-      setErrorMessage('Gagal memuat daftar doa.');
+      setErrorMessage('Gagal memuat daftar doa & dzikir.');
     } finally {
       setIsLoadingList(false);
     }
@@ -173,12 +172,12 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
     return (
       <div key={item.id} className="bg-white rounded-xl border border-gray-100 p-3 shadow-sm">
         <button className="w-full text-left" onClick={() => setActiveItem(item)}>
-          <p className="text-xs text-gray-500 capitalize">{item.category}</p>
+          <p className="text-xs text-gray-500 capitalize">{item.category} - {item.kind}</p>
           <p className="text-sm font-semibold text-gray-900 mt-1 line-clamp-2">{item.title}</p>
-          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.translation}</p>
+          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.meaningId || 'Konten belum tersedia.'}</p>
         </button>
-        <div className="mt-3 flex justify-between items-center">
-          <p className="text-[11px] text-gray-500 line-clamp-1">Sumber: {item.source_name}</p>
+        <div className="mt-3 flex justify-between items-center gap-2">
+          <p className="text-[11px] text-gray-500 line-clamp-1">{item.sourceLabel}</p>
           <button
             className="text-[#0F9D58] p-1.5 rounded-lg hover:bg-green-50"
             onClick={() => void toggleBookmark(item, !isBookmarked)}
@@ -199,7 +198,7 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
         </button>
         <div>
           <h1 className="text-lg font-bold text-gray-900">Doa & Dzikir</h1>
-          <p className="text-xs text-gray-500">Sumber terverifikasi dengan metadata referensi</p>
+          <p className="text-xs text-gray-500">Hisnul Muslim + sourceLabel per item</p>
         </div>
       </div>
 
@@ -220,11 +219,13 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
           ) : todayItem ? (
             <button className="w-full text-left" onClick={() => setActiveItem(todayItem)}>
               <p className="text-sm font-semibold text-[#0F9D58]">{todayItem.title}</p>
-              <p className="text-xs text-gray-600 mt-2 line-clamp-2">{todayItem.translation}</p>
-              <p className="text-[11px] text-gray-500 mt-2">Sumber: {todayItem.source_name}</p>
+              <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+                {todayItem.meaningId || 'Konten belum tersedia.'}
+              </p>
+              <p className="text-[11px] text-gray-500 mt-2">{todayItem.sourceLabel}</p>
             </button>
           ) : (
-            <p className="text-sm text-gray-500">Belum ada data doa hari ini.</p>
+            <p className="text-sm text-gray-500">Konten belum tersedia.</p>
           )}
         </section>
 
@@ -240,7 +241,7 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
           </div>
 
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            {CATEGORY_OPTIONS.map((item) => (
+            {categoryOptions.map((item) => (
               <button
                 key={item}
                 onClick={() => setCategory(item)}
@@ -280,7 +281,7 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
             <DuaSkeleton />
           ) : listItems.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm text-gray-500">
-              Tidak ada data untuk filter ini.
+              Konten belum tersedia.
             </div>
           ) : (
             <div className="space-y-3">{listItems.map((item) => renderItemCard(item))}</div>
@@ -313,26 +314,17 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
             </div>
 
             <p className="font-serif text-2xl leading-loose text-right text-gray-800 mb-4">
-              {activeItem.arab}
+              {activeItem.arabicText}
             </p>
-            <p className="text-xs text-[#0F9D58] mb-2">{activeItem.latin}</p>
-            <p className="text-sm text-gray-700 leading-relaxed">{activeItem.translation}</p>
+            {activeItem.transliteration ? (
+              <p className="text-xs text-[#0F9D58] mb-2">{activeItem.transliteration}</p>
+            ) : null}
+            <p className="text-sm text-gray-700 leading-relaxed">{activeItem.meaningId || 'Konten belum tersedia.'}</p>
 
             <div className="mt-4 space-y-2 text-xs text-gray-600">
               <p>
-                <span className="font-semibold">Referensi:</span> {activeItem.reference}
+                <span className="font-semibold">Sumber:</span> {activeItem.sourceLabel}
               </p>
-              <p>
-                <span className="font-semibold">Sumber:</span> {activeItem.source_name}
-              </p>
-              <a
-                href={activeItem.source_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[#0F9D58] font-semibold"
-              >
-                Buka sumber <ExternalLink size={12} />
-              </a>
             </div>
 
             <div className="mt-4 flex justify-end">
