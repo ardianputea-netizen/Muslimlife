@@ -15,9 +15,9 @@ interface NotificationSheetProps {
 }
 
 const statusClassByPermission: Record<BrowserNotificationPermission, string> = {
-  granted: 'border-emerald-300/50 bg-emerald-500/15 text-emerald-100',
-  denied: 'border-rose-300/50 bg-rose-500/15 text-rose-100',
-  default: 'border-amber-300/50 bg-amber-500/15 text-amber-100',
+  granted: 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-300/50 dark:bg-emerald-500/15 dark:text-emerald-100',
+  denied: 'border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-300/50 dark:bg-rose-500/15 dark:text-rose-100',
+  default: 'border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-300/50 dark:bg-amber-500/15 dark:text-amber-100',
 };
 
 const ToggleItem: React.FC<{
@@ -28,10 +28,10 @@ const ToggleItem: React.FC<{
   onCheckedChange: (next: boolean) => void;
 }> = ({ title, subtitle, checked, disabled, onCheckedChange }) => {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 flex items-center justify-between gap-3">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 flex items-center justify-between gap-3 dark:border-white/10 dark:bg-white/[0.03]">
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-white truncate">{title}</p>
-        <p className="text-xs text-slate-400">{subtitle}</p>
+        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{title}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
       </div>
       <Switch checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} />
     </div>
@@ -61,14 +61,14 @@ export const NotificationSheet: React.FC<NotificationSheetProps> = ({
   return (
     <div className="fixed inset-0 z-[110] flex items-end bg-black/60" role="dialog" aria-modal="true">
       <button type="button" onClick={onClose} className="absolute inset-0" aria-label="Tutup" />
-      <div className="relative w-full rounded-t-3xl border-t border-white/10 bg-[#0B1220] p-4 pb-6 max-h-[86vh] overflow-y-auto">
-        <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-white/20" />
-        <h3 className="text-base font-semibold text-white">Notifikasi</h3>
-        <p className="mt-1 text-xs text-slate-400">Atur izin browser dan preferensi kategori notifikasi.</p>
+      <div className="relative w-full rounded-t-3xl border-t border-slate-200 bg-white p-4 pb-6 max-h-[86vh] overflow-y-auto dark:border-white/10 dark:bg-[#0B1220]">
+        <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-slate-300 dark:bg-white/20" />
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white">Notifikasi</h3>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Atur izin browser dan preferensi kategori notifikasi.</p>
 
-        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/[0.03]">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-slate-300">Status Permission</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300">Status Permission</p>
             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusClassByPermission[permission]}`}>
               {permission}
             </span>
@@ -79,7 +79,7 @@ export const NotificationSheet: React.FC<NotificationSheetProps> = ({
               <button
                 type="button"
                 onClick={() => void onRequestPermission()}
-                className="w-full rounded-xl border border-emerald-300/40 bg-emerald-500/20 py-2 text-sm font-semibold text-emerald-100"
+                className="w-full rounded-xl border border-emerald-300 bg-emerald-100 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-300/40 dark:bg-emerald-500/20 dark:text-emerald-100"
               >
                 Aktifkan Notifikasi
               </button>
@@ -87,13 +87,13 @@ export const NotificationSheet: React.FC<NotificationSheetProps> = ({
 
             {permission === 'denied' ? (
               <div className="space-y-2">
-                <div className="rounded-xl border border-rose-300/30 bg-rose-500/10 p-3 text-xs text-rose-100">
+                <div className="rounded-xl border border-rose-300 bg-rose-100 p-3 text-xs text-rose-700 dark:border-rose-300/30 dark:bg-rose-500/10 dark:text-rose-100">
                   Browser memblokir notifikasi untuk situs ini. Aktifkan manual lewat pengaturan browser.
                 </div>
                 <button
                   type="button"
                   onClick={openGuide}
-                  className="w-full inline-flex items-center justify-center gap-1 rounded-xl border border-white/15 bg-white/5 py-2 text-sm font-semibold text-slate-100"
+                  className="w-full inline-flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-100 py-2 text-sm font-semibold text-slate-700 dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
                 >
                   <ExternalLink size={14} />
                   Buka Panduan
@@ -105,7 +105,7 @@ export const NotificationSheet: React.FC<NotificationSheetProps> = ({
               <button
                 type="button"
                 disabled
-                className="w-full rounded-xl border border-emerald-300/30 bg-emerald-500/10 py-2 text-sm font-semibold text-emerald-100 opacity-80"
+                className="w-full rounded-xl border border-emerald-300 bg-emerald-100 py-2 text-sm font-semibold text-emerald-700 opacity-80 dark:border-emerald-300/30 dark:bg-emerald-500/10 dark:text-emerald-100"
               >
                 Notifikasi Diizinkan
               </button>
@@ -147,15 +147,15 @@ export const NotificationSheet: React.FC<NotificationSheetProps> = ({
           />
         </div>
 
-        <p className="mt-3 text-[11px] text-slate-400 leading-relaxed">
+        <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
           Notifikasi di web butuh izin browser. Fitur pengiriman notifikasi akan aktif saat service worker/Push diaktifkan.
         </p>
 
-        <div id="notif-guide" className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-slate-300">
-          <p className="font-semibold text-slate-100 inline-flex items-center gap-1">
+        <div id="notif-guide" className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
+          <p className="font-semibold text-slate-800 dark:text-slate-100 inline-flex items-center gap-1">
             <ShieldAlert size={13} /> Panduan jika permission denied
           </p>
-          <ol className="mt-2 list-decimal pl-4 space-y-1 text-slate-400">
+          <ol className="mt-2 list-decimal pl-4 space-y-1 text-slate-500 dark:text-slate-400">
             <li>Klik ikon gembok di address bar browser.</li>
             <li>Buka menu Site Settings / Setelan Situs.</li>
             <li>Ubah Notifications menjadi Allow.</li>
@@ -166,7 +166,7 @@ export const NotificationSheet: React.FC<NotificationSheetProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="mt-4 w-full rounded-xl border border-white/15 bg-white/5 py-2 text-sm font-semibold text-slate-100"
+          className="mt-4 w-full rounded-xl border border-slate-200 bg-slate-100 py-2 text-sm font-semibold text-slate-700 dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
         >
           <span className="inline-flex items-center gap-2">
             <BellRing size={14} /> Tutup

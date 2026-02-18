@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
   Bell,
@@ -342,7 +342,7 @@ export const SettingsPage: React.FC = () => {
   );
 
   const themeSubtitle = useMemo(
-    () => `Sistem / Terang / Gelap � ${getThemeLabel(profile.theme)}`,
+    () => `Sistem / Terang / Gelap • ${getThemeLabel(profile.theme)}`,
     [profile.theme]
   );
 
@@ -354,10 +354,10 @@ export const SettingsPage: React.FC = () => {
   const disableRows = isLoadingProfile || isAuthLoading || !user;
 
   return (
-    <div className="min-h-full bg-[#060B16] bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),transparent_42%),radial-gradient(circle_at_85%_20%,_rgba(16,185,129,0.12),transparent_35%),#060B16]">
-      <div className="safe-top sticky top-0 z-10 border-b border-white/10 bg-[#060B16]/90 backdrop-blur px-4 py-3">
-        <h1 className="text-lg font-bold text-white">Settings</h1>
-        <p className="text-xs text-slate-400">Akun, tampilan, notifikasi, metode sholat, dan kompas</p>
+    <div className="min-h-full bg-slate-50 text-slate-900 dark:bg-[#060B16] dark:text-slate-100 dark:bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),transparent_42%),radial-gradient(circle_at_85%_20%,_rgba(16,185,129,0.12),transparent_35%),#060B16]">
+      <div className="safe-top sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 backdrop-blur px-4 py-3 dark:border-white/10 dark:bg-[#060B16]/90">
+        <h1 className="text-lg font-bold text-slate-900 dark:text-white">Settings</h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Akun, tampilan, notifikasi, metode sholat, dan kompas</p>
       </div>
 
       <div className="p-4 space-y-4">
@@ -374,59 +374,59 @@ export const SettingsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => void handleGoogleSignIn()}
-            className="w-full rounded-2xl border border-white/15 bg-white/5 py-2.5 text-sm font-semibold text-slate-100 inline-flex items-center justify-center gap-2"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-700 inline-flex items-center justify-center gap-2 dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
           >
             <LogIn size={15} /> Login dengan Google
           </button>
         ) : null}
 
         {(isLoadingProfile || isAuthLoading) && user ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-300 inline-flex items-center gap-2">
+          <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 inline-flex items-center gap-2 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
             <RefreshCw size={13} className="animate-spin" /> Sinkronisasi pengaturan...
           </div>
         ) : null}
 
         <div>
-          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-slate-400">PENGATURAN UMUM</p>
+          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-slate-500 dark:text-slate-400">PENGATURAN UMUM</p>
         </div>
 
-        <section className="rounded-2xl border border-white/10 bg-slate-900/70 overflow-hidden">
+        <section className="rounded-2xl border border-slate-200 bg-white overflow-hidden dark:border-white/10 dark:bg-slate-900/70">
           <SettingsRow
             icon={Palette}
-            iconClassName="text-fuchsia-200"
+            iconClassName="text-fuchsia-600 dark:text-fuchsia-200"
             title="Tema Tampilan"
             subtitle={themeSubtitle}
             onClick={() => setThemeOpen(true)}
             disabled={disableRows}
           />
 
-          <div className="h-px bg-white/10" />
+          <div className="h-px bg-slate-200 dark:bg-white/10" />
 
           <SettingsRow
             icon={Bell}
-            iconClassName="text-emerald-200"
+            iconClassName="text-emerald-600 dark:text-emerald-200"
             title="Notifikasi"
             subtitle={notificationSubtitle}
             onClick={() => setNotifOpen(true)}
             disabled={disableRows}
           />
 
-          <div className="h-px bg-white/10" />
+          <div className="h-px bg-slate-200 dark:bg-white/10" />
 
           <SettingsRow
             icon={Calculator}
-            iconClassName="text-cyan-200"
+            iconClassName="text-cyan-600 dark:text-cyan-200"
             title="Metode Perhitungan"
             subtitle={methodSubtitle}
             onClick={() => setMethodOpen(true)}
             disabled={disableRows}
           />
 
-          <div className="h-px bg-white/10" />
+          <div className="h-px bg-slate-200 dark:bg-white/10" />
 
           <SettingsRow
             icon={Compass}
-            iconClassName="text-amber-200"
+            iconClassName="text-amber-600 dark:text-amber-200"
             title="Kalibrasi Kompas"
             subtitle="Atur arah kiblat"
             onClick={() => setCompassOpen(true)}
@@ -475,8 +475,8 @@ export const SettingsPage: React.FC = () => {
             key={toast.id}
             className={`rounded-xl border px-3 py-2 text-sm shadow-lg ${
               toast.tone === 'success'
-                ? 'border-emerald-300/30 bg-emerald-500/20 text-emerald-100'
-                : 'border-rose-300/30 bg-rose-500/20 text-rose-100'
+                ? 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-300/30 dark:bg-emerald-500/20 dark:text-emerald-100'
+                : 'border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-300/30 dark:bg-rose-500/20 dark:text-rose-100'
             }`}
           >
             {toast.message}
@@ -486,4 +486,5 @@ export const SettingsPage: React.FC = () => {
     </div>
   );
 };
+
 
