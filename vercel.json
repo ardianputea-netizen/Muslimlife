@@ -1,10 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/push-reminders",
-      "schedule": "*/1 * * * *"
-    }
-  ],
   "rewrites": [
     {
       "source": "/((?!api(?:/|$))(?!.*\\..*).*)",
