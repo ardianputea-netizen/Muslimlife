@@ -63,3 +63,40 @@ export const PRAYER_TIMES: PrayerTime[] = [
   { name: 'Maghrib', time: '17:55' },
   { name: 'Isya', time: '19:05' },
 ];
+
+export type RamadhanAbsenItemKey = 'sahur' | 'puasa' | 'sedekah';
+
+export interface RamadhanAbsenItemContent {
+  key: RamadhanAbsenItemKey;
+  title: string;
+  subtitle: string;
+  infoBadge: string;
+  infoText: string;
+}
+
+export const RAMADHAN_ABSEN_ITEMS: RamadhanAbsenItemContent[] = [
+  {
+    key: 'sahur',
+    title: 'Sahur',
+    subtitle: 'Tambahkan niat sahur',
+    infoBadge: 'NIAT SAHUR',
+    infoText:
+      'Niat sahur (cukup di dalam hati): Saya berniat sahur untuk menunaikan puasa esok hari karena Allah Ta\'ala.',
+  },
+  {
+    key: 'puasa',
+    title: 'Puasa',
+    subtitle: 'Tambahkan niat puasa',
+    infoBadge: 'NIAT PUASA',
+    infoText:
+      'Niat puasa (cukup di dalam hati): Saya berniat berpuasa Ramadhan esok hari karena Allah Ta\'ala.',
+  },
+  {
+    key: 'sedekah',
+    title: 'Sedekah Harian',
+    subtitle: 'Berbagi rezeki kepada sesama',
+    infoBadge: 'KEUTAMAAN SEDEKAH',
+    infoText:
+      'Rasulullah SAW adalah orang yang paling dermawan, dan beliau lebih dermawan lagi di bulan Ramadhan. (HR. Bukhari)',
+  },
+];

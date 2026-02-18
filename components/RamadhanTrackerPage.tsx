@@ -2,10 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
-  Check,
   Flame,
-  Loader2,
-  MoonStar,
   RefreshCw,
   Target,
 } from 'lucide-react';
@@ -17,6 +14,7 @@ import {
   upsertRamadhanCheckin,
 } from '../lib/ramadhanApi';
 import { MiniCalendarItem, MiniCalendarStrip } from './MiniCalendarStrip';
+import { DailyAbsen } from './ramadhan/DailyAbsen';
 
 interface RamadhanTrackerPageProps {
   onBack: () => void;
@@ -346,58 +344,24 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
           )}
         </section>
 
-        <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-800">Checklist Harian</h2>
-            <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">{selectedDate}</span>
-          </div>
-
-          {isLoadingMonth || !selectedDay ? (
-            <div className="grid grid-cols-2 gap-2 animate-pulse">
-              {Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="h-12 rounded-xl bg-gray-100" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {RAMADHAN_ITEMS.map((item) => {
-                const checked = Boolean(selectedDay[item.key]);
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => void handleToggle(item.key)}
-                    disabled={savingItem === item.key}
-                    className={`rounded-xl border px-3 py-3 text-left transition-colors ${
-                      checked
-                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                        : 'border-gray-200 bg-white text-gray-700'
-                    } disabled:opacity-60`}
-                  >
-                    <span className="inline-flex items-center gap-2 text-sm font-semibold">
-                      {savingItem === item.key ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : (
-                        <Check size={14} />
-                      )}
-                      {item.label}
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-white border border-gray-200">
-                        {item.short}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {selectedDay?.notes ? (
-            <p className="text-xs text-gray-500 mt-3">Catatan: {selectedDay.notes}</p>
-          ) : (
-            <p className="text-xs text-gray-400 mt-3 inline-flex items-center gap-1">
-              <MoonStar size={12} /> Belum ada catatan harian.
-            </p>
-          )}
-        </section>
+        <DailyAbsen
+          selectedDate={selectedDate}
+          isLoading={isLoadingMonth}
+          selectedDay={
+            selectedDay
+              ? {
+                  sahur: selectedDay.sahur,
+                  puasa: selectedDay.puasa,
+                  sedekah: selectedDay.sedekah,
+                  notes: selectedDay.notes,
+                }
+              : null
+          }
+          savingItem={savingItem}
+          onToggle={(item) => {
+            void handleToggle(item);
+          }}
+        />
 
         <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
