@@ -1,4 +1,5 @@
 import {
+  buildSMaxAgeCacheControl,
   ensureGet,
   normalizeCollectionID,
   proxyHadis,
@@ -9,12 +10,14 @@ import {
   type ServerlessResponseLike,
 } from './_shared';
 
+const CACHE_CONTROL = buildSMaxAgeCacheControl(3600);
+
 export default async function handler(req: ServerlessRequestLike, res: ServerlessResponseLike) {
-  if (!ensureGet(req, res)) return;
+  if (!ensureGet(req, res, { cacheControl: CACHE_CONTROL })) return;
 
   const collectionInput = readQueryString(req, 'collection');
   if (!collectionInput) {
-    sendJson(res, 400, { success: false, message: 'Query collection wajib diisi.' });
+    sendJson(res, 400, { success: false, message: 'Query collection wajib diisi.' }, { cacheControl: CACHE_CONTROL });
     return;
   }
 
@@ -29,9 +32,9 @@ export default async function handler(req: ServerlessRequestLike, res: Serverles
       page,
       per_page: perPage,
     });
-    sendJson(res, 200, payload);
+    sendJson(res, 200, payload, { cacheControl: CACHE_CONTROL });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Gagal mengambil list hadits.';
-    sendJson(res, 500, { success: false, message });
+    sendJson(res, 500, { success: false, message }, { cacheControl: CACHE_CONTROL });
   }
 }

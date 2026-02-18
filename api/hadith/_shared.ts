@@ -11,6 +11,14 @@ export interface ServerlessResponseLike {
   setHeader: (name: string, value: string) => void;
 }
 
+interface SendJsonOptions {
+  cacheControl?: string;
+}
+
+interface EnsureGetOptions {
+  cacheControl?: string;
+}
+
 const API_BASE = 'https://service.hadis.my/api/v1';
 
 const COLLECTION_ALIAS_MAP: Record<string, string> = {
@@ -53,14 +61,27 @@ export const normalizeCollectionID = (value: string) => {
   return COLLECTION_ALIAS_MAP[normalized] || normalized;
 };
 
-export const sendJson = (res: ServerlessResponseLike, statusCode: number, payload: unknown) => {
-  res.setHeader('Cache-Control', 'no-store');
+export const buildSMaxAgeCacheControl = (sMaxAgeSeconds: number, staleWhileRevalidateSeconds = 86400) => {
+  return `public, max-age=0, s-maxage=${sMaxAgeSeconds}, stale-while-revalidate=${staleWhileRevalidateSeconds}`;
+};
+
+export const sendJson = (
+  res: ServerlessResponseLike,
+  statusCode: number,
+  payload: unknown,
+  options?: SendJsonOptions
+) => {
+  res.setHeader('Cache-Control', options?.cacheControl || 'no-store');
   return res.status(statusCode).json(payload);
 };
 
-export const ensureGet = (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
+export const ensureGet = (
+  req: ServerlessRequestLike,
+  res: ServerlessResponseLike,
+  options?: EnsureGetOptions
+) => {
   if ((req.method || 'GET').toUpperCase() !== 'GET') {
-    sendJson(res, 405, { success: false, message: 'Method not allowed' });
+    sendJson(res, 405, { success: false, message: 'Method not allowed' }, options);
     return false;
   }
   return true;

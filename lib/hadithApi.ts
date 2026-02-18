@@ -61,10 +61,14 @@ export interface PopularHadithTopic extends HadithTopicMeta {
 
 const LOCAL_BOOKMARK_KEY = 'ml_hadith_bookmarks_local_v2';
 const LOCAL_TOPIC_STATS_KEY = 'ml_hadith_topic_stats_v1';
+const LOCAL_COLLECTIONS_CACHE_KEY = 'ml_hadith_collections_cache_v1';
+const LOCAL_COLLECTION_PAGE_CACHE_PREFIX = 'ml_hadith_collection_page_cache_v1';
 const API_SOURCE = 'API Hadis Malaysia';
 const API_BASE = '/api/hadith';
 const PAGE_LIMIT = 12;
 const TOPIC_SOURCE = 'Topik populer personal berbasis keyword terjemahan Indonesia';
+const COLLECTIONS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const COLLECTION_PAGE_CACHE_TTL_MS = 60 * 60 * 1000;
 
 const COLLECTION_ALIAS_MAP: Record<string, string> = {
   all: 'all',
@@ -161,6 +165,12 @@ const HADITH_TOPICS: HadithTopicMeta[] = [
 ];
 
 let collectionCache: HadithCollectionItem[] = [];
+const inFlightHadithRequests = new Map<string, Promise<Record<string, unknown>>>();
+
+interface TimedCacheRecord<T> {
+  expiresAt: number;
+  data: T;
+}
 
 const toPositiveNumber = (value?: number | string, fallback = 1) => {
   const parsed = Number(value);
@@ -199,6 +209,70 @@ const readLocalBookmarks = (): string[] => {
 const writeLocalBookmarks = (ids: string[]) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(LOCAL_BOOKMARK_KEY, JSON.stringify(Array.from(new Set(ids))));
+};
+
+const readTimedCache = <T>(key: string): T | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as TimedCacheRecord<T>;
+    if (!parsed || typeof parsed !== 'object' || typeof parsed.expiresAt !== 'number') {
+      localStorage.removeItem(key);
+      return null;
+    }
+
+    if (Date.now() > parsed.expiresAt) {
+      localStorage.removeItem(key);
+      return null;
+    }
+
+    return parsed.data ?? null;
+  } catch {
+    localStorage.removeItem(key);
+    return null;
+  }
+};
+
+const writeTimedCache = <T>(key: string, data: T, ttlMs: number) => {
+  if (typeof window === 'undefined') return;
+  const record: TimedCacheRecord<T> = {
+    expiresAt: Date.now() + ttlMs,
+    data,
+  };
+  localStorage.setItem(key, JSON.stringify(record));
+};
+
+const buildCollectionPageCacheKey = (collection: string, page: number) => {
+  return `${LOCAL_COLLECTION_PAGE_CACHE_PREFIX}:${collection}:${page}`;
+};
+
+const hydrateCollectionCacheFromLocal = () => {
+  if (collectionCache.length > 0) return;
+  const cached = readTimedCache<HadithCollectionItem[]>(LOCAL_COLLECTIONS_CACHE_KEY);
+  if (cached && cached.length > 0) {
+    collectionCache = cached;
+  }
+};
+
+const buildHadithRequestKey = (
+  path: string,
+  params: Record<string, string | number | undefined>
+) => {
+  const entries = Object.entries(params)
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => [key, String(value)] as const)
+    .sort(([keyA, valueA], [keyB, valueB]) => {
+      if (keyA === keyB) return valueA.localeCompare(valueB);
+      return keyA.localeCompare(keyB);
+    });
+
+  const search = entries
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&');
+
+  return `${path}?${search}`;
 };
 
 const readTopicStats = () => {
@@ -352,25 +426,40 @@ const parseErrorMessage = (payload: unknown, fallbackMessage: string) => {
 };
 
 const requestHadithApi = async (path: string, params: Record<string, string | number | undefined>) => {
-  const search = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value === undefined || value === null || value === '') continue;
-    search.set(key, String(value));
+  const requestKey = buildHadithRequestKey(path, params);
+  const inFlight = inFlightHadithRequests.get(requestKey);
+  if (inFlight) return inFlight;
+
+  const requestPromise = (async () => {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null || value === '') continue;
+      search.set(key, String(value));
+    }
+
+    const response = await fetch(`${API_BASE}${path}?${search.toString()}`);
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(parseErrorMessage(payload, `Request hadits gagal (${response.status})`));
+    }
+
+    const failed =
+      payload && typeof payload === 'object' && (payload as Record<string, unknown>).success === false;
+    if (failed) {
+      throw new Error(parseErrorMessage(payload, 'API hadits mengembalikan error'));
+    }
+
+    return payload as Record<string, unknown>;
+  })();
+
+  inFlightHadithRequests.set(requestKey, requestPromise);
+
+  try {
+    return await requestPromise;
+  } finally {
+    inFlightHadithRequests.delete(requestKey);
   }
-
-  const response = await fetch(`${API_BASE}${path}?${search.toString()}`);
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new Error(parseErrorMessage(payload, `Request hadits gagal (${response.status})`));
-  }
-
-  const failed = payload && typeof payload === 'object' && (payload as Record<string, unknown>).success === false;
-  if (failed) {
-    throw new Error(parseErrorMessage(payload, 'API hadits mengembalikan error'));
-  }
-
-  return payload as Record<string, unknown>;
 };
 
 const normalizeCollectionCatalogPayload = (payload: Record<string, unknown>): HadithCollectionItem[] => {
@@ -497,22 +586,32 @@ const parsePaginationMeta = (
 };
 
 export const getHadithCollectionCatalog = async (): Promise<HadithCollectionItem[]> => {
+  const cached = readTimedCache<HadithCollectionItem[]>(LOCAL_COLLECTIONS_CACHE_KEY);
+  if (cached && cached.length > 0) {
+    collectionCache = cached;
+    return [...collectionCache];
+  }
+
   const payload = await requestHadithApi('/collections', {});
   const normalized = normalizeCollectionCatalogPayload(payload);
   if (normalized.length > 0) {
     console.log('Hadis API connected');
   }
   collectionCache = normalized;
+  writeTimedCache(LOCAL_COLLECTIONS_CACHE_KEY, collectionCache, COLLECTIONS_CACHE_TTL_MS);
   return [...collectionCache];
 };
 
-export const getHadithCollections = () =>
-  collectionCache.map((item) => ({
+export const getHadithCollections = () => {
+  hydrateCollectionCacheFromLocal();
+  return collectionCache.map((item) => ({
     id: item.id,
     label: item.label,
   }));
+};
 
 export const getHadithCollectionLabel = (collectionID: string) => {
+  hydrateCollectionCacheFromLocal();
   return toCollectionDisplayName(normalizeCollectionId(collectionID));
 };
 
@@ -551,6 +650,8 @@ export const getHadithList = async (params: {
   q?: string;
   page?: number;
 }): Promise<HadithListResponse> => {
+  hydrateCollectionCacheFromLocal();
+
   const page = toPositiveNumber(params.page, 1);
   const q = (params.q || '').trim();
   let collection = normalizeCollectionId(params.collection || 'bukhari');
@@ -574,6 +675,18 @@ export const getHadithList = async (params: {
     collection = collectionCache[0]?.id || 'bukhari';
   }
 
+  if (!q) {
+    const cachedPage = readTimedCache<HadithListResponse>(
+      buildCollectionPageCacheKey(collection, page)
+    );
+    if (cachedPage) {
+      return {
+        ...cachedPage,
+        data: withBookmarkState(cachedPage.data),
+      };
+    }
+  }
+
   const endpoint = q ? '/search' : '/list';
   const searchCollection = isAllCollections ? undefined : collection;
   const payload = await requestHadithApi(endpoint, {
@@ -589,7 +702,7 @@ export const getHadithList = async (params: {
   const items = withBookmarkState(rawItems);
   const pagination = parsePaginationMeta(payload, page, PAGE_LIMIT, items.length);
 
-  return {
+  const result: HadithListResponse = {
     data: items,
     meta: {
       page: pagination.page,
@@ -600,6 +713,12 @@ export const getHadithList = async (params: {
       source: API_SOURCE,
     },
   };
+
+  if (!q) {
+    writeTimedCache(buildCollectionPageCacheKey(collection, page), result, COLLECTION_PAGE_CACHE_TTL_MS);
+  }
+
+  return result;
 };
 
 export const getHadithDetail = async (id: string): Promise<HadithDetailResponse> => {
