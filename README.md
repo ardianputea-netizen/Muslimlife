@@ -25,6 +25,19 @@ npm run preview
 - Build command menggunakan TypeScript check + Vite build.
 - Output production ada di folder `dist`.
 
+## Hadits API Key (Wajib)
+
+Simpan API key Hadis Malaysia di server-side env (tanpa `VITE_`):
+
+- Local (root project): `.env.local`
+  - `HADIS_API_KEY=isi_api_key_kamu`
+- Vercel (Project Settings -> Environment Variables):
+  - `HADIS_API_KEY`
+
+Catatan:
+- Jangan expose key ke frontend.
+- Semua request hadits lewat proxy serverless: `api/hadith/*`.
+
 ## 3) Deploy ke Vercel (Dari GitHub)
 
 1. Buka Vercel Dashboard.

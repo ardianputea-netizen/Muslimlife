@@ -47,7 +47,7 @@ const collectionLabel = (collection: string, options?: Array<{ id: string; label
 export const HadithPage: React.FC<HadithPageProps> = ({
   onBack,
   title = 'Hadits',
-  subtitle = 'Sumber: Sahih Bukhari/Muslim + koleksi lain, tersimpan lokal',
+  subtitle = 'Sumber: API Hadis Malaysia',
   initialCollection = 'bukhari',
   initialQuery = '',
   lockCollection = false,
@@ -116,7 +116,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
       setOfflineMode(false);
     } catch (error) {
       console.error(error);
-      setErrorMessage('Gagal memuat hadits dari dataset lokal.');
+      setErrorMessage('Gagal memuat hadits dari API Hadis Malaysia.');
     } finally {
       setIsLoadingList(false);
     }
@@ -181,7 +181,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
           setActiveHadith(localCandidate);
           setOfflineMode(true);
         } else {
-          setErrorMessage('Konten hadits belum tersedia.');
+          setErrorMessage('Hadits tidak ditemukan.');
         }
       } finally {
         setIsLoadingDetail(false);
@@ -253,7 +253,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
         </button>
 
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-[11px] text-gray-500 line-clamp-1">sourceLabel wajib aktif</p>
+          <p className="text-[11px] text-gray-500 line-clamp-1">Sumber: API Hadis Malaysia</p>
           <button
             onClick={() => void toggleBookmark(hadith, !isBookmarked)}
             className="text-[#0F9D58] p-1.5 rounded-lg hover:bg-green-50"
@@ -353,7 +353,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
               <HadithListSkeleton />
             ) : listData.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm text-gray-500">
-                Konten belum tersedia untuk filter ini.
+                Tidak ada hasil untuk filter ini.
               </div>
             ) : (
               <div className="space-y-3">{listData.map((item) => renderCard(item))}</div>
@@ -379,7 +379,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
 
             {lastViewed.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 p-3">
-                <h3 className="text-sm font-bold text-gray-800 mb-2">Last Viewed (offline cache)</h3>
+                <h3 className="text-sm font-bold text-gray-800 mb-2">Terakhir Dibuka</h3>
                 <div className="space-y-2">
                   {lastViewed.slice(0, 5).map((item) => (
                     <button
@@ -447,7 +447,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
                 ) : null}
 
                 <p className="text-sm text-gray-700 leading-relaxed mb-4">
-                  {activeHadith.summaryId || 'Konten belum tersedia.'}
+                  {activeHadith.summaryId || 'Terjemahan Indonesia tidak tersedia.'}
                 </p>
 
                 <div className="text-xs rounded-lg border border-gray-100 bg-gray-50 p-3 mb-3">

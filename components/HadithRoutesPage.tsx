@@ -2,10 +2,11 @@ import React, { useMemo } from 'react';
 import { HadithLandingPage } from './HadithLandingPage';
 import { HadithPage } from './HadithPage';
 import {
-  HADITH_COLLECTION_CATALOG,
-  getHadithCollectionMeta,
-} from '../data/hadith/collections';
-import { getHadithTopicMeta } from '../data/hadith/topics';
+  getHadithCollectionLabel,
+  getHadithCollections,
+  getHadithTopicMeta,
+  normalizeHadithCollectionID,
+} from '../lib/hadithApi';
 import { navigateTo } from '../lib/appRouter';
 
 interface HadithRoutesPageProps {
@@ -27,14 +28,7 @@ export const HadithRoutesPage: React.FC<HadithRoutesPageProps> = ({ path }) => {
   const collectionMatch = useMemo(() => path.match(COLLECTION_RE), [path]);
   const topicMatch = useMemo(() => path.match(TOPIC_RE), [path]);
 
-  const routeCollectionOptions = useMemo(
-    () =>
-      HADITH_COLLECTION_CATALOG.map((item) => ({
-        id: item.apiKeyOrLocalKey,
-        label: item.displayName,
-      })),
-    []
-  );
+  const routeCollectionOptions = useMemo(() => getHadithCollections(), [path]);
 
   if (path === '/hadits') {
     return (
@@ -47,22 +41,17 @@ export const HadithRoutesPage: React.FC<HadithRoutesPageProps> = ({ path }) => {
   }
 
   if (collectionMatch) {
-    const collectionID = decodeSegment(collectionMatch[1]).toLowerCase();
-    const collection = getHadithCollectionMeta(collectionID);
-    const heading = collection?.displayName || `HR. ${collectionID}`;
-    const collectionKey = collection?.apiKeyOrLocalKey || collectionID;
-    const unavailableMessage =
-      collection && !collection.isAvailable ? 'Koleksi ini akan segera tersedia' : null;
+    const collectionID = normalizeHadithCollectionID(decodeSegment(collectionMatch[1]).toLowerCase());
+    const heading = getHadithCollectionLabel(collectionID);
 
     return (
       <HadithPage
         onBack={() => navigateTo('/hadits')}
         title={heading}
-        subtitle={collection?.sourceLabel}
-        initialCollection={collectionKey}
+        subtitle={`API Hadis Malaysia — ${heading}`}
+        initialCollection={collectionID}
         lockCollection
         collectionOptions={routeCollectionOptions}
-        collectionUnavailableMessage={unavailableMessage}
       />
     );
   }
@@ -76,7 +65,7 @@ export const HadithRoutesPage: React.FC<HadithRoutesPageProps> = ({ path }) => {
       <HadithPage
         onBack={() => navigateTo('/hadits')}
         title={`Topik: ${topic?.label || topicID}`}
-        subtitle={topic?.sourceLabel || 'Filter topik menggunakan kata kunci pencarian'}
+        subtitle={topic?.sourceLabel || 'Hasil berdasarkan topik populer personal'}
         initialCollection={topic?.preferredCollection || 'all'}
         initialQuery={prefillKeyword}
         collectionOptions={routeCollectionOptions}
