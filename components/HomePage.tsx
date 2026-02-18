@@ -1,6 +1,25 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { DUMMY_USER } from '../constants';
-import { BookOpen, Calendar, ChevronRight, Compass, Moon, Hash, Activity, List, Heart, X, RotateCcw, CheckSquare2, Sparkles, ScrollText, BellRing, Clock3 } from 'lucide-react';
+import {
+  Activity,
+  Bell,
+  BookOpen,
+  Calendar,
+  CheckSquare,
+  ChevronRight,
+  Clock,
+  Clock3,
+  Compass,
+  Hash,
+  Heart,
+  List,
+  MapPin,
+  Moon,
+  RotateCcw,
+  ScrollText,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import { QuranPage } from './QuranPage';
 import { MosqueMapsPage } from './MosqueMapsPage';
 import { IbadahPage } from './IbadahPage';
@@ -29,21 +48,23 @@ import { navigateTo } from '../lib/appRouter';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { mergeProfileWithOverride, mapSupabaseUser, PROFILE_UPDATED_EVENT } from '../lib/accountProfile';
 import { requestTabChange } from '../lib/tabNavigation';
+import { AppIcon, AppIconVariant } from './ui/AppIcon';
 
 const MENU_ITEMS = [
-  { id: 'IBADAH', label: 'Adzan', icon: BellRing, iconColor: 'text-sky-700', tile: 'from-sky-100 via-sky-50 to-white' },
-  { id: 'HADITH', label: 'Hadits', icon: ScrollText, iconColor: 'text-lime-700', tile: 'from-lime-100 via-lime-50 to-white' },
-  { id: 'PRAYER', label: 'Ramadhan', icon: Sparkles, iconColor: 'text-amber-700', tile: 'from-amber-100 via-amber-50 to-white' },
-  { id: 'ADZAN', label: 'Ibadah', icon: CheckSquare2, iconColor: 'text-emerald-700', tile: 'from-emerald-100 via-emerald-50 to-white' },
-  { id: 'RAMADHAN', label: 'Prayer', icon: Clock3, iconColor: 'text-teal-700', tile: 'from-teal-100 via-teal-50 to-white' },
-  { id: 'QURAN', label: 'Quran', icon: BookOpen, iconColor: 'text-blue-700', tile: 'from-blue-100 via-blue-50 to-white' },
-  { id: 'AZKAR', label: 'Azkar', icon: Moon, iconColor: 'text-violet-700', tile: 'from-violet-100 via-violet-50 to-white' },
-  { id: 'TASBIH', label: 'Tasbih', icon: Hash, iconColor: 'text-rose-700', tile: 'from-rose-100 via-rose-50 to-white' },
-  { id: 'QIBLA', label: 'Qibla', icon: Compass, iconColor: 'text-orange-700', tile: 'from-orange-100 via-orange-50 to-white' },
-  { id: 'PELACAK', label: 'Pelacak', icon: Activity, iconColor: 'text-teal-700', tile: 'from-teal-100 via-teal-50 to-white' },
-  { id: 'KALENDER', label: 'Kalender', icon: Calendar, iconColor: 'text-indigo-700', tile: 'from-indigo-100 via-indigo-50 to-white' },
-  { id: 'DUAS', label: 'Doa&Dzikir', icon: Heart, iconColor: 'text-pink-700', tile: 'from-pink-100 via-pink-50 to-white' },
-  { id: '99NAMA', label: '99 Nama', icon: List, iconColor: 'text-cyan-700', tile: 'from-cyan-100 via-cyan-50 to-white' },
+  { id: 'ADZAN', label: 'Ibadah', icon: CheckSquare, variant: 'mint' as AppIconVariant },
+  { id: 'HADITH', label: 'Hadits', icon: ScrollText, variant: 'lime' as AppIconVariant },
+  { id: 'PRAYER', label: 'Ramadhan', icon: Sparkles, variant: 'lemon' as AppIconVariant },
+  { id: 'IBADAH', label: 'Adzan', icon: Bell, variant: 'aqua' as AppIconVariant },
+  { id: 'RAMADHAN', label: 'Prayer', icon: Clock, variant: 'sky' as AppIconVariant },
+  { id: 'QURAN', label: 'Quran', icon: BookOpen, variant: 'mint' as AppIconVariant },
+  { id: 'AZKAR', label: 'Azkar', icon: Moon, variant: 'lavender' as AppIconVariant },
+  { id: 'TASBIH', label: 'Tasbih', icon: Hash, variant: 'sky' as AppIconVariant },
+  { id: 'QIBLA', label: 'Qibla', icon: Compass, variant: 'peach' as AppIconVariant },
+  { id: 'MASJID', label: 'Masjid', icon: MapPin, variant: 'rose' as AppIconVariant },
+  { id: 'PELACAK', label: 'Pelacak', icon: Activity, variant: 'aqua' as AppIconVariant },
+  { id: 'KALENDER', label: 'Kalender', icon: Calendar, variant: 'sky' as AppIconVariant },
+  { id: 'DUAS', label: 'Doa&Dzikir', icon: Heart, variant: 'rose' as AppIconVariant },
+  { id: '99NAMA', label: '99 Nama', icon: List, variant: 'aqua' as AppIconVariant },
 ] as const;
 
 const JAKARTA_TIMEZONE = 'Asia/Jakarta';
@@ -582,7 +603,7 @@ export const HomePage: React.FC = () => {
         {/* 2x5 Menu Grid */}
         <div>
             <h3 className="font-bold text-gray-800 mb-3">Menu Utama</h3>
-            <div className="grid grid-cols-5 gap-y-4 gap-x-2">
+            <div className="grid grid-cols-3 gap-x-2 gap-y-4 md:grid-cols-4 lg:grid-cols-5">
                 {MENU_ITEMS.map((item) => (
                     <button 
                         key={item.id}
@@ -593,15 +614,10 @@ export const HomePage: React.FC = () => {
                           }
                           setActiveFeature(item.id);
                         }}
-                        className="flex flex-col items-center gap-1 group"
+                        className="group flex flex-col items-center gap-2"
                     >
-                        <div
-                          className={`relative w-12 h-12 rounded-2xl border border-white/80 bg-gradient-to-br ${item.tile} shadow-[0_10px_18px_-14px_rgba(2,6,23,0.85)] flex items-center justify-center transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_12px_20px_-12px_rgba(2,6,23,0.6)] group-active:scale-95`}
-                        >
-                            <item.icon className={item.iconColor} size={22} strokeWidth={2.3} />
-                            <span className="pointer-events-none absolute inset-x-2 bottom-1 h-1 rounded-full bg-white/55 blur-[1px]" />
-                        </div>
-                        <span className="text-[10px] font-medium text-gray-600 truncate w-full text-center">{item.label}</span>
+                        <AppIcon icon={item.icon} variant={item.variant} shape="circle" size="md" className="group-hover:-translate-y-0.5" />
+                        <span className="w-full line-clamp-1 text-center text-sm font-medium text-slate-700">{item.label}</span>
                     </button>
                 ))}
             </div>

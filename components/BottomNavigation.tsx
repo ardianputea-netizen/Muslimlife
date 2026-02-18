@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
-import { Home, Sparkles, BellRing, NotebookPen, Settings2, MapPinned } from 'lucide-react';
+import { Home, Sparkles, Bell, NotebookPen, SlidersHorizontal, MapPin } from 'lucide-react';
 import { Tab } from '../types';
 import { cn } from '../lib/utils';
+import { AppIcon, AppIconVariant } from './ui/AppIcon';
 
 interface BottomNavigationProps {
   activeTab: Tab;
@@ -10,11 +11,19 @@ interface BottomNavigationProps {
 }
 
 export const BottomNavigation = memo<BottomNavigationProps>(({ activeTab, onTabChange, className }) => {
-  const getTabClass = (tab: Tab) => {
-    return activeTab === tab
-      ? 'text-[#0F9D58] font-medium'
-      : 'text-gray-500 font-normal hover:text-gray-700';
-  };
+  const tabs: Array<{
+    tab: Tab;
+    label: string;
+    icon: typeof Home;
+    variant: AppIconVariant;
+  }> = [
+    { tab: Tab.HOME, label: 'Home', icon: Home, variant: 'mint' },
+    { tab: Tab.PRAYER, label: 'Ramadhan', icon: Sparkles, variant: 'lemon' },
+    { tab: Tab.IBADAH, label: 'Adzan', icon: Bell, variant: 'aqua' },
+    { tab: Tab.NOTES, label: 'Notes', icon: NotebookPen, variant: 'sky' },
+    { tab: Tab.MOSQUE, label: 'Masjid', icon: MapPin, variant: 'rose' },
+    { tab: Tab.SETTINGS, label: 'Settings', icon: SlidersHorizontal, variant: 'lavender' },
+  ];
 
   return (
     <nav
@@ -24,53 +33,24 @@ export const BottomNavigation = memo<BottomNavigationProps>(({ activeTab, onTabC
       )}
     >
       <div className="flex h-[var(--bottom-nav-h)] items-center justify-around px-2">
-        <button
-          onClick={() => onTabChange(Tab.HOME)}
-          className={`flex flex-col items-center justify-center w-full ${getTabClass(Tab.HOME)}`}
-        >
-          <Home size={22} strokeWidth={activeTab === Tab.HOME ? 2.5 : 2} />
-          <span className="text-[10px] mt-1">Home</span>
-        </button>
-
-        <button
-          onClick={() => onTabChange(Tab.PRAYER)}
-          className={`flex flex-col items-center justify-center w-full ${getTabClass(Tab.PRAYER)}`}
-        >
-          <Sparkles size={22} strokeWidth={activeTab === Tab.PRAYER ? 2.5 : 2} />
-          <span className="text-[10px] mt-1">Ramadhan</span>
-        </button>
-
-        <button
-          onClick={() => onTabChange(Tab.IBADAH)}
-          className={`flex flex-col items-center justify-center w-full ${getTabClass(Tab.IBADAH)}`}
-        >
-          <BellRing size={22} strokeWidth={activeTab === Tab.IBADAH ? 2.5 : 2} />
-          <span className="text-[10px] mt-1">Adzan</span>
-        </button>
-
-        <button
-          onClick={() => onTabChange(Tab.NOTES)}
-          className={`flex flex-col items-center justify-center w-full ${getTabClass(Tab.NOTES)}`}
-        >
-          <NotebookPen size={22} strokeWidth={activeTab === Tab.NOTES ? 2.5 : 2} />
-          <span className="text-[10px] mt-1">Notes</span>
-        </button>
-
-        <button
-          onClick={() => onTabChange(Tab.MOSQUE)}
-          className={`flex flex-col items-center justify-center w-full ${getTabClass(Tab.MOSQUE)}`}
-        >
-          <MapPinned size={22} strokeWidth={activeTab === Tab.MOSQUE ? 2.5 : 2} />
-          <span className="text-[10px] mt-1">Masjid</span>
-        </button>
-
-        <button
-          onClick={() => onTabChange(Tab.SETTINGS)}
-          className={`flex flex-col items-center justify-center w-full ${getTabClass(Tab.SETTINGS)}`}
-        >
-          <Settings2 size={22} strokeWidth={activeTab === Tab.SETTINGS ? 2.5 : 2} />
-          <span className="text-[10px] mt-1">Settings</span>
-        </button>
+        {tabs.map((item) => {
+          const isActive = activeTab === item.tab;
+          return (
+            <button
+              key={item.tab}
+              onClick={() => onTabChange(item.tab)}
+              className={cn(
+                'flex w-full flex-col items-center justify-center gap-1.5',
+                isActive ? 'opacity-100' : 'opacity-85 hover:opacity-100'
+              )}
+            >
+              <AppIcon icon={item.icon} shape="squircle" size="sm" variant={item.variant} active={isActive} />
+              <span className={cn('text-[11px] text-slate-600', isActive ? 'font-semibold text-slate-800' : 'font-medium')}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </nav>
   );
