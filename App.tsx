@@ -28,6 +28,9 @@ const SettingsPage = lazy(() => import('./components/SettingsPage').then((m) => 
 const HadithRoutesPage = lazy(() =>
   import('./components/HadithRoutesPage').then((m) => ({ default: m.HadithRoutesPage }))
 );
+const DoaRoutesPage = lazy(() =>
+  import('./components/DoaRoutesPage').then((m) => ({ default: m.DoaRoutesPage }))
+);
 
 function AppContent() {
   const supabaseConfigured = isSupabaseConfigured();
@@ -116,6 +119,9 @@ function AppContent() {
     if (path.startsWith('/hadits')) {
       return <HadithRoutesPage path={path} />;
     }
+    if (path.startsWith('/doa')) {
+      return <DoaRoutesPage path={path} />;
+    }
 
     switch (activeTab) {
       case Tab.HOME:
@@ -135,7 +141,7 @@ function AppContent() {
     }
   };
 
-  const showBottomNav = !path.startsWith('/hadits');
+  const showBottomNav = !path.startsWith('/hadits') && !path.startsWith('/doa');
 
   return (
     <AppShell

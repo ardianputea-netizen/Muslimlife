@@ -23,7 +23,6 @@ import { IbadahPage } from './IbadahPage';
 import { AdzanPage } from './AdzanPage';
 import { RamadhanTrackerPage } from './RamadhanTrackerPage';
 import { PrayerTimesPage } from './PrayerTimesPage';
-import { DuaDzikirPage } from './DuaDzikirPage';
 import { LastRead } from '../types';
 import { ASMAUL_HUSNA_99 } from '../data/asmaulHusna';
 import { AZKAR_CATALOG } from '../data/dua-dzikir/azkarCatalog';
@@ -574,7 +573,7 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
           </div>
         );
       case 'DUAS':
-        return <DuaDzikirPage onBack={() => setActiveFeature(null)} />;
+        return null;
       case 'PELACAK':
         return (
           <div className="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6">
@@ -752,6 +751,10 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
                               navigateTo('/hadits');
                               return;
                             }
+                            if (item.id === 'DUAS') {
+                              navigateTo('/doa');
+                              return;
+                            }
                             setActiveFeature(item.id);
                           });
                         }}
@@ -802,7 +805,7 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
         </div>
 
         <div
-          onClick={() => guardMenuAction(() => setActiveFeature('DUAS'))}
+          onClick={() => guardMenuAction(() => navigateTo('/doa'))}
           className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform"
         >
           <div className="flex justify-between items-center mb-3 gap-3">
