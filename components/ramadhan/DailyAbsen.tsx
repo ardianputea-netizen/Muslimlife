@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { HandHeart, Moon, MoonStar, Utensils, X } from 'lucide-react';
 import { RAMADHAN_ABSEN_ITEMS, RamadhanAbsenItemKey } from '@/constants';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +40,48 @@ const ICON_BG_BY_KEY: Record<RamadhanAbsenItemKey, string> = {
   sedekah: 'bg-rose-50 text-rose-700',
 };
 
+const CompletionCongratsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const hasPlayedRef = useRef(false);
+
+  useEffect(() => {
+    if (hasPlayedRef.current) return;
+    hasPlayedRef.current = true;
+
+    const audio = new Audio('/audio/absen-selesai.mp3');
+    audio.volume = 0.9;
+    audio.play().catch((err) => {
+      console.warn('Sound blocked by browser:', err);
+    });
+
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-xs rounded-2xl border border-emerald-200 bg-white p-4 shadow-xl"
+      >
+        <div className="text-center">
+          <h3 className="mt-2 text-base font-bold text-gray-900">MasyaAllah, lengkap!</h3>
+          <p className="mt-1 text-xs text-gray-600">Kamu sudah menyelesaikan semua absen harian hari ini.</p>
+        </div>
+        <Button
+          type="button"
+          onClick={onClose}
+          className="mt-4 w-full bg-emerald-600 text-white hover:bg-emerald-700"
+        >
+          Alhamdulillah
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export const DailyAbsen: React.FC<DailyAbsenProps> = ({
   selectedDate,
   isLoading,
@@ -65,7 +107,7 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
 
   const allCompleted = checkedMap.sahur && checkedMap.puasa && checkedMap.tarawih && checkedMap.sedekah;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!selectedDay) return;
     if (allCompleted) {
       setShowCongrats(true);
@@ -201,30 +243,7 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
         <p className="text-xs text-gray-400 mt-3">Belum ada catatan harian.</p>
       )}
 
-      {showCongrats ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="w-full max-w-xs rounded-2xl border border-emerald-200 bg-white p-4 shadow-xl"
-          >
-            <div className="text-center">
-              <p className="text-4xl">🎉✅</p>
-              <h3 className="mt-2 text-base font-bold text-gray-900">MasyaAllah, lengkap!</h3>
-              <p className="mt-1 text-xs text-gray-600">
-                Kamu sudah menyelesaikan semua absen harian hari ini.
-              </p>
-            </div>
-            <Button
-              type="button"
-              onClick={() => setShowCongrats(false)}
-              className="mt-4 w-full bg-emerald-600 text-white hover:bg-emerald-700"
-            >
-              Alhamdulillah
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      {showCongrats ? <CompletionCongratsModal onClose={() => setShowCongrats(false)} /> : null}
     </section>
   );
 };
