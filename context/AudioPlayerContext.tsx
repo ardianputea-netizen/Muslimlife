@@ -1,16 +1,19 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { audioManager } from '../lib/audioManager';
+import { audioManager, useAudioManager } from '../lib/audioManager';
 
 interface AudioPlayerContextType {
   playing: boolean;
   currentSrc: string | null;
   currentSurahId: number | null;
+  currentTime: number;
   position: number;
   duration: number;
+  audioError: string | null;
   playSurahAudio: (surahId: number, src: string) => Promise<void>;
   playAudio: (src: string, options?: { onEnd?: () => void }) => Promise<void>;
   pause: () => void;
   stop: () => void;
+  seek: (timeInSeconds: number) => void;
   setVolume: (volume: number) => void;
 }
 
@@ -25,41 +28,30 @@ export const useAudioPlayer = () => {
 };
 
 export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [playing, setPlaying] = useState(false);
-  const [currentSrc, setCurrentSrc] = useState<string | null>(null);
+  const audioState = useAudioManager();
   const [currentSurahId, setCurrentSurahId] = useState<number | null>(null);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
 
   const currentSurahIdRef = useRef<number | null>(null);
   currentSurahIdRef.current = currentSurahId;
 
   useEffect(() => {
-    return audioManager.subscribe((state) => {
-      setPlaying(state.playing);
-      setCurrentSrc(state.currentSrc);
-      setPosition(state.position);
-      setDuration(state.duration);
-
-      if (!state.currentSrc) {
-        setCurrentSurahId(null);
-      }
-    });
-  }, []);
+    if (!audioState.currentSrc) {
+      setCurrentSurahId(null);
+    }
+  }, [audioState.currentSrc]);
 
   const playSurahAudio = useCallback(async (surahId: number, src: string) => {
     const current = audioManager.getCurrentSrc();
     const sameSurah = currentSurahIdRef.current === surahId;
     const sameSrc = Boolean(current && current === src);
 
-    if (sameSurah && sameSrc && !audioManager.isPlaying()) {
-      await audioManager.resume();
-      return;
+    if (!sameSurah || !sameSrc) {
+      await audioManager.load(src);
     }
 
     setCurrentSurahId(surahId);
-    await audioManager.play(src, {
-      onEnd: () => {
+    await audioManager.play(undefined, {
+      onEnded: () => {
         if (currentSurahIdRef.current === surahId) {
           setCurrentSurahId(null);
         }
@@ -68,9 +60,16 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   const playAudio = useCallback(async (src: string, options?: { onEnd?: () => void }) => {
+    const current = audioManager.getCurrentSrc();
+    if (current !== src) {
+      await audioManager.load(src);
+    } else {
+      audioManager.seek(0);
+    }
+
     setCurrentSurahId(null);
-    await audioManager.play(src, {
-      onEnd: options?.onEnd,
+    await audioManager.play(undefined, {
+      onEnded: options?.onEnd,
     });
   }, []);
 
@@ -83,24 +82,31 @@ export const AudioPlayerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setCurrentSurahId(null);
   }, []);
 
+  const seek = useCallback((timeInSeconds: number) => {
+    audioManager.seek(timeInSeconds);
+  }, []);
+
   const setVolume = useCallback((volume: number) => {
     audioManager.setVolume(volume);
   }, []);
 
   const value = useMemo<AudioPlayerContextType>(
     () => ({
-      playing,
-      currentSrc,
+      playing: audioState.isPlaying,
+      currentSrc: audioState.currentSrc,
       currentSurahId,
-      position,
-      duration,
+      currentTime: audioState.currentTime,
+      position: audioState.currentTime,
+      duration: audioState.duration,
+      audioError: audioState.error,
       playSurahAudio,
       playAudio,
       pause,
       stop,
+      seek,
       setVolume,
     }),
-    [playing, currentSrc, currentSurahId, position, duration, playSurahAudio, playAudio, pause, stop, setVolume]
+    [audioState, currentSurahId, playSurahAudio, playAudio, pause, stop, seek, setVolume]
   );
 
   return <AudioPlayerContext.Provider value={value}>{children}</AudioPlayerContext.Provider>;

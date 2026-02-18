@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ArrowLeft,
   Share2,
@@ -33,6 +33,12 @@ interface VerseItem {
   text_uthmani: string;
 }
 
+interface VerseTiming {
+  index: number;
+  startTime: number;
+  endTime: number;
+}
+
 const QURAN_SOURCE_LABEL = 'Teks Arab: Tanzil (verified) / Quran.com API (Arabic text)';
 
 const QARI_OPTIONS = [
@@ -61,6 +67,17 @@ const getAudioFallbackCandidates = (chapterId: number, primary?: string): string
   return Array.from(new Set(candidates));
 };
 
+const getVerseWeight = (text: string) => {
+  const normalized = text
+    .replace(/[^\u0600-\u06FF\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const wordCount = normalized ? normalized.split(' ').length : 1;
+  const charCount = normalized.replace(/\s+/g, '').length;
+
+  return Math.max(1, wordCount * 2 + charCount / 10);
+};
+
 export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const [chapters, setChapters] = useState<ChapterItem[]>([]);
   const [selectedChapter, setSelectedChapter] = useState<ChapterItem | null>(null);
@@ -74,8 +91,10 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const [audioError, setAudioError] = useState<string | null>(null);
   const [lastAudioCandidates, setLastAudioCandidates] = useState<string[]>([]);
   const [activeQari, setActiveQari] = useState<number>(QARI_OPTIONS[0].id);
+  const [activeAyahIndex, setActiveAyahIndex] = useState(-1);
+  const verseRefs = useRef<Array<HTMLDivElement | null>>([]);
 
-  const { playing, currentSurahId, playSurahAudio, pause, stop } = useAudioPlayer();
+  const { playing, currentSurahId, currentTime, duration, playSurahAudio, pause, stop } = useAudioPlayer();
 
   useEffect(() => {
     void fetchChapters();
@@ -92,6 +111,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const stopAudio = useCallback(() => {
     stop();
     setAudioLoading(false);
+    setActiveAyahIndex(-1);
   }, [stop]);
 
   useEffect(() => {
@@ -125,6 +145,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     stopAudio();
     setAudioError(null);
     setLastAudioCandidates([]);
+    setActiveAyahIndex(-1);
 
     try {
       const [chapterRes, versesRes] = await Promise.all([
@@ -257,6 +278,59 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     }
   };
 
+  const verseTimings = useMemo<VerseTiming[]>(() => {
+    if (!selectedChapter || verses.length === 0 || duration <= 0) return [];
+
+    const weights = verses.map((ayat) => getVerseWeight(ayat.text_uthmani));
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0) || 1;
+    let cursor = 0;
+
+    return weights.map((weight, index) => {
+      const startTime = duration * (cursor / totalWeight);
+      cursor += weight;
+      const endTime = duration * (cursor / totalWeight);
+      return { index, startTime, endTime };
+    });
+  }, [duration, selectedChapter, verses]);
+
+  const activeAyahProgress = useMemo(() => {
+    if (activeAyahIndex < 0) return 0;
+    const activeTiming = verseTimings[activeAyahIndex];
+    if (!activeTiming) return 0;
+
+    const windowDuration = Math.max(0.1, activeTiming.endTime - activeTiming.startTime);
+    return Math.min(1, Math.max(0, (currentTime - activeTiming.startTime) / windowDuration));
+  }, [activeAyahIndex, currentTime, verseTimings]);
+
+  useEffect(() => {
+    if (!selectedChapter || currentSurahId !== selectedChapter.id || !playing || verseTimings.length === 0) {
+      if (!playing || !selectedChapter || currentSurahId !== selectedChapter.id) {
+        setActiveAyahIndex(-1);
+      }
+      return;
+    }
+
+    const nextIndex = verseTimings.findIndex((timing, index) => {
+      const isLast = index === verseTimings.length - 1;
+      return currentTime >= timing.startTime && (currentTime < timing.endTime || isLast);
+    });
+
+    if (nextIndex >= 0) {
+      setActiveAyahIndex((prev) => (prev === nextIndex ? prev : nextIndex));
+    }
+  }, [currentSurahId, currentTime, playing, selectedChapter, verseTimings]);
+
+  useEffect(() => {
+    if (activeAyahIndex < 0) return;
+    const target = verseRefs.current[activeAyahIndex];
+    if (!target) return;
+
+    target.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
+  }, [activeAyahIndex]);
+
   const filteredChapters = useMemo(() => {
     return activeTab === 'JUZ_AMMA' ? chapters.filter((item) => item.id >= 78) : chapters;
   }, [activeTab, chapters]);
@@ -310,6 +384,11 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
           </div>
 
           <p className="text-[11px] mt-2 opacity-90">{QURAN_SOURCE_LABEL}</p>
+          {isCurrentSurahPlaying && activeAyahIndex >= 0 ? (
+            <p className="text-[11px] mt-1 text-white/90">
+              Karaoke aktif: Ayat {activeAyahIndex + 1}/{verses.length}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-24">
@@ -333,49 +412,85 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0F9D58]" />
             </div>
           ) : (
-            verses.map((ayat) => (
-              <div key={ayat.id} className="border-b border-gray-100 pb-4 last:border-0">
-                <div className="flex justify-between items-start bg-[#F4E7BD]/20 rounded-lg p-2 mb-3">
-                  <div className="bg-[#0F9D58] text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">
-                    {ayat.verse_number}
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleShare(ayat.text_uthmani, selectedChapter.name_simple, ayat.verse_number)}
-                      className="text-gray-400 hover:text-[#0F9D58] p-1 rounded-full active:bg-gray-100"
-                      title="Bagikan Ayat"
-                    >
-                      <Share2 size={18} />
-                    </button>
-                    <button
-                      onClick={() =>
-                        saveLastRead(selectedChapter.name_simple, selectedChapter.id, ayat.verse_number)
-                      }
-                      className={`p-1 rounded-full active:bg-gray-100 hover:text-[#0F9D58] ${
-                        lastRead?.surahNumber === selectedChapter.id && lastRead.ayatNumber === ayat.verse_number
-                          ? 'text-[#0F9D58]'
-                          : 'text-gray-400'
-                      }`}
-                      title="Tandai Terakhir Baca"
-                    >
-                      <Bookmark
-                        size={18}
-                        fill={
-                          lastRead?.surahNumber === selectedChapter.id &&
-                          lastRead.ayatNumber === ayat.verse_number
-                            ? '#0F9D58'
-                            : 'none'
-                        }
-                      />
-                    </button>
-                  </div>
-                </div>
+            verses.map((ayat, index) => {
+              const isAyahActive = isCurrentSurahPlaying && index === activeAyahIndex;
+              const karaokeProgress = isAyahActive ? activeAyahProgress : 0;
 
-                <div className="text-right mb-2">
-                  <p className="font-serif text-3xl leading-[2.2] text-[#333333]">{ayat.text_uthmani}</p>
+              return (
+                <div
+                  key={ayat.id}
+                  ref={(node) => {
+                    verseRefs.current[index] = node;
+                  }}
+                  className={`rounded-2xl border p-3 transition-all duration-300 ${
+                    isAyahActive
+                      ? 'border-emerald-300 bg-emerald-50 shadow-sm'
+                      : 'border-gray-100 bg-white'
+                  }`}
+                >
+                  <div
+                    className={`flex justify-between items-start rounded-lg p-2 mb-3 transition-colors ${
+                      isAyahActive ? 'bg-emerald-100/70' : 'bg-[#F4E7BD]/20'
+                    }`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm ${
+                        isAyahActive ? 'bg-emerald-600 text-white' : 'bg-[#0F9D58] text-white'
+                      }`}
+                    >
+                      {ayat.verse_number}
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() =>
+                          handleShare(ayat.text_uthmani, selectedChapter.name_simple, ayat.verse_number)
+                        }
+                        className="text-gray-400 hover:text-[#0F9D58] p-1 rounded-full active:bg-gray-100"
+                        title="Bagikan Ayat"
+                      >
+                        <Share2 size={18} />
+                      </button>
+                      <button
+                        onClick={() =>
+                          saveLastRead(selectedChapter.name_simple, selectedChapter.id, ayat.verse_number)
+                        }
+                        className={`p-1 rounded-full active:bg-gray-100 hover:text-[#0F9D58] ${
+                          lastRead?.surahNumber === selectedChapter.id && lastRead.ayatNumber === ayat.verse_number
+                            ? 'text-[#0F9D58]'
+                            : 'text-gray-400'
+                        }`}
+                        title="Tandai Terakhir Baca"
+                      >
+                        <Bookmark
+                          size={18}
+                          fill={
+                            lastRead?.surahNumber === selectedChapter.id &&
+                            lastRead.ayatNumber === ayat.verse_number
+                              ? '#0F9D58'
+                              : 'none'
+                          }
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="text-right mb-2">
+                    <p className="font-serif text-3xl leading-[2.2] text-[#333333]">{ayat.text_uthmani}</p>
+                  </div>
+
+                  {isAyahActive ? (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full rounded-full bg-emerald-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-[width] duration-200 ease-linear"
+                          style={{ width: `${Math.round(karaokeProgress * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
