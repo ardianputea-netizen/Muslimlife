@@ -6,6 +6,7 @@ import {
   BookOpen,
   Calendar,
   ChevronRight,
+  CloudSun,
   Clock,
   Clock3,
   Compass,
@@ -51,6 +52,7 @@ import {
 } from '../lib/accountProfile';
 import { AppIcon, AppIconVariant } from './ui/AppIcon';
 import { AdzanReminderWidget } from './AdzanReminderWidget';
+import { CuacaPage } from './CuacaPage';
 import {
   cacheNotificationSettings,
   DEFAULT_NOTIFICATION_SETTINGS,
@@ -64,6 +66,7 @@ interface HomePageProps {
 }
 
 const MENU_ITEMS = [
+  { id: 'CUACA', label: 'Cuaca', icon: CloudSun, variant: 'sky' as AppIconVariant },
   { id: 'ADZAN', label: 'Adzan', icon: Bell, variant: 'aqua' as AppIconVariant },
   { id: 'HADITH', label: 'Hadits', icon: ScrollText, variant: 'lime' as AppIconVariant },
   { id: 'RAMADHAN', label: 'Prayer', icon: Clock, variant: 'sky' as AppIconVariant },
@@ -485,6 +488,8 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
   // Render Sub-Feature Views (Modals/Overlays)
   const renderFeatureView = () => {
     switch (activeFeature) {
+      case 'CUACA':
+        return <CuacaPage onBack={() => setActiveFeature(null)} />;
       case 'ADZAN':
         return <AdzanPage onBack={() => setActiveFeature(null)} />;
       case 'PRAYER':
