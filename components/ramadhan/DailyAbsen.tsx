@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { HandHeart, Moon, Utensils, X } from 'lucide-react';
+import { HandHeart, Moon, MoonStar, Utensils, X } from 'lucide-react';
 import { RAMADHAN_ABSEN_ITEMS, RamadhanAbsenItemKey } from '@/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ interface DailyAbsenProps {
   selectedDay: {
     sahur: boolean;
     puasa: boolean;
+    tarawih: boolean;
     sedekah: boolean;
     notes?: string | null;
   } | null;
@@ -28,12 +29,14 @@ interface DailyAbsenProps {
 const ICON_BY_KEY: Record<RamadhanAbsenItemKey, React.ComponentType<{ className?: string }>> = {
   sahur: Utensils,
   puasa: Moon,
+  tarawih: MoonStar,
   sedekah: HandHeart,
 };
 
 const ICON_BG_BY_KEY: Record<RamadhanAbsenItemKey, string> = {
   sahur: 'bg-amber-50 text-amber-700',
   puasa: 'bg-indigo-50 text-indigo-700',
+  tarawih: 'bg-violet-50 text-violet-700',
   sedekah: 'bg-rose-50 text-rose-700',
 };
 
@@ -45,6 +48,7 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
   onToggle,
 }) => {
   const [openInfoKey, setOpenInfoKey] = useState<RamadhanAbsenItemKey | null>(null);
+  const [showCongrats, setShowCongrats] = useState(false);
 
   const hasSelection = Boolean(selectedDay);
   const disabledState = isLoading || !hasSelection;
@@ -53,10 +57,20 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
     () => ({
       sahur: Boolean(selectedDay?.sahur),
       puasa: Boolean(selectedDay?.puasa),
+      tarawih: Boolean(selectedDay?.tarawih),
       sedekah: Boolean(selectedDay?.sedekah),
     }),
     [selectedDay]
   );
+
+  const allCompleted = checkedMap.sahur && checkedMap.puasa && checkedMap.tarawih && checkedMap.sedekah;
+
+  React.useEffect(() => {
+    if (!selectedDay) return;
+    if (allCompleted) {
+      setShowCongrats(true);
+    }
+  }, [allCompleted, selectedDay]);
 
   return (
     <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
@@ -67,7 +81,7 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
 
       {isLoading || !selectedDay ? (
         <div className="space-y-2 animate-pulse">
-          {Array.from({ length: 3 }).map((_, idx) => (
+          {Array.from({ length: 4 }).map((_, idx) => (
             <div key={idx} className="h-24 rounded-2xl bg-gray-100" />
           ))}
         </div>
@@ -158,7 +172,17 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
                                 <X className="h-3.5 w-3.5" />
                               </Button>
                             </div>
-                            <p className="mt-2 text-xs leading-relaxed text-gray-700">{item.infoText}</p>
+                            {item.infoArabic ? (
+                              <p className="mt-2 text-sm leading-relaxed text-right text-gray-800">{item.infoArabic}</p>
+                            ) : null}
+                            {item.infoLatin ? (
+                              <p className="mt-2 text-xs leading-relaxed text-gray-700">
+                                <span className="font-semibold">Latin:</span> {item.infoLatin}
+                              </p>
+                            ) : null}
+                            <p className="mt-2 text-xs leading-relaxed text-gray-700">
+                              <span className="font-semibold">Indonesia:</span> {item.infoIndonesian}
+                            </p>
                           </div>
                         </div>
                       </CollapsibleContent>
@@ -176,6 +200,31 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
       ) : (
         <p className="text-xs text-gray-400 mt-3">Belum ada catatan harian.</p>
       )}
+
+      {showCongrats ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-xs rounded-2xl border border-emerald-200 bg-white p-4 shadow-xl"
+          >
+            <div className="text-center">
+              <p className="text-4xl">🎉✅</p>
+              <h3 className="mt-2 text-base font-bold text-gray-900">MasyaAllah, lengkap!</h3>
+              <p className="mt-1 text-xs text-gray-600">
+                Kamu sudah menyelesaikan semua absen harian hari ini.
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => setShowCongrats(false)}
+              className="mt-4 w-full bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              Alhamdulillah
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 };

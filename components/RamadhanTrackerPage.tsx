@@ -352,6 +352,7 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
               ? {
                   sahur: selectedDay.sahur,
                   puasa: selectedDay.puasa,
+                  tarawih: selectedDay.tarawih,
                   sedekah: selectedDay.sedekah,
                   notes: selectedDay.notes,
                 }

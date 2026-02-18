@@ -64,14 +64,16 @@ export const PRAYER_TIMES: PrayerTime[] = [
   { name: 'Isya', time: '19:05' },
 ];
 
-export type RamadhanAbsenItemKey = 'sahur' | 'puasa' | 'sedekah';
+export type RamadhanAbsenItemKey = 'sahur' | 'puasa' | 'tarawih' | 'sedekah';
 
 export interface RamadhanAbsenItemContent {
   key: RamadhanAbsenItemKey;
   title: string;
   subtitle: string;
   infoBadge: string;
-  infoText: string;
+  infoArabic?: string;
+  infoLatin?: string;
+  infoIndonesian: string;
 }
 
 export const RAMADHAN_ABSEN_ITEMS: RamadhanAbsenItemContent[] = [
@@ -80,7 +82,9 @@ export const RAMADHAN_ABSEN_ITEMS: RamadhanAbsenItemContent[] = [
     title: 'Sahur',
     subtitle: 'Tambahkan niat sahur',
     infoBadge: 'NIAT SAHUR',
-    infoText:
+    infoArabic: 'نَوَيْتُ السَّحُوْرَ لِصَوْمِ غَدٍ لِلّٰهِ تَعَالَى',
+    infoLatin: 'Nawaitus sahuura li shaumi ghadin lillaahi ta\'aalaa.',
+    infoIndonesian:
       'Niat sahur (cukup di dalam hati): Saya berniat sahur untuk menunaikan puasa esok hari karena Allah Ta\'ala.',
   },
   {
@@ -88,15 +92,26 @@ export const RAMADHAN_ABSEN_ITEMS: RamadhanAbsenItemContent[] = [
     title: 'Puasa',
     subtitle: 'Tambahkan niat puasa',
     infoBadge: 'NIAT PUASA',
-    infoText:
+    infoArabic: 'نَوَيْتُ صَوْمَ غَدٍ عَنْ أَدَاءِ فَرْضِ شَهْرِ رَمَضَانَ لِلّٰهِ تَعَالَى',
+    infoLatin: 'Nawaitu shauma ghadin \'an adaa\'i fardhi syahri Ramadhaana lillaahi ta\'aalaa.',
+    infoIndonesian:
       'Niat puasa (cukup di dalam hati): Saya berniat berpuasa Ramadhan esok hari karena Allah Ta\'ala.',
+  },
+  {
+    key: 'tarawih',
+    title: 'Tarawih',
+    subtitle: 'Tambahkan niat tarawih',
+    infoBadge: 'NIAT TARAWIH',
+    infoArabic: 'أُصَلِّي سُنَّةَ التَّرَاوِيحِ رَكْعَتَيْنِ لِلّٰهِ تَعَالَى',
+    infoLatin: 'Ushallii sunnatat taraawiihi rak\'ataini lillaahi ta\'aalaa.',
+    infoIndonesian: 'Saya niat shalat sunnah tarawih dua rakaat karena Allah Ta\'ala.',
   },
   {
     key: 'sedekah',
     title: 'Sedekah Harian',
     subtitle: 'Berbagi rezeki kepada sesama',
     infoBadge: 'KEUTAMAAN SEDEKAH',
-    infoText:
+    infoIndonesian:
       'Rasulullah SAW adalah orang yang paling dermawan, dan beliau lebih dermawan lagi di bulan Ramadhan. (HR. Bukhari)',
   },
 ];
