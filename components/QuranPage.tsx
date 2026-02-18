@@ -8,16 +8,10 @@ import { AudioPlayerBar } from './quran/AudioPlayerBar';
 import type { QuranChapter, QuranVerse } from '@/lib/quran/provider';
 import { getLastRead, saveLastRead, type QuranLastRead } from '@/lib/quran/storage/lastRead';
 import { useQuranAudioPlayer } from '@/lib/quran/audio/useQuranAudioPlayer';
+import { quranFoundationProvider } from '@/lib/quran/providers/quranfoundation';
 
 interface QuranPageProps {
   onBack: () => void;
-}
-
-interface SurahResponse {
-  success: boolean;
-  sourceLabel?: string;
-  chapter?: QuranChapter;
-  verses?: QuranVerse[];
 }
 
 const QARI_OPTIONS = [
@@ -26,31 +20,10 @@ const QARI_OPTIONS = [
   { id: 2, label: 'AbdulBasit Mujawwad' },
 ];
 
-const SOURCE_NOTE = 'Sumber: Kemenag (jika token ada) / Fallback: QuranFoundation (dev)';
+const SOURCE_NOTE = 'Sumber: Quran.com (API v4)';
 
 const stripHtml = (value: string) => String(value || '').replace(/<[^>]+>/g, '').trim();
 const takeSnippet = (value: string) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, 120);
-
-const requestJson = async <T,>(url: string): Promise<T> => {
-  const response = await fetch(url);
-  const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-
-  if (!response.ok) {
-    const body = takeSnippet(await response.text());
-    throw new Error(body || `Request gagal (${response.status})`);
-  }
-
-  if (!contentType.includes('application/json')) {
-    const body = takeSnippet(await response.text());
-    throw new Error(`Response API tidak valid: ${body || 'non-JSON'}`);
-  }
-
-  try {
-    return (await response.json()) as T;
-  } catch {
-    throw new Error('Response API tidak valid: JSON rusak');
-  }
-};
 
 export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const [tab, setTab] = useState<QuranTab>('all');
@@ -62,6 +35,8 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const [selectedChapter, setSelectedChapter] = useState<QuranChapter | null>(null);
   const [verses, setVerses] = useState<QuranVerse[]>([]);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [failedSurahID, setFailedSurahID] = useState<number | null>(null);
 
   const [reciterId, setReciterId] = useState(7);
   const [audioURL, setAudioURL] = useState('');
@@ -77,29 +52,16 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     verses,
   });
 
-  const loadConfig = useCallback(async () => {
-    try {
-      const payload = await requestJson<any>('/api/quran/config');
-      if (payload?.sourceLabel) setSourceLabel(String(payload.sourceLabel));
-    } catch {
-      // no-op
-    }
-  }, []);
-
   const loadChapters = useCallback(async () => {
     setIsLoadingList(true);
     setListError(null);
     try {
-      const payload = await requestJson<any>('/api/quran/chapters');
-      if (!payload?.success) {
-        throw new Error(String(payload?.message || 'Gagal memuat daftar surah.'));
-      }
-      const rows = Array.isArray(payload?.chapters) ? payload.chapters : [];
+      const rows = await quranFoundationProvider.getChapters();
       setChapters(rows);
-      if (payload?.sourceLabel) setSourceLabel(String(payload.sourceLabel));
+      setSourceLabel('QuranFoundation');
     } catch (error) {
       setChapters([]);
-      setListError(error instanceof Error ? error.message : 'Gagal memuat daftar surah.');
+      setListError(takeSnippet(error instanceof Error ? error.message : 'Gagal memuat daftar surah.'));
     } finally {
       setIsLoadingList(false);
     }
@@ -111,19 +73,17 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   }, []);
 
   useEffect(() => {
-    void loadConfig();
     void loadChapters();
     void loadLastReadData();
-  }, [loadChapters, loadConfig, loadLastReadData]);
+  }, [loadChapters, loadLastReadData]);
 
   const loadSurahDetail = useCallback(async (surahID: number) => {
     setIsLoadingDetail(true);
+    setDetailError(null);
     setAudioURL('');
     setAudioError(null);
     try {
-      const payload = await requestJson<SurahResponse>(`/api/quran/surah?id=${surahID}`);
-      if (!payload.success || !payload.chapter) return;
-
+      const payload = await quranFoundationProvider.getSurahDetail(surahID);
       setSelectedChapter(payload.chapter);
       setVerses(
         (payload.verses || []).map((item) => ({
@@ -132,10 +92,13 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
           translationId: stripHtml(item.translationId),
         }))
       );
-      if (payload.sourceLabel) setSourceLabel(String(payload.sourceLabel));
-    } catch {
+      setSourceLabel('QuranFoundation');
+      setFailedSurahID(null);
+    } catch (error) {
       setSelectedChapter(null);
       setVerses([]);
+      setDetailError(takeSnippet(error instanceof Error ? error.message : 'Gagal memuat detail surah.'));
+      setFailedSurahID(surahID);
     } finally {
       setIsLoadingDetail(false);
     }
@@ -145,15 +108,14 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     setAudioLoading(true);
     setAudioError(null);
     try {
-      const payload = await requestJson<any>(`/api/quran/audio?surah_id=${surahID}&reciter_id=${nextReciterID}`);
-      const nextURL = String(payload?.audioURL || '');
+      const nextURL = await quranFoundationProvider.getChapterAudioURL(surahID, nextReciterID);
       if (!nextURL) {
         setAudioError('Audio surah tidak tersedia untuk qari ini.');
       }
       setAudioURL(nextURL);
-    } catch {
+    } catch (error) {
       setAudioURL('');
-      setAudioError('Gagal memuat audio surah.');
+      setAudioError(takeSnippet(error instanceof Error ? error.message : 'Gagal memuat audio surah.'));
     } finally {
       setAudioLoading(false);
     }
@@ -344,6 +306,22 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
         <div className="mt-3">
           {isLoadingList ? (
             <div className="py-12 text-center text-sm text-gray-500">Memuat...</div>
+          ) : detailError ? (
+            <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 text-center">
+              <p className="text-sm text-red-700">{detailError}</p>
+              <button
+                onClick={() => {
+                  if (!failedSurahID) {
+                    setDetailError(null);
+                    return;
+                  }
+                  void loadSurahDetail(failedSurahID);
+                }}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Retry
+              </button>
+            </div>
           ) : listError ? (
             <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 text-center">
               <p className="text-sm text-red-700">{listError}</p>

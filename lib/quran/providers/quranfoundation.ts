@@ -11,6 +11,8 @@ export const getQuranComBaseUrl = (ctx: QuranComCtx): string => {
   return QURAN_COM_BASE_ABSOLUTE;
 };
 
+const getRuntimeCtx = (): QuranComCtx => (typeof window === 'undefined' ? 'server' : 'client');
+
 const getQuranComUrl = (ctx: QuranComCtx, path: string) => {
   const suffix = path.startsWith('/') ? path : `/${path}`;
   return `${getQuranComBaseUrl(ctx)}${suffix}`;
@@ -24,21 +26,24 @@ const fetchQuranJson = async <T>(ctx: QuranComCtx, path: string): Promise<T> => 
 
   if (!response.ok) {
     const bodyText = takeSnippet(await response.text());
+    console.error(`[QuranAPI] HTTP ${response.status} ${url}`, bodyText || '-');
     throw new Error(
-      `Quran.com request failed (${response.status}) ${url}${bodyText ? `: ${bodyText}` : ''}`
+      `HTTP ${response.status} ${url}${bodyText ? `: ${bodyText}` : ''}`
     );
   }
 
   const contentType = String(response.headers.get('content-type') || '').toLowerCase();
   if (!contentType.includes('application/json')) {
     const bodyText = takeSnippet(await response.text());
-    throw new Error(`Quran.com non-JSON response ${url}: ${bodyText || 'empty response'}`);
+    console.error(`[QuranAPI] non-JSON ${url}`, bodyText || '-');
+    throw new Error(`Response non-JSON ${url}: ${bodyText || 'empty response'}`);
   }
 
   try {
     return (await response.json()) as T;
   } catch {
-    throw new Error(`Quran.com invalid JSON response ${url}`);
+    console.error(`[QuranAPI] invalid JSON ${url}`);
+    throw new Error(`Invalid JSON ${url}`);
   }
 };
 
@@ -60,16 +65,17 @@ export const quranFoundationProvider: QuranProvider = {
   id: 'quranfoundation',
   label: 'QuranFoundation',
   async getChapters() {
-    const payload = await fetchQuranJson<any>('server', '/chapters?language=id');
+    const payload = await fetchQuranJson<any>(getRuntimeCtx(), '/chapters?language=id');
     const list = Array.isArray(payload?.chapters) ? payload.chapters : [];
     return list.map(toChapter);
   },
   async getSurahDetail(surahID: number): Promise<SurahDetailPayload> {
+    const ctx = getRuntimeCtx();
     const [chapterData, arabData, translitData, translationData] = await Promise.all([
-      fetchQuranJson<any>('server', `/chapters/${surahID}?language=id`),
-      fetchQuranJson<any>('server', `/quran/verses/uthmani?chapter_number=${surahID}`),
-      fetchQuranJson<any>('server', `/quran/translations/84?chapter_number=${surahID}`),
-      fetchQuranJson<any>('server', `/quran/translations/33?chapter_number=${surahID}`),
+      fetchQuranJson<any>(ctx, `/chapters/${surahID}?language=id`),
+      fetchQuranJson<any>(ctx, `/quran/verses/uthmani?chapter_number=${surahID}`),
+      fetchQuranJson<any>(ctx, `/quran/translations/84?chapter_number=${surahID}`),
+      fetchQuranJson<any>(ctx, `/quran/translations/33?chapter_number=${surahID}`),
     ]);
 
     const chapter = toChapter(chapterData?.chapter || {});
@@ -102,7 +108,10 @@ export const quranFoundationProvider: QuranProvider = {
     return { chapter, verses };
   },
   async getChapterAudioURL(surahID: number, reciterID: number) {
-    const payload = await fetchQuranJson<any>('server', `/chapter_recitations/${reciterID}/${surahID}`);
+    const payload = await fetchQuranJson<any>(
+      getRuntimeCtx(),
+      `/chapter_recitations/${reciterID}/${surahID}`
+    );
     const rawURL = String(payload?.audio_file?.audio_url || '').trim();
     if (!rawURL) throw new Error('Audio URL tidak tersedia.');
     if (rawURL.startsWith('http://') || rawURL.startsWith('https://')) return rawURL;
