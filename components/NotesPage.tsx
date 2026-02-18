@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { parseIndonesianReminder } from '../lib/indonesianReminderParser';
 import { getNotificationPermissionStatus } from '../lib/notificationPermission';
+import { NOTES_REMINDERS_UPDATED_EVENT } from '../lib/notesReminderScheduler';
 
 interface NoteItem {
   id: string;
@@ -63,29 +64,6 @@ const saveJSON = (key: string, value: unknown) => {
 };
 
 const makeId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-
-const scheduleReminderNotification = (reminder: ReminderItem) => {
-  if (typeof window === 'undefined' || !('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
-
-  const delay = new Date(reminder.fire_at).getTime() - Date.now();
-  if (delay <= 0) return;
-  if (delay > 2147483647) return;
-
-  window.setTimeout(() => {
-    const n = new Notification('Reminder MuslimLife', {
-      body: reminder.title,
-      tag: reminder.id,
-      data: { reminder_id: reminder.id, note_id: reminder.note_id },
-    });
-    n.onclick = () => {
-      if (typeof reminder.note_id === 'string') {
-        window.location.hash = `note:${reminder.note_id}`;
-      }
-      window.focus();
-    };
-  }, delay);
-};
 
 const formatReminderDate = (value: string) =>
   new Date(value).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
@@ -272,7 +250,7 @@ export const NotesPage: React.FC = () => {
     const updated = [reminder, ...reminders];
     setReminders(updated);
     saveJSON(REMINDERS_KEY, updated);
-    scheduleReminderNotification(reminder);
+    window.dispatchEvent(new Event(NOTES_REMINDERS_UPDATED_EVENT));
 
     setQuickReminder('');
     setFallbackDate('');

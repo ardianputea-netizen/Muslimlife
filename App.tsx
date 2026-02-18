@@ -4,11 +4,13 @@ import { BottomNavigation } from './components/BottomNavigation';
 import { UserProvider } from './context/UserContext';
 import { AudioPlayerProvider, useAudioPlayer } from './context/AudioPlayerContext';
 import { AdzanManager } from './components/AdzanManager';
+import { InAppReminderToasts } from './components/InAppReminderToasts';
 import { AppShell } from './components/AppShell';
 import { startNotificationEngine, stopNotificationEngine } from './lib/notifications';
 import { getCurrentPath, subscribePathChange } from './lib/appRouter';
 import { subscribeTabChange } from './lib/tabNavigation';
 import { applyThemePreference } from './lib/themePreference';
+import { startNotesReminderScheduler, stopNotesReminderScheduler } from './lib/notesReminderScheduler';
 
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
 const RamadhanTrackerPage = lazy(() =>
@@ -36,8 +38,10 @@ function AppContent() {
 
   useEffect(() => {
     startNotificationEngine();
+    startNotesReminderScheduler();
     return () => {
       stopNotificationEngine();
+      stopNotesReminderScheduler();
     };
   }, []);
 
@@ -106,6 +110,7 @@ function AppContent() {
         {renderContent()}
       </Suspense>
       <AdzanManager />
+      <InAppReminderToasts />
     </AppShell>
   );
 }

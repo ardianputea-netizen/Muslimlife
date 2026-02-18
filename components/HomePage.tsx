@@ -41,6 +41,7 @@ import {
   getCoords,
   getNextPrayer,
   loadPrayerSettings,
+  savePrayerSettings,
   toDateKey,
 } from '../lib/prayerTimes';
 import { getNextAlert, onNotificationScheduleUpdated } from '../lib/notifications';
@@ -49,6 +50,12 @@ import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { mergeProfileWithOverride, mapSupabaseUser, PROFILE_UPDATED_EVENT } from '../lib/accountProfile';
 import { requestTabChange } from '../lib/tabNavigation';
 import { AppIcon, AppIconVariant } from './ui/AppIcon';
+import { AdzanReminderWidget } from './AdzanReminderWidget';
+import {
+  cacheNotificationSettings,
+  getCachedNotificationSettings,
+  PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT,
+} from '../lib/profileSettings';
 
 const MENU_ITEMS = [
   { id: 'ADZAN', label: 'Ibadah', icon: CheckSquare, variant: 'mint' as AppIconVariant },
@@ -153,6 +160,7 @@ export const HomePage: React.FC = () => {
   const [tomorrowTimes, setTomorrowTimes] = useState<PrayerTimesResult | null>(null);
   const [nextAlert, setNextAlert] = useState(getNextAlert());
   const [tick, setTick] = useState(Date.now());
+  const [notificationSettings, setNotificationSettings] = useState(() => getCachedNotificationSettings());
 
   useEffect(() => {
     const saved = localStorage.getItem('lastRead');
@@ -243,10 +251,29 @@ export const HomePage: React.FC = () => {
     };
   }, [loadTodayPrayerTimes]);
 
+  useEffect(() => {
+    const handleNotificationSettingsUpdate = () => {
+      setNotificationSettings(getCachedNotificationSettings());
+    };
+    window.addEventListener(PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT, handleNotificationSettingsUpdate);
+    return () =>
+      window.removeEventListener(PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT, handleNotificationSettingsUpdate);
+  }, []);
+
   const nextPrayer = useMemo(() => {
     if (!todayTimes) return null;
     return getNextPrayer(todayTimes, new Date(tick));
   }, [todayTimes, tick]);
+
+  const widgetPrayer = useMemo(() => {
+    if (nextPrayer) return nextPrayer;
+    if (!tomorrowTimes) return null;
+    return {
+      name: 'subuh' as const,
+      label: 'Subuh',
+      time: tomorrowTimes.subuh,
+    };
+  }, [nextPrayer, tomorrowTimes]);
 
   const now = useMemo(() => new Date(tick), [tick]);
 
@@ -288,7 +315,7 @@ export const HomePage: React.FC = () => {
     }
   }, [now]);
 
-  const adzanCountdown = nextPrayer ? formatCountdown(nextPrayer.time, now) : null;
+  const adzanCountdown = widgetPrayer ? formatCountdown(widgetPrayer.time, now) : null;
   const imsakCountdown = imsakTarget ? formatCountdown(imsakTarget, now) : null;
   const bukaCountdown = bukaTarget ? formatCountdown(bukaTarget, now) : null;
   const noteCountdown = noteReminder ? formatCountdown(new Date(noteReminder.fire_at), now) : null;
@@ -353,6 +380,20 @@ export const HomePage: React.FC = () => {
   }, [profileName]);
 
   const profileInitial = useMemo(() => greetingName.charAt(0).toUpperCase(), [greetingName]);
+
+  const handleToggleAdzanReminder = useCallback((enabled: boolean) => {
+    const next = {
+      ...notificationSettings,
+      enabled,
+      adzan: enabled ? notificationSettings.adzan : false,
+    };
+    cacheNotificationSettings(next);
+    savePrayerSettings({
+      notificationsEnabled: next.enabled,
+      remindBeforeAdzan: next.adzan,
+    });
+    setNotificationSettings(next);
+  }, [notificationSettings]);
 
   // Render Sub-Feature Views (Modals/Overlays)
   const renderFeatureView = () => {
@@ -596,6 +637,16 @@ export const HomePage: React.FC = () => {
             <div className="text-xs text-gray-500">Set lokasi di Settings untuk memuat jadwal sholat.</div>
           )}
         </div>
+      </div>
+
+      <div className="px-4 mb-6">
+        <AdzanReminderWidget
+          nextLabel={widgetPrayer?.label || 'Belum tersedia'}
+          nextTime={widgetPrayer ? formatTime(widgetPrayer.time) : '--:--'}
+          countdown={adzanCountdown || '--:--:--'}
+          enabled={notificationSettings.enabled && notificationSettings.adzan}
+          onToggle={handleToggleAdzanReminder}
+        />
       </div>
 
       <div className="px-4 space-y-6">

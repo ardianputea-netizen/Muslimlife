@@ -59,3 +59,52 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {
+      title: 'MuslimLife',
+      body: event.data ? String(event.data.text()) : 'Pengingat baru.',
+    };
+  }
+
+  const title = payload.title || 'MuslimLife';
+  const options = {
+    body: payload.body || '',
+    icon: payload.icon || '/icons/icon-192.png',
+    badge: payload.badge || '/icons/icon-192.png',
+    tag: payload.tag || 'muslimlife-reminder',
+    renotify: Boolean(payload.renotify),
+    data: payload.data || {},
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options).then(async () => {
+      const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of clientsList) {
+        client.postMessage({
+          type: 'ml-push-received',
+          payload: { title, body: options.body, tag: options.tag },
+        });
+      }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow('/');
+      }
+      return undefined;
+    })
+  );
+});

@@ -3,10 +3,12 @@ import { BellRing, ExternalLink, ShieldAlert } from 'lucide-react';
 import { Switch } from '../ui/switch';
 import type { BrowserNotificationPermission } from '../../lib/notificationPermission';
 import type { NotificationSettingsPreference } from '../../lib/profileSettings';
+import type { PushSubscriptionStatus } from '../../lib/pushNotifications';
 
 interface NotificationSheetProps {
   open: boolean;
   permission: BrowserNotificationPermission;
+  pushStatus: PushSubscriptionStatus;
   settings: NotificationSettingsPreference;
   isSaving?: boolean;
   onClose: () => void;
@@ -41,6 +43,7 @@ const ToggleItem: React.FC<{
 export const NotificationSheet: React.FC<NotificationSheetProps> = ({
   open,
   permission,
+  pushStatus,
   settings,
   isSaving = false,
   onClose,
@@ -51,6 +54,16 @@ export const NotificationSheet: React.FC<NotificationSheetProps> = ({
 
   const updateSetting = (patch: Partial<NotificationSettingsPreference>) => {
     void onSaveSettings({ ...settings, ...patch });
+  };
+
+  const updatePrayerMute = (prayer: keyof NotificationSettingsPreference['adzan_prayers'], value: boolean) => {
+    void onSaveSettings({
+      ...settings,
+      adzan_prayers: {
+        ...settings.adzan_prayers,
+        [prayer]: value,
+      },
+    });
   };
 
   const openGuide = () => {
@@ -73,9 +86,15 @@ export const NotificationSheet: React.FC<NotificationSheetProps> = ({
               {permission}
             </span>
           </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-600 dark:text-slate-300">Push Subscription</p>
+            <span className="inline-flex items-center rounded-full border border-slate-300 px-2 py-0.5 text-[11px] font-semibold text-slate-700 dark:border-white/20 dark:text-slate-100">
+              {pushStatus}
+            </span>
+          </div>
 
           <div className="mt-3">
-            {permission === 'default' ? (
+            {permission !== 'granted' ? (
               <button
                 type="button"
                 onClick={() => void onRequestPermission()}
@@ -129,6 +148,43 @@ export const NotificationSheet: React.FC<NotificationSheetProps> = ({
             disabled={isSaving || !settings.enabled}
             onCheckedChange={(next) => updateSetting({ adzan: next })}
           />
+          <div className="grid grid-cols-2 gap-2">
+            <ToggleItem
+              title="Subuh"
+              subtitle="Pengingat Subuh"
+              checked={settings.adzan_prayers.subuh}
+              disabled={isSaving || !settings.enabled || !settings.adzan}
+              onCheckedChange={(next) => updatePrayerMute('subuh', next)}
+            />
+            <ToggleItem
+              title="Dzuhur"
+              subtitle="Pengingat Dzuhur"
+              checked={settings.adzan_prayers.dzuhur}
+              disabled={isSaving || !settings.enabled || !settings.adzan}
+              onCheckedChange={(next) => updatePrayerMute('dzuhur', next)}
+            />
+            <ToggleItem
+              title="Ashar"
+              subtitle="Pengingat Ashar"
+              checked={settings.adzan_prayers.ashar}
+              disabled={isSaving || !settings.enabled || !settings.adzan}
+              onCheckedChange={(next) => updatePrayerMute('ashar', next)}
+            />
+            <ToggleItem
+              title="Maghrib"
+              subtitle="Pengingat Maghrib"
+              checked={settings.adzan_prayers.maghrib}
+              disabled={isSaving || !settings.enabled || !settings.adzan}
+              onCheckedChange={(next) => updatePrayerMute('maghrib', next)}
+            />
+            <ToggleItem
+              title="Isya"
+              subtitle="Pengingat Isya"
+              checked={settings.adzan_prayers.isya}
+              disabled={isSaving || !settings.enabled || !settings.adzan}
+              onCheckedChange={(next) => updatePrayerMute('isya', next)}
+            />
+          </div>
 
           <ToggleItem
             title="Notes"

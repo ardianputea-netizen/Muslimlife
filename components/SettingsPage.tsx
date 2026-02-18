@@ -8,7 +8,6 @@ import {
   RefreshCw,
   LogIn,
 } from 'lucide-react';
-import { Button } from './ui/button';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { mapSupabaseUser } from '../lib/accountProfile';
 import {
@@ -18,10 +17,12 @@ import {
 } from '../lib/notificationPermission';
 import {
   DEFAULT_PROFILE_SETTINGS,
+  cacheNotificationSettings,
   cacheProfilePrayerMethod,
   clearCachedProfilePrayerMethod,
   getPrayerCalcConfig,
   getPrayerCalcLabel,
+  getCachedNotificationSettings,
   normalizeProfileSettings,
   type NotificationSettingsPreference,
   type PrayerCalcMethod,
@@ -34,6 +35,12 @@ import { SettingsRow } from './settings/SettingsRow';
 import { NotificationSheet } from './settings/NotificationSheet';
 import { MethodPickerSheet } from './settings/MethodPickerSheet';
 import { CompassCalibrationSheet } from './settings/CompassCalibrationSheet';
+import {
+  ensurePushSubscription,
+  getPushSubscriptionStatus,
+  type PushSubscriptionStatus,
+  syncPushSubscriptionToSupabase,
+} from '../lib/pushNotifications';
 
 interface ToastState {
   id: number;
@@ -92,6 +99,7 @@ export const SettingsPage: React.FC = () => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<ProfileSettingsRecord>(DEFAULT_PROFILE_SETTINGS);
   const [permission, setPermission] = useState<BrowserNotificationPermission>('default');
+  const [pushStatus, setPushStatus] = useState<PushSubscriptionStatus>('unsupported');
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<SavingKey>(null);
@@ -108,15 +116,30 @@ export const SettingsPage: React.FC = () => {
     setToast({ id: Date.now(), message, tone });
   }, []);
 
+  const refreshPushStatus = useCallback(async () => {
+    try {
+      const status = await getPushSubscriptionStatus();
+      setPushStatus(status);
+    } catch {
+      setPushStatus('unsupported');
+    }
+  }, []);
+
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 2500);
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  useEffect(() => {
+    if (!notifOpen) return;
+    void refreshPushStatus();
+  }, [notifOpen, refreshPushStatus]);
+
   const applyProfileEffects = useCallback((next: ProfileSettingsRecord) => {
     applyThemePreference(next.theme);
     cacheProfilePrayerMethod(next.prayer_calc_method);
+    cacheNotificationSettings(next.notification_settings);
     savePrayerSettings({
       calculationMethod: getPrayerCalcConfig(next.prayer_calc_method),
       notificationsEnabled: next.notification_settings.enabled,
@@ -176,8 +199,16 @@ export const SettingsPage: React.FC = () => {
 
   useEffect(() => {
     setPermission(getNotificationPermission());
+    void refreshPushStatus();
+    const cachedNotificationSettings = getCachedNotificationSettings();
+    setProfile((prev) =>
+      normalizeProfileSettings({
+        ...prev,
+        notification_settings: cachedNotificationSettings,
+      })
+    );
     applyThemePreference(profile.theme);
-  }, []);
+  }, [profile.theme, refreshPushStatus]);
 
   useEffect(() => {
     if (!supabaseConfigured || !supabaseClient) {
@@ -197,6 +228,7 @@ export const SettingsPage: React.FC = () => {
 
         const sessionUser = data.session?.user || null;
         setUser(sessionUser);
+        await refreshPushStatus();
 
         if (sessionUser) {
           await loadProfile(sessionUser.id);
@@ -224,6 +256,7 @@ export const SettingsPage: React.FC = () => {
       const sessionUser = session?.user || null;
       setUser(sessionUser);
       setPermission(getNotificationPermission());
+      void refreshPushStatus();
 
       if (sessionUser) {
         void loadProfile(sessionUser.id);
@@ -237,20 +270,21 @@ export const SettingsPage: React.FC = () => {
       mounted = false;
       data.subscription.unsubscribe();
     };
-  }, [loadProfile, showToast, supabaseClient, supabaseConfigured]);
+  }, [loadProfile, refreshPushStatus, showToast, supabaseClient, supabaseConfigured]);
 
   const updateProfile = useCallback(
     async (patch: Partial<ProfileSettingsRecord>, key: Exclude<SavingKey, null>) => {
-      if (!supabaseConfigured || !supabaseClient || !user) {
-        showToast('Login diperlukan untuk menyimpan pengaturan.', 'error');
-        return;
-      }
-
       const previous = profile;
       const optimistic = normalizeProfileSettings({ ...profile, ...patch });
       setProfile(optimistic);
       applyProfileEffects(optimistic);
       setSavingKey(key);
+
+      if (!supabaseConfigured || !supabaseClient || !user) {
+        setSavingKey(null);
+        showToast('Pengaturan tersimpan lokal di perangkat.', 'success');
+        return;
+      }
 
       try {
         const { error } = await supabaseClient.from('profiles').update(patch).eq('id', user.id);
@@ -285,8 +319,16 @@ export const SettingsPage: React.FC = () => {
   const handleRequestPermission = async () => {
     const next = await requestNotificationPermission();
     setPermission(next);
+    await refreshPushStatus();
 
     if (next === 'granted') {
+      try {
+        const subscription = await ensurePushSubscription();
+        await syncPushSubscriptionToSupabase(supabaseClient, subscription);
+      } catch (error) {
+        console.error('Failed registering push subscription', error);
+      }
+      await refreshPushStatus();
       showToast('Izin notifikasi diberikan.', 'success');
       return;
     }
@@ -344,7 +386,7 @@ export const SettingsPage: React.FC = () => {
     [profile.prayer_calc_method]
   );
 
-  const disableRows = isLoadingProfile || isAuthLoading || !user;
+  const disableRows = isLoadingProfile || isAuthLoading;
 
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 dark:bg-[#060B16] dark:text-slate-100 dark:bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),transparent_42%),radial-gradient(circle_at_85%_20%,_rgba(16,185,129,0.12),transparent_35%),#060B16]">
@@ -431,6 +473,7 @@ export const SettingsPage: React.FC = () => {
       <NotificationSheet
         open={notifOpen}
         permission={permission}
+        pushStatus={pushStatus}
         settings={profile.notification_settings}
         isSaving={savingKey === 'notification'}
         onClose={() => setNotifOpen(false)}

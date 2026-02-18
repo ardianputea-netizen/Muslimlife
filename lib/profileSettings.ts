@@ -1,4 +1,4 @@
-import type { CalculationMethodId } from './prayerTimes';
+import type { CalculationMethodId, PrayerName } from './prayerTimes';
 
 export type ThemePreference = 'light';
 export type PrayerCalcMethod = 'KEMENAG' | 'MUIS' | 'MWL' | 'UMM_AL_QURA';
@@ -8,6 +8,7 @@ export interface NotificationSettingsPreference {
   adzan: boolean;
   notes: boolean;
   ramadhan: boolean;
+  adzan_prayers: Record<PrayerName, boolean>;
 }
 
 export interface ProfileSettingsRecord {
@@ -22,6 +23,13 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettingsPreference = {
   adzan: true,
   notes: true,
   ramadhan: true,
+  adzan_prayers: {
+    subuh: true,
+    dzuhur: true,
+    ashar: true,
+    maghrib: true,
+    isya: true,
+  },
 };
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettingsRecord = {
@@ -32,6 +40,8 @@ export const DEFAULT_PROFILE_SETTINGS: ProfileSettingsRecord = {
 };
 
 const PROFILE_METHOD_STORAGE_KEY = 'ml_profile_prayer_calc_method';
+const PROFILE_NOTIFICATION_SETTINGS_STORAGE_KEY = 'ml_profile_notification_settings';
+export const PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT = 'ml:profile-notification-settings-updated';
 
 export const PRAYER_METHOD_OPTIONS: Array<{
   value: PrayerCalcMethod;
@@ -74,11 +84,37 @@ const normalizePrayerMethod = (value: unknown): PrayerCalcMethod => {
 
 export const normalizeNotificationSettings = (value: unknown): NotificationSettingsPreference => {
   const raw = (value || {}) as Partial<NotificationSettingsPreference>;
+  const rawPrayerSettings =
+    raw.adzan_prayers && typeof raw.adzan_prayers === 'object' ? raw.adzan_prayers : {};
+  const prayerSettingsMap = rawPrayerSettings as Record<string, unknown>;
+
   return {
     enabled: raw.enabled ?? DEFAULT_NOTIFICATION_SETTINGS.enabled,
     adzan: raw.adzan ?? DEFAULT_NOTIFICATION_SETTINGS.adzan,
     notes: raw.notes ?? DEFAULT_NOTIFICATION_SETTINGS.notes,
     ramadhan: raw.ramadhan ?? DEFAULT_NOTIFICATION_SETTINGS.ramadhan,
+    adzan_prayers: {
+      subuh:
+        typeof prayerSettingsMap.subuh === 'boolean'
+          ? Boolean(prayerSettingsMap.subuh)
+          : DEFAULT_NOTIFICATION_SETTINGS.adzan_prayers.subuh,
+      dzuhur:
+        typeof prayerSettingsMap.dzuhur === 'boolean'
+          ? Boolean(prayerSettingsMap.dzuhur)
+          : DEFAULT_NOTIFICATION_SETTINGS.adzan_prayers.dzuhur,
+      ashar:
+        typeof prayerSettingsMap.ashar === 'boolean'
+          ? Boolean(prayerSettingsMap.ashar)
+          : DEFAULT_NOTIFICATION_SETTINGS.adzan_prayers.ashar,
+      maghrib:
+        typeof prayerSettingsMap.maghrib === 'boolean'
+          ? Boolean(prayerSettingsMap.maghrib)
+          : DEFAULT_NOTIFICATION_SETTINGS.adzan_prayers.maghrib,
+      isya:
+        typeof prayerSettingsMap.isya === 'boolean'
+          ? Boolean(prayerSettingsMap.isya)
+          : DEFAULT_NOTIFICATION_SETTINGS.adzan_prayers.isya,
+    },
   };
 };
 
@@ -126,4 +162,22 @@ export const getCachedProfilePrayerMethod = (): PrayerCalcMethod | null => {
 export const clearCachedProfilePrayerMethod = () => {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(PROFILE_METHOD_STORAGE_KEY);
+};
+
+export const cacheNotificationSettings = (settings: NotificationSettingsPreference) => {
+  if (typeof window === 'undefined') return;
+  const normalized = normalizeNotificationSettings(settings);
+  window.localStorage.setItem(PROFILE_NOTIFICATION_SETTINGS_STORAGE_KEY, JSON.stringify(normalized));
+  window.dispatchEvent(new Event(PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT));
+};
+
+export const getCachedNotificationSettings = (): NotificationSettingsPreference => {
+  if (typeof window === 'undefined') return DEFAULT_NOTIFICATION_SETTINGS;
+  try {
+    const raw = window.localStorage.getItem(PROFILE_NOTIFICATION_SETTINGS_STORAGE_KEY);
+    if (!raw) return DEFAULT_NOTIFICATION_SETTINGS;
+    return normalizeNotificationSettings(JSON.parse(raw));
+  } catch {
+    return DEFAULT_NOTIFICATION_SETTINGS;
+  }
 };

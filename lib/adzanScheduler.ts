@@ -1,5 +1,11 @@
 import { PrayerName } from './ibadahApi';
 import { CalculationMethodId, computeTimes, formatTime, loadPrayerSettings } from './prayerTimes';
+import {
+  emitInAppReminder,
+  showReminderNotification,
+  shouldNotifyAdzan,
+} from './reminderNotifications';
+import { PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT } from './profileSettings';
 
 export type AdzanMode = 'silent' | 'vibrate' | 'adzan';
 export type AdzanLocationMode = 'gps' | 'manual';
@@ -383,33 +389,6 @@ export const requestAdzanNotificationPermission = async (): Promise<
   return Notification.requestPermission();
 };
 
-const createBrowserNotification = (event: PrayerEvent, mode: AdzanMode) => {
-  if (typeof window === 'undefined') return;
-  if (!('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
-
-  const notification = new Notification(`Waktu ${event.label}`, {
-    body: `Sudah masuk waktu ${event.label}.`,
-    tag: event.id,
-    data: {
-      prayer: event.prayer,
-      fire_at: event.fireAt.toISOString(),
-      mode,
-    },
-  });
-
-  notification.onclick = () => {
-    window.focus();
-    dispatchAdzanTrigger({
-      prayer: event.prayer,
-      label: event.label,
-      fire_at: event.fireAt.toISOString(),
-      mode,
-      source: 'notification_tap',
-    });
-  };
-};
-
 const createCapacitorNotificationID = (event: PrayerEvent) => {
   let hash = 0;
   for (let index = 0; index < event.id.length; index += 1) {
@@ -448,13 +427,15 @@ const scheduleCapacitorNotifications = async (events: PrayerEvent[], settings: A
     });
   }
 
-  const upcoming = events.filter((item) => item.fireAt.getTime() > Date.now());
+  const upcoming = events.filter(
+    (item) => item.fireAt.getTime() > Date.now() && shouldNotifyAdzan(item.prayer)
+  );
   if (upcoming.length === 0) return;
 
   const notifications = upcoming.map((item) => ({
     id: createCapacitorNotificationID(item),
-    title: `Waktu ${item.label}`,
-    body: `Sudah masuk waktu ${item.label}.`,
+    title: `Waktu Adzan ${item.label}`,
+    body: `${item.label} telah masuk pada ${item.time}.`,
     schedule: { at: item.fireAt },
     sound: settings.mode === 'adzan' ? 'audio/adzan-20s.mp3' : null,
     extra: {
@@ -488,12 +469,29 @@ const markFiredAndCheck = (eventKey: string) => {
 
 const runPrayerAlarm = (event: PrayerEvent, settings: AdzanSettings) => {
   if (!markFiredAndCheck(event.id)) return;
+  if (!shouldNotifyAdzan(event.prayer)) return;
 
   if (settings.mode === 'vibrate' || settings.mode === 'adzan') {
     navigator.vibrate?.([350, 150, 350]);
   }
 
-  createBrowserNotification(event, settings.mode);
+  void showReminderNotification({
+    title: `Waktu Adzan ${event.label}`,
+    body: `${event.label} telah masuk pada ${event.time}.`,
+    tag: `adzan-${event.prayer}`,
+    data: {
+      prayer: event.prayer,
+      fire_at: event.fireAt.toISOString(),
+      mode: settings.mode,
+    },
+  });
+  emitInAppReminder({
+    id: `adzan-${event.id}`,
+    type: 'adzan',
+    title: `Waktu adzan ${event.label}`,
+    body: `${event.time}`,
+  });
+
   dispatchAdzanTrigger({
     prayer: event.prayer,
     label: event.label,
@@ -580,6 +578,7 @@ export const initializeAdzanScheduler = () => {
   };
 
   window.addEventListener(ADZAN_SETTINGS_UPDATED_EVENT, rerunScheduler);
+  window.addEventListener(PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT, rerunScheduler);
   window.addEventListener('focus', rerunScheduler);
   window.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
