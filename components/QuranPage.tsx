@@ -8,6 +8,7 @@ import { AudioPlayerBar } from './quran/AudioPlayerBar';
 import type { QuranChapter, QuranVerse } from '@/lib/quran/provider';
 import { getLastRead, saveLastRead, type QuranLastRead } from '@/lib/quran/storage/lastRead';
 import { getChapterVerseAudioMap, quranFoundationProvider } from '@/lib/quran/providers/quranfoundation';
+import { getJuzAmmaChapters, getJuzAmmaSurahDetail } from '@/src/services/juzammaCloud';
 
 interface QuranPageProps {
   onBack: () => void;
@@ -19,7 +20,8 @@ const QARI_OPTIONS = [
   { id: 2, label: 'AbdulBasit Mujawwad' },
 ];
 
-const SOURCE_NOTE = 'Sumber: Quran.com (API v4)';
+const SOURCE_NOTE_ALL = 'Sumber: Quran.com (API v4)';
+const SOURCE_NOTE_JUZ = 'Sumber: AlQuran.cloud (tanpa API key)';
 
 const stripHtml = (value: string) => String(value || '').replace(/<[^>]+>/g, '').trim();
 const takeSnippet = (value: string) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, 120);
@@ -27,15 +29,18 @@ const takeSnippet = (value: string) => String(value || '').replace(/\s+/g, ' ').
 export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   const [tab, setTab] = useState<QuranTab>('all');
   const [chapters, setChapters] = useState<QuranChapter[]>([]);
+  const [juzAmmaChapters, setJuzAmmaChapters] = useState<QuranChapter[]>([]);
   const [sourceLabel, setSourceLabel] = useState('QuranFoundation');
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
 
   const [selectedChapter, setSelectedChapter] = useState<QuranChapter | null>(null);
+  const [detailTab, setDetailTab] = useState<QuranTab>('all');
   const [verses, setVerses] = useState<QuranVerse[]>([]);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [failedSurahID, setFailedSurahID] = useState<number | null>(null);
+  const [failedDetailTab, setFailedDetailTab] = useState<QuranTab>('all');
 
   const [reciterId, setReciterId] = useState(7);
   const [audioByVerseKey, setAudioByVerseKey] = useState<Map<string, string>>(new Map());
@@ -80,15 +85,50 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     }
   }, []);
 
+  const loadJuzAmmaList = useCallback(async () => {
+    setIsLoadingList(true);
+    setListError(null);
+    try {
+      const rows = await getJuzAmmaChapters();
+      setJuzAmmaChapters(rows);
+      setSourceLabel('AlQuran.cloud');
+    } catch (error) {
+      setJuzAmmaChapters([]);
+      setListError(takeSnippet(error instanceof Error ? error.message : 'Gagal memuat daftar Juz Amma.'));
+    } finally {
+      setIsLoadingList(false);
+    }
+  }, []);
+
   const loadLastReadData = useCallback(async () => {
     const value = await getLastRead();
     setLastRead(value);
   }, []);
 
   useEffect(() => {
-    void loadChapters();
     void loadLastReadData();
-  }, [loadChapters, loadLastReadData]);
+  }, [loadLastReadData]);
+
+  useEffect(() => {
+    if (tab === 'all') {
+      setSourceLabel('QuranFoundation');
+      if (chapters.length === 0) {
+        void loadChapters();
+      } else {
+        setIsLoadingList(false);
+        setListError(null);
+      }
+      return;
+    }
+
+    setSourceLabel('AlQuran.cloud');
+    if (juzAmmaChapters.length === 0) {
+      void loadJuzAmmaList();
+    } else {
+      setIsLoadingList(false);
+      setListError(null);
+    }
+  }, [chapters.length, juzAmmaChapters.length, loadChapters, loadJuzAmmaList, tab]);
 
   const loadSurahDetail = useCallback(async (surahID: number) => {
     setIsLoadingDetail(true);
@@ -99,6 +139,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     try {
       const payload = await quranFoundationProvider.getSurahDetail(surahID);
       setSelectedChapter(payload.chapter);
+      setDetailTab('all');
       setVerses(
         (payload.verses || []).map((item) => ({
           ...item,
@@ -108,11 +149,43 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
       );
       setSourceLabel('QuranFoundation');
       setFailedSurahID(null);
+      setFailedDetailTab('all');
     } catch (error) {
       setSelectedChapter(null);
       setVerses([]);
       setDetailError(takeSnippet(error instanceof Error ? error.message : 'Gagal memuat detail surah.'));
       setFailedSurahID(surahID);
+      setFailedDetailTab('all');
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  }, []);
+
+  const loadJuzAmmaDetail = useCallback(async (surahID: number) => {
+    setIsLoadingDetail(true);
+    setDetailError(null);
+    setAudioByVerseKey(new Map());
+    setCurrentAyahKey(null);
+    setAudioError(null);
+    setAudioLoading(false);
+    try {
+      const payload = await getJuzAmmaSurahDetail(surahID);
+      setSelectedChapter(payload.chapter);
+      setDetailTab('juz_amma');
+      setVerses(payload.verses);
+      setAudioByVerseKey(payload.audioByVerseKey);
+      setSourceLabel(payload.sourceLabel);
+      setFailedSurahID(null);
+      setFailedDetailTab('juz_amma');
+      if (payload.audioByVerseKey.size === 0) {
+        setAudioError('Audio ayat belum tersedia untuk surah ini.');
+      }
+    } catch (error) {
+      setSelectedChapter(null);
+      setVerses([]);
+      setDetailError(takeSnippet(error instanceof Error ? error.message : 'Gagal memuat detail Juz Amma.'));
+      setFailedSurahID(surahID);
+      setFailedDetailTab('juz_amma');
     } finally {
       setIsLoadingDetail(false);
     }
@@ -142,8 +215,9 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
 
   useEffect(() => {
     if (!selectedChapter) return;
+    if (detailTab !== 'all') return;
     void loadAudioURL(selectedChapter.id, reciterId);
-  }, [loadAudioURL, reciterId, selectedChapter]);
+  }, [detailTab, loadAudioURL, reciterId, selectedChapter]);
 
   useEffect(() => {
     if (!currentAyahKey) return;
@@ -200,9 +274,11 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   }, []);
 
   const visibleChapters = useMemo(
-    () => (tab === 'juz_amma' ? chapters.filter((item) => item.id >= 78) : chapters),
-    [chapters, tab]
+    () => (tab === 'juz_amma' ? juzAmmaChapters : chapters),
+    [chapters, juzAmmaChapters, tab]
   );
+
+  const sourceNote = useMemo(() => (tab === 'juz_amma' ? SOURCE_NOTE_JUZ : SOURCE_NOTE_ALL), [tab]);
 
   const shareAyah = async (verse: QuranVerse) => {
     if (!selectedChapter) return;
@@ -305,20 +381,26 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
                 {selectedChapter.revelationPlace} - {selectedChapter.versesCount} ayat
               </p>
             </div>
-            <select
-              value={reciterId}
-              onChange={(event) => setReciterId(Number(event.target.value))}
-              className="rounded-lg border border-gray-200 px-2 py-1 text-xs"
-            >
-              {QARI_OPTIONS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+            {detailTab === 'all' ? (
+              <select
+                value={reciterId}
+                onChange={(event) => setReciterId(Number(event.target.value))}
+                className="rounded-lg border border-gray-200 px-2 py-1 text-xs"
+              >
+                {QARI_OPTIONS.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700">
+                Mishary Alafasy
+              </span>
+            )}
           </div>
           <p className="mt-2 text-[11px] text-gray-500">
-            {SOURCE_NOTE} - Aktif: {sourceLabel}
+            {(detailTab === 'juz_amma' ? SOURCE_NOTE_JUZ : SOURCE_NOTE_ALL)} - Aktif: {sourceLabel}
           </p>
         </div>
 
@@ -398,7 +480,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
           }}
         />
         <p className="mt-3 text-[11px] text-white/90">
-          {SOURCE_NOTE} - Aktif: {sourceLabel}
+          {sourceNote} - Aktif: {sourceLabel}
         </p>
       </div>
 
@@ -416,6 +498,10 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
                     setDetailError(null);
                     return;
                   }
+                  if (failedDetailTab === 'juz_amma') {
+                    void loadJuzAmmaDetail(failedSurahID);
+                    return;
+                  }
                   void loadSurahDetail(failedSurahID);
                 }}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
@@ -428,6 +514,10 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
               <p className="text-sm text-red-700">{listError}</p>
               <button
                 onClick={() => {
+                  if (tab === 'juz_amma') {
+                    void loadJuzAmmaList();
+                    return;
+                  }
                   void loadChapters();
                 }}
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
@@ -441,6 +531,10 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
             <SurahList
               items={visibleChapters}
               onSelect={(surahID) => {
+                if (tab === 'juz_amma') {
+                  void loadJuzAmmaDetail(surahID);
+                  return;
+                }
                 void loadSurahDetail(surahID);
               }}
             />
