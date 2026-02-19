@@ -94,6 +94,9 @@ const parseWordsTransliteration = (words: unknown[]) => {
   return result.trim();
 };
 
+const AUDIO_TRACK_CACHE_TTL_MS = 60 * 60 * 1000;
+const audioTrackCache = new Map<string, { expiresAt: number; value: QuranFoundationAudioTrack }>();
+
 export const getQuranFoundationChapters = async () => {
   const payload = await fetchJson<any>(`${API_BASE}/chapters`, {
     query: { language: 'id' },
@@ -181,6 +184,23 @@ export const getQuranFoundationChapterAudioTrack = async (
   };
 };
 
+export const getQuranFoundationChapterAudioTrackCached = async (
+  chapterID: number,
+  reciterID = 7
+): Promise<QuranFoundationAudioTrack> => {
+  const key = `${chapterID}:${reciterID}`;
+  const hit = audioTrackCache.get(key);
+  if (hit && Date.now() < hit.expiresAt) {
+    return hit.value;
+  }
+  const value = await getQuranFoundationChapterAudioTrack(chapterID, reciterID);
+  audioTrackCache.set(key, {
+    value,
+    expiresAt: Date.now() + AUDIO_TRACK_CACHE_TTL_MS,
+  });
+  return value;
+};
+
 export const getJuzAmmaSurahDetail = async (chapterID: number, reciterID = 7): Promise<JuzAmmaSurahDetail> => {
   const [chapterRes, verses, audio] = await Promise.all([
     fetchJson<any>(`${API_BASE}/chapters/${chapterID}`, {
@@ -222,4 +242,3 @@ export const getQuranFoundationVerseAudio = async (reciterID: number, verseKey: 
     segments: parseSegments(first?.segments),
   };
 };
-

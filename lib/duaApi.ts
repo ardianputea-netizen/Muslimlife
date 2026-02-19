@@ -104,6 +104,7 @@ const matchQuery = (item: DuaItem, query: string) => {
 };
 
 const categoryCache = new Map<string, DuaItem[]>();
+const categoryListCache = new Map<string, Awaited<ReturnType<typeof getDuaDhikrCategories>>>();
 
 const getAllDuaFromApi = async () => {
   if (categoryCache.has('__all__')) {
@@ -131,6 +132,36 @@ const getAllDuaFromApi = async () => {
   const rows = sortEntries(mapped.flat());
   categoryCache.set('__all__', rows);
   return rows;
+};
+
+const getCategoryList = async () => {
+  const key = 'id';
+  if (categoryListCache.has(key)) {
+    return categoryListCache.get(key) || [];
+  }
+  const categories = await getDuaDhikrCategories('id');
+  categoryListCache.set(key, categories);
+  return categories;
+};
+
+const getCategoryItemsFromApi = async (slug: string) => {
+  if (categoryCache.has(slug)) return categoryCache.get(slug) || [];
+  const items = await getDuaDhikrCategoryItems(slug, 'id');
+  const normalized = sortEntries(
+    items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      arabicText: item.arabic,
+      transliteration: item.latin,
+      meaningId: item.translation,
+      sourceLabel: SOURCE_META,
+      category: slug,
+      kind: normalizeKind(slug),
+      is_bookmarked: false,
+    })) as DuaItem[]
+  );
+  categoryCache.set(slug, normalized);
+  return normalized;
 };
 
 const hydrateDetailIfNeeded = async (item: DuaItem) => {
@@ -200,9 +231,15 @@ export const getDuaToday = async (category?: string): Promise<DuaTodayResponse> 
   const dateKey = toDateSeed(date);
   const normalizedCategory = (category || '').trim().toLowerCase();
 
-  let rows = await getAllDuaFromApi();
+  let rows: DuaItem[] = [];
   if (normalizedCategory && normalizedCategory !== 'all') {
-    rows = rows.filter((item) => item.category.toLowerCase() === normalizedCategory);
+    rows = await getCategoryItemsFromApi(normalizedCategory);
+  } else {
+    const categories = await getCategoryList();
+    if (categories.length > 0) {
+      const indexByDate = hashString(dateKey) % categories.length;
+      rows = await getCategoryItemsFromApi(categories[indexByDate].slug);
+    }
   }
 
   if (rows.length === 0) {
@@ -225,9 +262,8 @@ export const getDuaToday = async (category?: string): Promise<DuaTodayResponse> 
 export const getDailyRecommendedDua = async (): Promise<DailyRecommendedDuaResponse> => {
   const date = new Date();
   const dateKey = toDateSeed(date);
-  const pool = await getAllDuaFromApi();
-
-  if (pool.length === 0) {
+  const categories = await getCategoryList();
+  if (categories.length === 0) {
     return {
       date: dateKey,
       data: null,
@@ -238,8 +274,21 @@ export const getDailyRecommendedDua = async (): Promise<DailyRecommendedDuaRespo
     };
   }
 
-  const index = hashString(`recommended:${dateKey}`) % pool.length;
-  const selected = pool[index];
+  const categoryIndex = hashString(`recommended:category:${dateKey}`) % categories.length;
+  const categorySlug = categories[categoryIndex].slug;
+  const items = await getCategoryItemsFromApi(categorySlug);
+  if (items.length === 0) {
+    return {
+      date: dateKey,
+      data: null,
+      meta: {
+        source: SOURCE_META,
+        recommendationType: 'mixed',
+      },
+    };
+  }
+  const itemIndex = hashString(`recommended:item:${dateKey}`) % items.length;
+  const selected = items[itemIndex];
   const recommendationType =
     selected.kind === 'dua' || selected.kind === 'dzikir'
       ? selected.kind

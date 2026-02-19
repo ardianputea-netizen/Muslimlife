@@ -53,6 +53,11 @@ const Header: React.FC<{ title: string; subtitle?: string; backTo?: string }> = 
   </div>
 );
 
+const normalizeErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error && error.message.trim()) return error.message.slice(0, 180);
+  return fallback;
+};
+
 const Toast: React.FC<{ message: string }> = ({ message }) => (
   <div className="fixed bottom-[calc(var(--bottom-nav-safe-h)+12px)] left-1/2 z-30 w-[92%] max-w-md -translate-x-1/2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 shadow-md">
     {message}
@@ -72,6 +77,7 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
 
   const itemsCacheRef = useRef<Map<string, DuaDhikrItemSummary[]>>(new Map());
   const detailCacheRef = useRef<Map<string, DuaDhikrItemDetail>>(new Map());
+  const categoriesCacheRef = useRef<DuaDhikrCategory[] | null>(null);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -87,8 +93,13 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
       setErrorMessage(null);
       try {
         if (route.mode === 'home') {
+          if (categoriesCacheRef.current) {
+            setCategories(categoriesCacheRef.current);
+            return;
+          }
           const rows = await getDuaDhikrCategories('id');
           if (!mounted) return;
+          categoriesCacheRef.current = rows;
           setCategories(rows);
           return;
         }
@@ -120,8 +131,10 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
           setDetail(row);
         }
       } catch (error) {
-        console.error(error);
-        const message = 'Gagal memuat data Doa & Dzikir. Periksa koneksi lalu coba lagi.';
+        if (import.meta.env.DEV) {
+          console.warn('[doa-routes] load failed', route, error);
+        }
+        const message = normalizeErrorMessage(error, 'Gagal memuat data Doa & Dzikir. Periksa koneksi lalu coba lagi.');
         if (!mounted) return;
         setErrorMessage(message);
         setToastMessage(message);
@@ -148,8 +161,14 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
         <div className="mx-auto max-w-3xl space-y-4 p-4">
           {isLoading ? <p className="text-sm text-slate-500">Memuat detail...</p> : null}
           {errorMessage ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-              {errorMessage}
+            <div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              <p>{errorMessage}</p>
+              <button
+                onClick={() => navigateTo(path, { replace: true })}
+                className="rounded-lg border border-rose-300 bg-white px-2 py-1 text-xs font-semibold text-rose-700"
+              >
+                Retry
+              </button>
             </div>
           ) : null}
           {!isLoading && !errorMessage && !detail ? (
@@ -161,20 +180,26 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
             <article className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
               <h2 className="text-lg font-bold text-slate-900">{detail.title}</h2>
               <p className="mt-4 text-right text-3xl leading-[2.1] text-slate-900" dir="rtl">
-                {detail.arabic || '-'}
+                {detail.arabic}
               </p>
-              <p className="mt-3 text-sm text-emerald-700">{detail.latin || '-'}</p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-700">{detail.translation || '-'}</p>
+              {detail.latin ? <p className="mt-3 text-sm text-emerald-700">{detail.latin}</p> : null}
+              {detail.translation ? <p className="mt-2 text-sm leading-relaxed text-slate-700">{detail.translation}</p> : null}
               <div className="mt-4 space-y-2 text-sm">
-                <p className="text-slate-700">
-                  <span className="font-semibold">Catatan:</span> {detail.notes || '-'}
-                </p>
-                <p className="text-slate-700">
-                  <span className="font-semibold">Fawaid:</span> {detail.fawaid || '-'}
-                </p>
-                <p className="text-slate-700">
-                  <span className="font-semibold">Sumber:</span> {detail.source || '-'}
-                </p>
+                {detail.notes ? (
+                  <p className="text-slate-700">
+                    <span className="font-semibold">Catatan:</span> {detail.notes}
+                  </p>
+                ) : null}
+                {detail.fawaid ? (
+                  <p className="text-slate-700">
+                    <span className="font-semibold">Fawaid:</span> {detail.fawaid}
+                  </p>
+                ) : null}
+                {detail.source ? (
+                  <p className="text-slate-700">
+                    <span className="font-semibold">Sumber:</span> {detail.source}
+                  </p>
+                ) : null}
               </div>
             </article>
           ) : null}
@@ -187,11 +212,23 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
   if (route.mode === 'category') {
     return (
       <div className="fixed inset-0 z-[70] bg-slate-50 overflow-y-auto pb-24">
-        <Header title={selectedCategory?.title || route.slug} subtitle="Daftar Doa" backTo="/doa" />
+        <Header
+          title={selectedCategory?.title || route.slug}
+          subtitle={!isLoading && !errorMessage ? `Total item: ${categoryItems.length}` : 'Daftar Doa'}
+          backTo="/doa"
+        />
         <div className="mx-auto max-w-3xl space-y-3 p-4">
           {isLoading ? <p className="text-sm text-slate-500">Memuat daftar doa...</p> : null}
           {errorMessage ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{errorMessage}</div>
+            <div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              <p>{errorMessage}</p>
+              <button
+                onClick={() => navigateTo(path, { replace: true })}
+                className="rounded-lg border border-rose-300 bg-white px-2 py-1 text-xs font-semibold text-rose-700"
+              >
+                Retry
+              </button>
+            </div>
           ) : null}
           {!isLoading && !errorMessage && categoryItems.length === 0 ? (
             <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
@@ -202,10 +239,10 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
             <button
               key={item.id}
               onClick={() => navigateTo(`/doa/${route.slug}/${item.id}`)}
-              className="w-full rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-sm"
-            >
-              <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-              <p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.translation || item.latin || '-'}</p>
+            className="w-full rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-sm"
+          >
+            <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+              <p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.translation || item.latin}</p>
             </button>
           ))}
         </div>
@@ -234,7 +271,15 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
         </div>
         {isLoading ? <p className="text-sm text-slate-500">Memuat kategori...</p> : null}
         {errorMessage ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{errorMessage}</div>
+          <div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+            <p>{errorMessage}</p>
+            <button
+              onClick={() => navigateTo('/doa', { replace: true })}
+              className="rounded-lg border border-rose-300 bg-white px-2 py-1 text-xs font-semibold text-rose-700"
+            >
+              Retry
+            </button>
+          </div>
         ) : null}
         {!isLoading && !errorMessage && categories.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
@@ -248,8 +293,10 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
             className="w-full rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-sm"
           >
             <p className="text-sm font-semibold text-slate-900">{category.title}</p>
-            <p className="mt-1 text-xs text-slate-500">{category.description || '-'}</p>
-            <p className="mt-1 text-[11px] text-emerald-700">Total item: {category.totalItems || '-'}</p>
+            {category.description ? <p className="mt-1 text-xs text-slate-500">{category.description}</p> : null}
+            <span className="mt-2 inline-block rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+              Buka
+            </span>
           </button>
         ))}
       </div>
@@ -257,4 +304,3 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
     </div>
   );
 };
-

@@ -6,8 +6,7 @@ import { QuranAudioPlayer } from '@/components/QuranAudioPlayer';
 import { LastReadCard } from '@/components/quran/LastReadCard';
 import {
   getJuzAmmaChapters,
-  getJuzAmmaSurahDetail,
-  getQuranFoundationChapterAudioTrack,
+  getQuranFoundationChapterAudioTrackCached,
 } from '@/lib/api/quranFoundation';
 import {
   getQuranSurahDetailWithFallback,
@@ -25,14 +24,7 @@ interface QuranPageProps {
 interface DetailState {
   chapter: QuranChapter;
   verses: QuranVerse[];
-  audioUrl: string;
   sourceLabel: string;
-  timestamps: Array<{
-    verseKey: string;
-    fromMs: number;
-    toMs: number;
-    segments?: Array<{ wordIndex: number; startMs: number; endMs: number }>;
-  }>;
 }
 
 const RECITER_OPTIONS = [
@@ -80,16 +72,18 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
   }, []);
 
   const loadAllSurahs = useCallback(async () => {
-    setIsLoadingList(true);
-    setListError(null);
-    try {
+      setIsLoadingList(true);
+      setListError(null);
+      try {
       const result = debouncedQuery
         ? await searchQuranSurahWithFallback(debouncedQuery)
         : await getQuranSurahListWithFallback();
       setAllSurahs(result.items);
       setActiveSource(result.sourceLabel);
-    } catch (error) {
-      console.error(error);
+      } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('[quran-page] load all surah failed', error);
+      }
       setAllSurahs([]);
       setListError('Gagal memuat daftar surah. Provider utama/fallback sedang bermasalah.');
     } finally {
@@ -108,7 +102,9 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
       setJuzSurahs(filtered);
       setActiveSource('QuranFoundation / Quran.com API v4');
     } catch (error) {
-      console.error(error);
+      if (import.meta.env.DEV) {
+        console.warn('[quran-page] load juz list failed', error);
+      }
       setJuzSurahs([]);
       setListError('Gagal memuat daftar Juz Amma.');
     } finally {
@@ -130,23 +126,22 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
       setDetailError(null);
       try {
         const detail = await getQuranSurahDetailWithFallback(surahID);
-        const audio = await getQuranFoundationChapterAudioTrack(surahID, reciterId);
         setDetailState({
           chapter: detail.chapter,
           verses: detail.verses,
-          audioUrl: audio.audioUrl,
-          sourceLabel: `${detail.sourceLabel} (teks) + QuranFoundation (audio/timing)`,
-          timestamps: audio.timestamps,
+          sourceLabel: `${detail.sourceLabel} (teks) + QuranFoundation (audio/timing saat Play)`,
         });
       } catch (error) {
-        console.error(error);
+        if (import.meta.env.DEV) {
+          console.warn('[quran-page] open surah failed', error);
+        }
         setDetailState(null);
-        setDetailError('Gagal memuat detail surah atau audio/timing.');
+        setDetailError('Gagal memuat detail surah.');
       } finally {
         setIsLoadingDetail(false);
       }
     },
-    [reciterId]
+    []
   );
 
   const openJuzSurah = useCallback(
@@ -154,23 +149,23 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
       setIsLoadingDetail(true);
       setDetailError(null);
       try {
-        const detail = await getJuzAmmaSurahDetail(surahID, reciterId);
+        const detail = await getQuranSurahDetailWithFallback(surahID);
         setDetailState({
           chapter: detail.chapter,
           verses: detail.verses,
-          audioUrl: detail.audio.audioUrl,
-          sourceLabel: detail.sourceLabel,
-          timestamps: detail.audio.timestamps,
+          sourceLabel: `${detail.sourceLabel} (teks) + QuranFoundation (audio/timing saat Play)`,
         });
       } catch (error) {
-        console.error(error);
+        if (import.meta.env.DEV) {
+          console.warn('[quran-page] open juz surah failed', error);
+        }
         setDetailState(null);
         setDetailError('Gagal memuat detail Juz Amma.');
       } finally {
         setIsLoadingDetail(false);
       }
     },
-    [reciterId]
+    []
   );
 
   const visibleSurahs = useMemo(() => (tab === 'all' ? allSurahs : juzSurahs), [allSurahs, juzSurahs, tab]);
@@ -216,14 +211,19 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
           ) : null}
           <QuranAudioPlayer
             surahName={detailState.chapter.nameSimple}
-            audioUrl={detailState.audioUrl}
-            timestamps={detailState.timestamps}
             verses={detailState.verses.map((verse) => ({
               verseKey: verse.verseKey,
               verseNumber: verse.verseNumber,
               arabicText: verse.arabText,
               translation: verse.translationId,
             }))}
+            onLoadAudio={async () => {
+              const track = await getQuranFoundationChapterAudioTrackCached(detailState.chapter.id, reciterId);
+              return {
+                audioUrl: track.audioUrl,
+                timestamps: track.timestamps,
+              };
+            }}
           />
           <div className="mt-3">
             <button
@@ -303,4 +303,3 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
     </div>
   );
 };
-

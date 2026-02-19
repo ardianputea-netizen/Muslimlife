@@ -1,6 +1,6 @@
 import { fetchJson } from '@/lib/http';
 
-const DUA_DHIKR_BASE = 'https://dua-dhikr.vercel.app';
+const DUA_DHIKR_BASES = ['https://dua-dhikr.vercel.app', 'https://dua-dhikr.onrender.com'];
 
 const normalizeText = (value: unknown) => String(value || '').trim();
 
@@ -43,8 +43,24 @@ const withLanguageHeader = (acceptLanguage = 'id') => ({
   },
 });
 
+const fetchDuaDhikr = async <T>(path: string, options: Parameters<typeof fetchJson<T>>[1]) => {
+  let lastError: unknown = null;
+  for (let i = 0; i < DUA_DHIKR_BASES.length; i += 1) {
+    const base = DUA_DHIKR_BASES[i];
+    try {
+      return await fetchJson<T>(`${base}${path}`, options);
+    } catch (error) {
+      lastError = error;
+      if (import.meta.env.DEV) {
+        console.warn(`[dua-dhikr] request failed at ${base}${path}`, error);
+      }
+    }
+  }
+  throw lastError;
+};
+
 export const getDuaDhikrLanguages = async () => {
-  const payload = await fetchJson<any>(`${DUA_DHIKR_BASE}/languages`, {
+  const payload = await fetchDuaDhikr<any>('/languages', {
     ...withLanguageHeader('id'),
     timeoutMs: 10_000,
     retries: 2,
@@ -58,7 +74,7 @@ export const getDuaDhikrLanguages = async () => {
 };
 
 export const getDuaDhikrCategories = async (acceptLanguage = 'id') => {
-  const payload = await fetchJson<any>(`${DUA_DHIKR_BASE}/categories`, {
+  const payload = await fetchDuaDhikr<any>('/categories', {
     ...withLanguageHeader(acceptLanguage),
     timeoutMs: 10_000,
     retries: 2,
@@ -74,7 +90,7 @@ export const getDuaDhikrCategories = async (acceptLanguage = 'id') => {
 };
 
 export const getDuaDhikrCategoryItems = async (slug: string, acceptLanguage = 'id') => {
-  const payload = await fetchJson<any>(`${DUA_DHIKR_BASE}/categories/${encodeURIComponent(slug)}`, {
+  const payload = await fetchDuaDhikr<any>(`/categories/${encodeURIComponent(slug)}`, {
     ...withLanguageHeader(acceptLanguage),
     timeoutMs: 10_000,
     retries: 2,
@@ -91,7 +107,7 @@ export const getDuaDhikrCategoryItems = async (slug: string, acceptLanguage = 'i
 };
 
 export const getDuaDhikrItemDetail = async (slug: string, id: string, acceptLanguage = 'id') => {
-  const payload = await fetchJson<any>(`${DUA_DHIKR_BASE}/categories/${encodeURIComponent(slug)}/${encodeURIComponent(id)}`, {
+  const payload = await fetchDuaDhikr<any>(`/categories/${encodeURIComponent(slug)}/${encodeURIComponent(id)}`, {
     ...withLanguageHeader(acceptLanguage),
     timeoutMs: 10_000,
     retries: 2,
@@ -108,4 +124,3 @@ export const getDuaDhikrItemDetail = async (slug: string, id: string, acceptLang
     source: normalizeText(row?.source || row?.rujukan || ''),
   } as DuaDhikrItemDetail;
 };
-
