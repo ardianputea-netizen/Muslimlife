@@ -7,7 +7,7 @@ import {
   sendJson,
   type ServerlessRequestLike,
   type ServerlessResponseLike,
-} from './_shared';
+} from './_shared.js';
 
 const CACHE_CONTROL = buildSMaxAgeCacheControl(604800);
 
