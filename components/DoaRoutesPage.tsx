@@ -253,7 +253,7 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
 
   return (
     <div className="fixed inset-0 z-[70] bg-slate-50 overflow-y-auto pb-24">
-      <Header title="Doa & Dzikir" subtitle="Sumber: dua-dhikr API (Fitrahive)" />
+      <Header title="Doa & Dzikir" subtitle="Sumber: dua-dhikr API (Fitrahive)" backTo="/" />
       <div className="mx-auto max-w-3xl space-y-3 p-4">
         <div className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-white px-3 py-2">
           <p className="text-xs text-slate-600">Bahasa default API: Indonesia (`Accept-Language: id`)</p>

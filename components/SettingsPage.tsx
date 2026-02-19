@@ -4,10 +4,11 @@ import {
   Bell,
   Compass,
   Palette,
-  Calculator,
   RefreshCw,
   LogIn,
   BookOpenText,
+  ChevronRight,
+  X,
 } from 'lucide-react';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { getOAuthRedirectTo } from '../lib/oauth';
@@ -23,11 +24,9 @@ import {
   cacheProfilePrayerMethod,
   clearCachedProfilePrayerMethod,
   getPrayerCalcConfig,
-  getPrayerCalcLabel,
   getCachedNotificationSettings,
   normalizeProfileSettings,
   type NotificationSettingsPreference,
-  type PrayerCalcMethod,
   type ProfileSettingsRecord,
 } from '../lib/profileSettings';
 import { savePrayerSettings } from '../lib/prayerTimes';
@@ -36,7 +35,6 @@ import { navigateTo } from '../lib/appRouter';
 import { UserAccountCard } from './settings/UserAccountCard';
 import { SettingsRow } from './settings/SettingsRow';
 import { NotificationSheet } from './settings/NotificationSheet';
-import { MethodPickerSheet } from './settings/MethodPickerSheet';
 import { CompassCalibrationSheet } from './settings/CompassCalibrationSheet';
 import {
   ensurePushSubscription,
@@ -52,16 +50,20 @@ interface ToastState {
 }
 
 type ProviderType = 'google' | 'apple' | 'unknown';
-type SavingKey = 'notification' | 'method' | 'compass' | 'logout' | null;
+type SavingKey = 'notification' | 'compass' | 'logout' | null;
 
 const CONTENT_SOURCES: Array<{ title: string; source: string }> = [
   {
     title: 'Al-Quran',
-    source: 'wanrabbae/al-quran-indonesia-api (fallback otomatis: EQuran.id API v2)',
+    source: 'Teks: wanrabbae/al-quran-indonesia-api (fallback otomatis: EQuran.id API v2). Audio + timing: QuranFoundation/Quran.com API v4 (saat Play).',
   },
   {
     title: 'Juz Amma',
-    source: 'QuranFoundation / Quran.com API v4 (audio + timing)',
+    source: 'Teks: provider Al-Quran aktif (wanrabbae/equran). Audio + timing highlight: QuranFoundation/Quran.com API v4 (lazy load saat Play).',
+  },
+  {
+    title: 'Hadits',
+    source: 'API Hadis Malaysia (via serverless proxy /api/hadith).',
   },
   {
     title: 'Jadwal Sholat',
@@ -73,7 +75,7 @@ const CONTENT_SOURCES: Array<{ title: string; source: string }> = [
   },
   {
     title: 'Azkar',
-    source: 'Dataset lokal Hisnul Muslim + sourceLabel per item',
+    source: 'dua-dhikr API (Fitrahive).',
   },
   {
     title: '99 Nama Asmaul Husna',
@@ -81,7 +83,7 @@ const CONTENT_SOURCES: Array<{ title: string; source: string }> = [
   },
   {
     title: 'Doa & Dzikir',
-    source: 'dua-dhikr API (Fitrahive)',
+    source: 'dua-dhikr API (Fitrahive).',
   },
 ];
 
@@ -125,8 +127,8 @@ export const SettingsPage: React.FC = () => {
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const [notifOpen, setNotifOpen] = useState(false);
-  const [methodOpen, setMethodOpen] = useState(false);
   const [compassOpen, setCompassOpen] = useState(false);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
 
   const account = useMemo(() => mapSupabaseUser(user), [user]);
   const provider = useMemo(() => resolveProvider(user), [user]);
@@ -325,11 +327,6 @@ export const SettingsPage: React.FC = () => {
     await updateProfile({ notification_settings: value }, 'notification');
   };
 
-  const handleMethodSave = async (value: PrayerCalcMethod) => {
-    await updateProfile({ prayer_calc_method: value }, 'method');
-    setMethodOpen(false);
-  };
-
   const handleCompassSave = async () => {
     await updateProfile({ compass_calibrated_at: new Date().toISOString() }, 'compass');
     setCompassOpen(false);
@@ -400,18 +397,13 @@ export const SettingsPage: React.FC = () => {
 
   const themeSubtitle = useMemo(() => `Tema: ${getThemeLabel(profile.theme)}`, [profile.theme]);
 
-  const methodSubtitle = useMemo(
-    () => getPrayerCalcLabel(profile.prayer_calc_method),
-    [profile.prayer_calc_method]
-  );
-
   const disableRows = isLoadingProfile || isAuthLoading;
 
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 dark:bg-[#060B16] dark:text-slate-100 dark:bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),transparent_42%),radial-gradient(circle_at_85%_20%,_rgba(16,185,129,0.12),transparent_35%),#060B16]">
       <div className="safe-top sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 backdrop-blur px-4 py-3 dark:border-white/10 dark:bg-[#060B16]/90">
         <h1 className="text-lg font-bold text-slate-900 dark:text-white">Settings</h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400">Akun, tampilan, notifikasi, metode sholat, dan kompas</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Akun, tampilan, notifikasi, kompas, dan sumber konten</p>
       </div>
 
       <div className="p-4 space-y-4">
@@ -468,21 +460,10 @@ export const SettingsPage: React.FC = () => {
           <div className="h-px bg-slate-200 dark:bg-white/10" />
 
           <SettingsRow
-            icon={Calculator}
-            iconClassName="text-cyan-600 dark:text-cyan-200"
-            title="Metode Perhitungan"
-            subtitle={methodSubtitle}
-            onClick={() => setMethodOpen(true)}
-            disabled={disableRows}
-          />
-
-          <div className="h-px bg-slate-200 dark:bg-white/10" />
-
-          <SettingsRow
             icon={Compass}
             iconClassName="text-amber-600 dark:text-amber-200"
             title="Kalibrasi Kompas"
-            subtitle="Atur arah kiblat"
+            subtitle={profile.compass_calibrated_at ? 'Sudah dikalibrasi' : 'Belum dikalibrasi'}
             onClick={() => setCompassOpen(true)}
             disabled={disableRows}
           />
@@ -492,27 +473,29 @@ export const SettingsPage: React.FC = () => {
           <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-slate-500 dark:text-slate-400">TENTANG APLIKASI</p>
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/70">
-          <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 inline-flex items-center gap-2">
-            <BookOpenText size={15} className="text-cyan-600 dark:text-cyan-200" />
-            <p className="text-sm font-semibold text-slate-900 dark:text-white">Sumber Konten</p>
-          </div>
-
-          <div className="px-4 py-2">
-            {CONTENT_SOURCES.map((item) => (
-              <div key={item.title} className="py-2 border-b last:border-b-0 border-slate-200 dark:border-white/10">
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{item.title}</p>
-                <p className="text-xs text-slate-600 dark:text-slate-300">{item.source}</p>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => navigateTo('/settings/dev')}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:border-white/20 dark:bg-white/5 dark:text-slate-200"
-            >
-              Buka Dev Health Check API
-            </button>
-          </div>
+        <section className="rounded-2xl border border-slate-200 bg-white overflow-hidden dark:border-white/10 dark:bg-slate-900/70">
+          <button
+            type="button"
+            onClick={() => setSourcesOpen(true)}
+            className="w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-white/[0.03]"
+          >
+            <div className="inline-flex items-center gap-2">
+              <BookOpenText size={15} className="text-cyan-600 dark:text-cyan-200" />
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">Sumber Konten</p>
+            </div>
+            <div className="mt-1 flex items-center justify-between">
+              <p className="text-xs text-slate-600 dark:text-slate-300">Lihat daftar sumber data aplikasi</p>
+              <ChevronRight size={15} className="text-slate-500" />
+            </div>
+          </button>
+          <div className="h-px bg-slate-200 dark:bg-white/10" />
+          <button
+            type="button"
+            onClick={() => navigateTo('/settings/dev')}
+            className="w-full px-4 py-3 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/[0.03]"
+          >
+            Buka Dev Health Check API
+          </button>
         </section>
       </div>
 
@@ -527,14 +510,6 @@ export const SettingsPage: React.FC = () => {
         onSaveSettings={handleNotificationSave}
       />
 
-      <MethodPickerSheet
-        open={methodOpen}
-        value={profile.prayer_calc_method}
-        isSaving={savingKey === 'method'}
-        onClose={() => setMethodOpen(false)}
-        onSave={handleMethodSave}
-      />
-
       <CompassCalibrationSheet
         open={compassOpen}
         calibratedAt={profile.compass_calibrated_at}
@@ -542,6 +517,32 @@ export const SettingsPage: React.FC = () => {
         onClose={() => setCompassOpen(false)}
         onSave={handleCompassSave}
       />
+
+      {sourcesOpen ? (
+        <div className="fixed inset-0 z-[130] flex items-end bg-black/45 p-0 sm:items-center sm:justify-center sm:p-4">
+          <button className="absolute inset-0" aria-label="Tutup sumber konten" onClick={() => setSourcesOpen(false)} />
+          <div className="relative w-full max-h-[82vh] overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-4 sm:max-w-lg sm:rounded-2xl dark:border-white/10 dark:bg-slate-900">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Sumber Konten</h3>
+              <button
+                type="button"
+                onClick={() => setSourcesOpen(false)}
+                className="rounded-full p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {CONTENT_SOURCES.map((item) => (
+                <div key={item.title} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/[0.03]">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{item.title}</p>
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{item.source}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {toast ? (
         <div className="fixed bottom-20 left-1/2 z-[120] w-[92%] max-w-sm -translate-x-1/2">
