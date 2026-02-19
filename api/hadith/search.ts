@@ -11,6 +11,7 @@ import {
 } from './_shared.js';
 
 const CACHE_CONTROL = buildSMaxAgeCacheControl(600);
+export const config = { regions: ['sin1'] };
 
 export default async function handler(req: ServerlessRequestLike, res: ServerlessResponseLike) {
   if (!ensureGet(req, res, { cacheControl: CACHE_CONTROL })) return;

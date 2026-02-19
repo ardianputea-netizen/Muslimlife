@@ -119,6 +119,9 @@ export const proxyHadis = async (
     headers: {
       'X-API-Key': key,
       Accept: 'application/json',
+      'User-Agent': 'MuslimLife/1.0 (+https://www.muslimlife.my.id)',
+      Referer: 'https://www.muslimlife.my.id',
+      Origin: 'https://www.muslimlife.my.id',
     },
   });
 
