@@ -15,7 +15,7 @@ import { getSupabaseClient, isSupabaseConfigured } from './lib/supabase';
 import { AuthRequiredModal } from './components/AuthRequiredModal';
 import MaintenanceScreen from './src/components/MaintenanceScreen';
 
-const IS_MAINTENANCE = true;
+const IS_MAINTENANCE = false;
 
 const HomePage = lazy(() => import('./components/HomePage').then((m) => ({ default: m.HomePage })));
 const RamadhanTrackerPage = lazy(() =>
