@@ -371,6 +371,37 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
           )}
         </section>
 
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+            <p className="text-xs text-gray-500 mb-1">Streak 30 Hari</p>
+            {isLoadingStats || !stats ? (
+              <div className="h-7 w-20 rounded bg-gray-100 animate-pulse" />
+            ) : (
+              <p className="text-2xl font-bold text-[#0F9D58] flex items-center gap-2">
+                <Flame size={20} /> {stats.streak_days} hari
+              </p>
+            )}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+            <p className="text-xs text-gray-500 mb-1">Bolong Terbanyak</p>
+            {isLoadingStats || !stats ? (
+              <div className="h-7 w-24 rounded bg-gray-100 animate-pulse" />
+            ) : (
+              <p className="text-lg font-bold text-red-600 capitalize">{mostMissedLabel}</p>
+            )}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+            <p className="text-xs text-gray-500 mb-1">Completion Rate</p>
+            {isLoadingStats || !stats ? (
+              <div className="h-7 w-24 rounded bg-gray-100 animate-pulse" />
+            ) : (
+              <p className="text-xl font-bold text-gray-800">{stats.completion_rate}%</p>
+            )}
+          </div>
+        </section>
+
         <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-gray-800">Mini Kalender {formatMonthLabel(monthKey)}</h2>
@@ -460,36 +491,6 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
           </div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">Streak 30 Hari</p>
-            {isLoadingStats || !stats ? (
-              <div className="h-7 w-20 rounded bg-gray-100 animate-pulse" />
-            ) : (
-              <p className="text-2xl font-bold text-[#0F9D58] flex items-center gap-2">
-                <Flame size={20} /> {stats.streak_days} hari
-              </p>
-            )}
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">Bolong Terbanyak</p>
-            {isLoadingStats || !stats ? (
-              <div className="h-7 w-24 rounded bg-gray-100 animate-pulse" />
-            ) : (
-              <p className="text-lg font-bold text-red-600 capitalize">{mostMissedLabel}</p>
-            )}
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-            <p className="text-xs text-gray-500 mb-1">Completion Rate</p>
-            {isLoadingStats || !stats ? (
-              <div className="h-7 w-24 rounded bg-gray-100 animate-pulse" />
-            ) : (
-              <p className="text-xl font-bold text-gray-800">{stats.completion_rate}%</p>
-            )}
-          </div>
-        </section>
       </div>
     </div>
   );

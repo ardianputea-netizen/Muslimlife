@@ -243,6 +243,18 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
     }
   };
 
+  const mostMissedItemLabel = useMemo(() => {
+    if (!stats) return '-';
+    const missedByItem = [
+      { label: 'Sahur', missed: stats.range_days - stats.item_totals.sahur },
+      { label: 'Puasa', missed: stats.range_days - stats.item_totals.puasa },
+      { label: 'Tarawih', missed: stats.range_days - stats.item_totals.tarawih },
+      { label: 'Sedekah', missed: stats.range_days - stats.item_totals.sedekah },
+    ];
+    missedByItem.sort((a, b) => b.missed - a.missed);
+    return missedByItem[0]?.label || '-';
+  }, [stats]);
+
   const activeRatio = monthData?.summary.total_days
     ? (monthData.summary.active_days / monthData.summary.total_days) * 100
     : 0;
@@ -442,29 +454,36 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
                 </button>
               </div>
 
-              {isLoadingStats || !stats ? (
-                <div className="space-y-2 animate-pulse">
-                  <div className="h-4 rounded bg-gray-100" />
-                  <div className="h-4 rounded bg-gray-100" />
-                  <div className="h-4 rounded bg-gray-100" />
+              <div className="space-y-3">
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                  <p className="text-xs text-gray-500 mb-1">Streak 30 Hari</p>
+                  {isLoadingStats || !stats ? (
+                    <div className="h-7 w-20 rounded bg-gray-100 animate-pulse" />
+                  ) : (
+                    <p className="text-2xl font-bold text-[#0F9D58] flex items-center gap-2">
+                      <Flame size={20} /> {stats.streak_days} hari
+                    </p>
+                  )}
                 </div>
-              ) : (
-                <div className="space-y-2 text-xs text-gray-600">
-                  <p>
-                    Hari Aktif: {stats.active_days} dari {stats.range_days}
-                  </p>
-                  <p>Inactive: {stats.inactive_days} hari</p>
-                  <p>
-                    Checked Item: {stats.total_checked}/{stats.total_target}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-2 py-1 rounded-full bg-gray-100">Sahur {stats.item_totals.sahur}</span>
-                    <span className="px-2 py-1 rounded-full bg-gray-100">Puasa {stats.item_totals.puasa}</span>
-                    <span className="px-2 py-1 rounded-full bg-gray-100">Tarawih {stats.item_totals.tarawih}</span>
-                    <span className="px-2 py-1 rounded-full bg-gray-100">Sedekah {stats.item_totals.sedekah}</span>
-                  </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                  <p className="text-xs text-gray-500 mb-1">Bolong Terbanyak</p>
+                  {isLoadingStats || !stats ? (
+                    <div className="h-7 w-24 rounded bg-gray-100 animate-pulse" />
+                  ) : (
+                    <p className="text-lg font-bold text-red-600">{mostMissedItemLabel}</p>
+                  )}
                 </div>
-              )}
+
+                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                  <p className="text-xs text-gray-500 mb-1">Completion Rate</p>
+                  {isLoadingStats || !stats ? (
+                    <div className="h-7 w-24 rounded bg-gray-100 animate-pulse" />
+                  ) : (
+                    <p className="text-xl font-bold text-gray-800">{stats.completion_rate}%</p>
+                  )}
+                </div>
+              </div>
             </section>
           </>
         ) : (
