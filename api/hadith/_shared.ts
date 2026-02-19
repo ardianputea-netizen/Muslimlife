@@ -117,7 +117,6 @@ export const proxyHadis = async (
   const response = await fetch(url, {
     method: 'GET',
     headers: {
-      'x-api-key': key,
       'X-API-Key': key,
       Accept: 'application/json',
     },
