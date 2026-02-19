@@ -5,6 +5,8 @@ import { getDuaDhikrCategories } from '@/lib/api/duaDhikr';
 import { getWanrabbaeSurahs } from '@/lib/api/quranWanrabbae';
 import { getEquranSurahs } from '@/lib/api/equran';
 import { getJuzAmmaChapters } from '@/lib/api/quranFoundation';
+import { getAsmaulHusnaAll } from '@/lib/api/asmaulHusna';
+import { testWeatherFallbackProvider, testWeatherPrimaryProvider } from '@/lib/api/weatherId';
 
 type HealthState = 'idle' | 'loading' | 'ok' | 'fail';
 
@@ -15,11 +17,16 @@ interface ApiHealthItem {
   note: string;
 }
 
+const TEST_COORDS = { lat: -6.2088, lng: 106.8456 };
+
 const INITIAL_ITEMS: ApiHealthItem[] = [
   { id: 'dua', label: 'dua-dhikr', state: 'idle', note: '-' },
+  { id: 'asma', label: 'asmaul-husna', state: 'idle', note: '-' },
   { id: 'wanrabbae', label: 'wanrabbae', state: 'idle', note: '-' },
   { id: 'equran', label: 'equran', state: 'idle', note: '-' },
   { id: 'quranfoundation', label: 'quranFoundation', state: 'idle', note: '-' },
+  { id: 'weather-primary', label: 'weather-primary (pace11)', state: 'idle', note: '-' },
+  { id: 'weather-fallback', label: 'weather-fallback (pace11 default city)', state: 'idle', note: '-' },
 ];
 
 const renderState = (state: HealthState) => {
@@ -27,6 +34,18 @@ const renderState = (state: HealthState) => {
   if (state === 'ok') return <CheckCircle2 size={14} className="text-emerald-600" />;
   if (state === 'fail') return <XCircle size={14} className="text-rose-600" />;
   return <span className="text-xs text-slate-400">-</span>;
+};
+
+const toNoteError = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message.slice(0, 120);
+  return 'Fail';
+};
+
+const withTiming = async <T,>(task: () => Promise<T>) => {
+  const started = performance.now();
+  const result = await task();
+  const latency = Math.round(performance.now() - started);
+  return { result, latency };
 };
 
 export const ApiHealthCheckDev: React.FC = () => {
@@ -40,41 +59,69 @@ export const ApiHealthCheckDev: React.FC = () => {
   const runCheck = async () => {
     setIsRunning(true);
     setItems((prev) => prev.map((row) => ({ ...row, state: 'loading', note: 'Testing...' })));
+
     try {
       await Promise.all([
         (async () => {
           try {
-            const rows = await getDuaDhikrCategories('id');
-            patchItem('dua', { state: 'ok', note: `OK (${rows.length} kategori)` });
+            const { result, latency } = await withTiming(() => getDuaDhikrCategories('id'));
+            patchItem('dua', { state: 'ok', note: `OK (${result.length} kategori) ${latency}ms` });
           } catch (error) {
-            patchItem('dua', { state: 'fail', note: error instanceof Error ? error.message.slice(0, 90) : 'Fail' });
+            patchItem('dua', { state: 'fail', note: toNoteError(error) });
           }
         })(),
         (async () => {
           try {
-            const rows = await getWanrabbaeSurahs();
-            patchItem('wanrabbae', { state: 'ok', note: `OK (${rows.length} surah)` });
+            const { result, latency } = await withTiming(() => getAsmaulHusnaAll());
+            patchItem('asma', { state: 'ok', note: `OK (${result.length} nama) ${latency}ms` });
           } catch (error) {
-            patchItem('wanrabbae', { state: 'fail', note: error instanceof Error ? error.message.slice(0, 90) : 'Fail' });
+            patchItem('asma', { state: 'fail', note: toNoteError(error) });
           }
         })(),
         (async () => {
           try {
-            const rows = await getEquranSurahs();
-            patchItem('equran', { state: 'ok', note: `OK (${rows.length} surah)` });
+            const { result, latency } = await withTiming(() => getWanrabbaeSurahs());
+            patchItem('wanrabbae', { state: 'ok', note: `OK (${result.length} surah) ${latency}ms` });
           } catch (error) {
-            patchItem('equran', { state: 'fail', note: error instanceof Error ? error.message.slice(0, 90) : 'Fail' });
+            patchItem('wanrabbae', { state: 'fail', note: toNoteError(error) });
           }
         })(),
         (async () => {
           try {
-            const rows = await getJuzAmmaChapters();
-            patchItem('quranfoundation', { state: 'ok', note: `OK (${rows.length} surah juz 30)` });
+            const { result, latency } = await withTiming(() => getEquranSurahs());
+            patchItem('equran', { state: 'ok', note: `OK (${result.length} surah) ${latency}ms` });
           } catch (error) {
-            patchItem('quranfoundation', {
-              state: 'fail',
-              note: error instanceof Error ? error.message.slice(0, 90) : 'Fail',
+            patchItem('equran', { state: 'fail', note: toNoteError(error) });
+          }
+        })(),
+        (async () => {
+          try {
+            const { result, latency } = await withTiming(() => getJuzAmmaChapters());
+            patchItem('quranfoundation', { state: 'ok', note: `OK (${result.length} surah juz 30) ${latency}ms` });
+          } catch (error) {
+            patchItem('quranfoundation', { state: 'fail', note: toNoteError(error) });
+          }
+        })(),
+        (async () => {
+          try {
+            const { result, latency } = await withTiming(() => testWeatherPrimaryProvider(TEST_COORDS.lat, TEST_COORDS.lng));
+            patchItem('weather-primary', {
+              state: 'ok',
+              note: `OK (${result.locationName}) ${latency}ms`,
             });
+          } catch (error) {
+            patchItem('weather-primary', { state: 'fail', note: toNoteError(error) });
+          }
+        })(),
+        (async () => {
+          try {
+            const { result, latency } = await withTiming(() => testWeatherFallbackProvider(TEST_COORDS.lat, TEST_COORDS.lng));
+            patchItem('weather-fallback', {
+              state: 'ok',
+              note: `OK (${result.locationName}) ${latency}ms`,
+            });
+          } catch (error) {
+            patchItem('weather-fallback', { state: 'fail', note: toNoteError(error) });
           }
         })(),
       ]);
@@ -92,7 +139,7 @@ export const ApiHealthCheckDev: React.FC = () => {
           </button>
           <div>
             <h1 className="text-base font-bold text-slate-900">Dev Settings - API Health</h1>
-            <p className="text-xs text-slate-500">Test endpoint utama konten Islami</p>
+            <p className="text-xs text-slate-500">Test endpoint konten & provider cuaca</p>
           </div>
         </div>
       </div>
@@ -117,4 +164,3 @@ export const ApiHealthCheckDev: React.FC = () => {
     </div>
   );
 };
-
