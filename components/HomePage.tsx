@@ -8,7 +8,6 @@ import {
   ChevronRight,
   CloudSun,
   Clock,
-  Clock3,
   Compass,
   Hash,
   Heart,
@@ -27,7 +26,7 @@ import { PrayerTimesPage } from './PrayerTimesPage';
 import { LastRead } from '../types';
 import { ASMAUL_HUSNA_99 } from '../data/asmaulHusna';
 import { AZKAR_CATALOG } from '../data/dua-dzikir/azkarCatalog';
-import { DuaItem, getDuaToday } from '../lib/duaApi';
+import { DuaItem, getDailyRecommendedDua } from '../lib/duaApi';
 import {
   PRAYER_SETTINGS_UPDATED_EVENT,
   PrayerName,
@@ -38,10 +37,8 @@ import {
   getCoords,
   getNextPrayer,
   loadPrayerSettings,
-  savePrayerSettings,
   toDateKey,
 } from '../lib/prayerTimes';
-import { getNextAlert, onNotificationScheduleUpdated } from '../lib/notifications';
 import { navigateTo } from '../lib/appRouter';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import {
@@ -51,14 +48,7 @@ import {
   saveProfileOverride,
 } from '../lib/accountProfile';
 import { AppIcon, AppIconVariant } from './ui/AppIcon';
-import { AdzanReminderWidget } from './AdzanReminderWidget';
 import { CuacaPage } from './CuacaPage';
-import {
-  cacheNotificationSettings,
-  DEFAULT_NOTIFICATION_SETTINGS,
-  getCachedNotificationSettings,
-  PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT,
-} from '../lib/profileSettings';
 
 interface HomePageProps {
   isLoggedIn: boolean;
@@ -142,15 +132,6 @@ const PRAYER_LABELS: Record<PrayerName, string> = {
   isya: 'Isya',
 };
 
-interface LocalReminderItem {
-  id: string;
-  title: string;
-  fire_at: string;
-  status: 'scheduled' | 'done' | 'cancelled';
-}
-
-const REMINDERS_KEY = 'ml_reminders';
-
 export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }) => {
   const supabaseConfigured = isSupabaseConfigured();
   const supabaseClient = getSupabaseClient();
@@ -164,9 +145,7 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
   const [isLoadingTodayDua, setIsLoadingTodayDua] = useState(true);
   const [todayTimes, setTodayTimes] = useState<PrayerTimesResult | null>(null);
   const [tomorrowTimes, setTomorrowTimes] = useState<PrayerTimesResult | null>(null);
-  const [nextAlert, setNextAlert] = useState(getNextAlert());
   const [tick, setTick] = useState(Date.now());
-  const [notificationSettings, setNotificationSettings] = useState(() => getCachedNotificationSettings());
   const [currentUserID, setCurrentUserID] = useState<string | null>(null);
   const [profilePopupOpen, setProfilePopupOpen] = useState(false);
   const [draftProfileName, setDraftProfileName] = useState('');
@@ -184,7 +163,7 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
     const loadTodayDua = async () => {
       setIsLoadingTodayDua(true);
       try {
-        const result = await getDuaToday();
+        const result = await getDailyRecommendedDua();
         if (!mounted) return;
         setTodayDua(result.data);
         setTodayDuaDate(result.date);
@@ -246,69 +225,23 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
     if (todayTimes && todayTimes.dateKey !== toDateKey(new Date())) {
       void loadTodayPrayerTimes();
     }
-    setNextAlert(getNextAlert());
   }, [loadTodayPrayerTimes, tick, todayTimes]);
 
   useEffect(() => {
-    const unsubscribeSchedule = onNotificationScheduleUpdated(() => setNextAlert(getNextAlert()));
     const handleSettingsUpdate = () => {
       void loadTodayPrayerTimes();
     };
     window.addEventListener(PRAYER_SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
 
     return () => {
-      unsubscribeSchedule();
       window.removeEventListener(PRAYER_SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
     };
   }, [loadTodayPrayerTimes]);
-
-  useEffect(() => {
-    const handleNotificationSettingsUpdate = () => {
-      setNotificationSettings(getCachedNotificationSettings());
-    };
-    window.addEventListener(PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT, handleNotificationSettingsUpdate);
-    return () =>
-      window.removeEventListener(PROFILE_NOTIFICATION_SETTINGS_UPDATED_EVENT, handleNotificationSettingsUpdate);
-  }, []);
-
-  useEffect(() => {
-    const forcedEnabled = {
-      ...DEFAULT_NOTIFICATION_SETTINGS,
-      ...getCachedNotificationSettings(),
-      enabled: true,
-      adzan: true,
-      notes: true,
-      ramadhan: true,
-      adzan_prayers: {
-        subuh: true,
-        dzuhur: true,
-        ashar: true,
-        maghrib: true,
-        isya: true,
-      },
-    };
-    cacheNotificationSettings(forcedEnabled);
-    savePrayerSettings({
-      notificationsEnabled: true,
-      remindBeforeAdzan: true,
-    });
-    setNotificationSettings(forcedEnabled);
-  }, []);
 
   const nextPrayer = useMemo(() => {
     if (!todayTimes) return null;
     return getNextPrayer(todayTimes, new Date(tick));
   }, [todayTimes, tick]);
-
-  const widgetPrayer = useMemo(() => {
-    if (nextPrayer) return nextPrayer;
-    if (!tomorrowTimes) return null;
-    return {
-      name: 'subuh' as const,
-      label: 'Subuh',
-      time: tomorrowTimes.subuh,
-    };
-  }, [nextPrayer, tomorrowTimes]);
 
   const now = useMemo(() => new Date(tick), [tick]);
 
@@ -334,26 +267,9 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
     return tomorrowTimes?.maghrib || null;
   }, [now, todayTimes, tomorrowTimes]);
 
-  const noteReminder = useMemo(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const raw = localStorage.getItem(REMINDERS_KEY);
-      if (!raw) return null;
-      const reminders = JSON.parse(raw) as LocalReminderItem[];
-      const upcoming = reminders
-        .filter((item) => item.status === 'scheduled')
-        .filter((item) => new Date(item.fire_at).getTime() > now.getTime())
-        .sort((a, b) => new Date(a.fire_at).getTime() - new Date(b.fire_at).getTime());
-      return upcoming[0] || null;
-    } catch {
-      return null;
-    }
-  }, [now]);
-
-  const adzanCountdown = widgetPrayer ? formatCountdown(widgetPrayer.time, now) : null;
+  const adzanCountdown = nextPrayer ? formatCountdown(nextPrayer.time, now) : null;
   const imsakCountdown = imsakTarget ? formatCountdown(imsakTarget, now) : null;
   const bukaCountdown = bukaTarget ? formatCountdown(bukaTarget, now) : null;
-  const noteCountdown = noteReminder ? formatCountdown(new Date(noteReminder.fire_at), now) : null;
 
   const prayerTimeline = useMemo(() => {
     if (!todayTimes) return [];
@@ -418,20 +334,6 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
   }, [profileName]);
 
   const profileInitial = useMemo(() => greetingName.charAt(0).toUpperCase(), [greetingName]);
-
-  const handleToggleAdzanReminder = useCallback((enabled: boolean) => {
-    const next = {
-      ...notificationSettings,
-      enabled,
-      adzan: enabled ? notificationSettings.adzan : false,
-    };
-    cacheNotificationSettings(next);
-    savePrayerSettings({
-      notificationsEnabled: next.enabled,
-      remindBeforeAdzan: next.adzan,
-    });
-    setNotificationSettings(next);
-  }, [notificationSettings]);
 
   const guardMenuAction = useCallback(
     (action: () => void) => {
@@ -637,47 +539,43 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
 
   return (
     <div className="pt-safe bg-gray-50 min-h-full">
-      {/* Header / Salam */}
-      <div className="bg-gradient-to-br from-[#0F9D58] to-[#00695C] p-6 pb-12 rounded-b-[2rem] text-white shadow-lg">
-        <div className="flex justify-between items-start mb-6">
+      <div className="bg-gradient-to-br from-[#0F9D58] to-[#00695C] px-4 pt-4 pb-4 rounded-b-3xl text-white shadow-lg">
+        <div className="flex justify-between items-center gap-3">
           <div>
             <p className="text-sm opacity-90">Assalamualaikum,</p>
-            <h1 className="text-2xl font-bold">{greetingName}</h1>
-            <div className="mt-2 flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full w-fit">
+            <h1 className="text-xl font-bold leading-tight">{greetingName}</h1>
+            <div className="mt-1 flex items-center gap-2 bg-white/10 px-2.5 py-1 rounded-full w-fit">
                <Calendar size={14} className="text-[#F4E7BD]" />
                <span className="text-xs font-medium">{getHijriDate()}</span>
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={openProfilePopup}
-              aria-label="Buka pengaturan profil"
-              className="w-10 h-10 rounded-full border-2 border-white/50 overflow-hidden bg-white/20 flex items-center justify-center"
-            >
-              {profileAvatarUrl ? (
-                <img
-                  src={profileAvatarUrl}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                  onError={(event) => {
-                    event.currentTarget.src = DUMMY_USER.avatar;
-                  }}
-                />
-              ) : (
-                <span className="text-sm font-semibold text-white">{profileInitial}</span>
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={openProfilePopup}
+            aria-label="Buka pengaturan profil"
+            className="w-10 h-10 rounded-full border-2 border-white/50 overflow-hidden bg-white/20 flex items-center justify-center shrink-0"
+          >
+            {profileAvatarUrl ? (
+              <img
+                src={profileAvatarUrl}
+                alt="Profile"
+                className="w-full h-full object-cover"
+                onError={(event) => {
+                  event.currentTarget.src = DUMMY_USER.avatar;
+                }}
+              />
+            ) : (
+              <span className="text-sm font-semibold text-white">{profileInitial}</span>
+            )}
+          </button>
         </div>
 
-        {/* Highlight Section: Realtime Clock + Countdowns */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-          <div className="flex items-start justify-between gap-3">
+        <div className="mt-3 bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/20">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs opacity-80">Jam Sekarang</p>
-              <h2 className="text-3xl font-bold text-[#F4E7BD] tracking-wide">{realtimeClock}</h2>
+              <h2 className="text-2xl font-bold text-[#F4E7BD] tracking-wide">{realtimeClock}</h2>
             </div>
             <div className="text-right">
               <p className="text-xs opacity-80">{nextPrayer ? `Next Adzan: ${nextPrayer.label}` : 'Next Adzan'}</p>
@@ -685,7 +583,7 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mt-4">
+          <div className="grid grid-cols-3 gap-2 mt-3">
             <div className="rounded-xl bg-white/10 px-2 py-2">
               <p className="text-[10px] opacity-80">Adzan</p>
               <p className="text-xs font-semibold">{adzanCountdown || '--:--:--'}</p>
@@ -699,54 +597,33 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
               <p className="text-xs font-semibold">{bukaCountdown || '--:--:--'}</p>
             </div>
           </div>
-
-          <div className="mt-3 text-[11px] opacity-90 inline-flex items-center gap-1">
-            <Clock3 size={12} />
-            {noteReminder
-              ? `Reminder terdekat: ${noteReminder.title} (${noteCountdown || '--:--:--'})`
-              : nextAlert
-              ? `Next alert: ${formatCountdown(new Date(nextAlert.fireAt), now)}`
-              : 'Reminder belum ada'}
-          </div>
         </div>
-      </div>
-
-      {/* Prayer Times Horizontal Scroll */}
-      <div className="-mt-6 px-4 mb-6">
-        <div className="bg-white rounded-2xl shadow-md p-4 flex justify-between items-center overflow-x-auto no-scrollbar">
+        <div className="mt-3 bg-white/95 text-slate-800 rounded-2xl p-3 shadow-sm">
           {prayerTimeline.length > 0 ? (
-            prayerTimeline.map((item) => {
-              const isNext = nextPrayer?.name === item.prayer;
-              return (
-                <div key={item.prayer} className="flex flex-col items-center min-w-[60px] mx-1">
-                  <span className="text-xs text-gray-400 mb-1">{item.label}</span>
-                  <span className={`font-semibold ${isNext ? 'text-[#0F9D58]' : 'text-[#333333]'}`}>{item.time}</span>
-                  {isNext && <div className="w-1 h-1 bg-[#0F9D58] rounded-full mt-1" />}
-                </div>
-              );
-            })
+            <div className="grid grid-cols-5 gap-1">
+              {prayerTimeline.map((item) => {
+                const isNext = nextPrayer?.name === item.prayer;
+                return (
+                  <div key={item.prayer} className="flex flex-col items-center min-w-0">
+                    <span className="text-xs text-gray-400 mb-1">{item.label}</span>
+                    <span className={`text-sm font-semibold ${isNext ? 'text-[#0F9D58]' : 'text-[#333333]'}`}>{item.time}</span>
+                    {isNext && <div className="w-1 h-1 bg-[#0F9D58] rounded-full mt-1" />}
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="text-xs text-gray-500">Set lokasi di Settings untuk memuat jadwal sholat.</div>
           )}
         </div>
       </div>
 
-      <div className="px-4 mb-6">
-        <AdzanReminderWidget
-          nextLabel={widgetPrayer?.label || 'Belum tersedia'}
-          nextTime={widgetPrayer ? formatTime(widgetPrayer.time) : '--:--'}
-          countdown={adzanCountdown || '--:--:--'}
-          enabled={notificationSettings.enabled && notificationSettings.adzan}
-          onToggle={handleToggleAdzanReminder}
-        />
-      </div>
-
-      <div className="px-4 space-y-6">
+      <div className="px-4 space-y-5">
         
         {/* 2x5 Menu Grid */}
         <div>
             <h3 className="font-bold text-gray-800 mb-3">Menu Utama</h3>
-            <div className="grid grid-cols-3 gap-x-2 gap-y-4 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid grid-cols-4 gap-x-2 gap-y-4 md:grid-cols-4 lg:grid-cols-5">
                 {MENU_ITEMS.map((item) => (
                     <button 
                         key={item.id}
@@ -765,8 +642,8 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
                         }}
                         className="group flex flex-col items-center gap-2"
                     >
-                        <AppIcon icon={item.icon} variant={item.variant} shape="circle" size="md" className="group-hover:-translate-y-0.5" />
-                        <span className="w-full line-clamp-1 text-center text-sm font-medium text-slate-700">{item.label}</span>
+                        <AppIcon icon={item.icon} variant={item.variant} shape="circle" size="sm" className="group-hover:-translate-y-0.5" />
+                        <span className="w-full line-clamp-1 text-center text-xs font-medium text-slate-700">{item.label}</span>
                     </button>
                 ))}
             </div>
@@ -906,5 +783,3 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
     </div>
   );
 };
-
-

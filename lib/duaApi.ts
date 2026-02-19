@@ -24,6 +24,12 @@ export interface DuaTodayResponse {
   };
 }
 
+export interface DailyRecommendedDuaResponse extends DuaTodayResponse {
+  meta: DuaTodayResponse['meta'] & {
+    recommendationType: 'dua' | 'dzikir' | 'azkar' | 'mixed';
+  };
+}
+
 export interface DuaBookmarksResponse {
   data: DuaItem[];
   meta: {
@@ -152,6 +158,39 @@ export const getDuaToday = async (category?: string): Promise<DuaTodayResponse> 
     date: dateKey,
     data: withBookmarkState([rows[index]])[0],
     meta: { source: SOURCE_META },
+  };
+};
+
+export const getDailyRecommendedDua = async (): Promise<DailyRecommendedDuaResponse> => {
+  const date = new Date();
+  const dateKey = toDateSeed(date);
+  const pool = sortEntries([...DUA_DZIKIR_CATALOG, ...AZKAR_CATALOG]);
+
+  if (pool.length === 0) {
+    return {
+      date: dateKey,
+      data: null,
+      meta: {
+        source: SOURCE_META,
+        recommendationType: 'mixed',
+      },
+    };
+  }
+
+  const index = hashString(`recommended:${dateKey}`) % pool.length;
+  const selected = pool[index];
+  const recommendationType =
+    selected.kind === 'dua' || selected.kind === 'dzikir' || selected.kind === 'azkar'
+      ? selected.kind
+      : 'mixed';
+
+  return {
+    date: dateKey,
+    data: withBookmarkState([selected])[0],
+    meta: {
+      source: SOURCE_META,
+      recommendationType,
+    },
   };
 };
 
