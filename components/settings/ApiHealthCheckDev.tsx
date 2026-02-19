@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { navigateTo } from '@/lib/appRouter';
-import { getDuaDhikrCategories } from '@/lib/api/duaDhikr';
-import { getWanrabbaeSurahs } from '@/lib/api/quranWanrabbae';
-import { getEquranSurahs } from '@/lib/api/equran';
-import { getJuzAmmaChapters } from '@/lib/api/quranFoundation';
-import { getAsmaulHusnaAll } from '@/lib/api/asmaulHusna';
-import { testWeatherFallbackProvider, testWeatherPrimaryProvider } from '@/lib/api/weatherId';
 
 type HealthState = 'idle' | 'loading' | 'ok' | 'fail';
 
@@ -17,16 +11,14 @@ interface ApiHealthItem {
   note: string;
 }
 
-const TEST_COORDS = { lat: -6.2088, lng: 106.8456 };
-
 const INITIAL_ITEMS: ApiHealthItem[] = [
-  { id: 'dua', label: 'dua-dhikr', state: 'idle', note: '-' },
-  { id: 'asma', label: 'asmaul-husna', state: 'idle', note: '-' },
-  { id: 'wanrabbae', label: 'wanrabbae', state: 'idle', note: '-' },
-  { id: 'equran', label: 'equran', state: 'idle', note: '-' },
-  { id: 'quranfoundation', label: 'quranFoundation', state: 'idle', note: '-' },
-  { id: 'weather-primary', label: 'weather-primary (pace11)', state: 'idle', note: '-' },
-  { id: 'weather-fallback', label: 'weather-fallback (pace11 default city)', state: 'idle', note: '-' },
+  { id: 'asma', label: '/api/asmaul-husna', state: 'idle', note: '-' },
+  { id: 'dua', label: '/api/dua-dhikr/categories', state: 'idle', note: '-' },
+  { id: 'quran-list', label: '/api/quran/list', state: 'idle', note: '-' },
+  { id: 'quran-detail', label: '/api/quran/detail', state: 'idle', note: '-' },
+  { id: 'quran-audio', label: '/api/quran/audio-timing', state: 'idle', note: '-' },
+  { id: 'weather', label: '/api/weather', state: 'idle', note: '-' },
+  { id: 'hadith', label: '/api/hadith?action=collections', state: 'idle', note: '-' },
 ];
 
 const renderState = (state: HealthState) => {
@@ -48,6 +40,24 @@ const withTiming = async <T,>(task: () => Promise<T>) => {
   return { result, latency };
 };
 
+const fetchApiHealth = async (url: string) => {
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  const text = await response.text();
+  let payload: any = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = null;
+  }
+  if (!response.ok) {
+    throw new Error(payload?.message || `HTTP ${response.status}`);
+  }
+  return {
+    payload,
+    cache: response.headers.get('x-cache') || '-',
+  };
+};
+
 export const ApiHealthCheckDev: React.FC = () => {
   const [items, setItems] = useState<ApiHealthItem[]>(INITIAL_ITEMS);
   const [isRunning, setIsRunning] = useState(false);
@@ -64,64 +74,85 @@ export const ApiHealthCheckDev: React.FC = () => {
       await Promise.all([
         (async () => {
           try {
-            const { result, latency } = await withTiming(() => getDuaDhikrCategories('id'));
-            patchItem('dua', { state: 'ok', note: `OK (${result.length} kategori) ${latency}ms` });
-          } catch (error) {
-            patchItem('dua', { state: 'fail', note: toNoteError(error) });
-          }
-        })(),
-        (async () => {
-          try {
-            const { result, latency } = await withTiming(() => getAsmaulHusnaAll());
-            patchItem('asma', { state: 'ok', note: `OK (${result.length} nama) ${latency}ms` });
+            const { result, latency } = await withTiming(() => fetchApiHealth('/api/asmaul-husna'));
+            const count = Array.isArray(result.payload?.data)
+              ? result.payload.data.length
+              : Array.isArray(result.payload)
+                ? result.payload.length
+                : 0;
+            patchItem('asma', { state: 'ok', note: `OK (${count} rows) ${latency}ms, cache=${result.cache}` });
           } catch (error) {
             patchItem('asma', { state: 'fail', note: toNoteError(error) });
           }
         })(),
         (async () => {
           try {
-            const { result, latency } = await withTiming(() => getWanrabbaeSurahs());
-            patchItem('wanrabbae', { state: 'ok', note: `OK (${result.length} surah) ${latency}ms` });
+            const { result, latency } = await withTiming(() => fetchApiHealth('/api/dua-dhikr/categories'));
+            const count = Array.isArray(result.payload?.data)
+              ? result.payload.data.length
+              : Array.isArray(result.payload)
+                ? result.payload.length
+                : 0;
+            patchItem('dua', { state: 'ok', note: `OK (${count} rows) ${latency}ms, cache=${result.cache}` });
           } catch (error) {
-            patchItem('wanrabbae', { state: 'fail', note: toNoteError(error) });
+            patchItem('dua', { state: 'fail', note: toNoteError(error) });
           }
         })(),
         (async () => {
           try {
-            const { result, latency } = await withTiming(() => getEquranSurahs());
-            patchItem('equran', { state: 'ok', note: `OK (${result.length} surah) ${latency}ms` });
+            const { result, latency } = await withTiming(() => fetchApiHealth('/api/quran/list?provider=wanrabbae'));
+            const count = Array.isArray(result.payload?.data)
+              ? result.payload.data.length
+              : Array.isArray(result.payload)
+                ? result.payload.length
+                : 0;
+            patchItem('quran-list', { state: 'ok', note: `OK (${count} rows) ${latency}ms, cache=${result.cache}` });
           } catch (error) {
-            patchItem('equran', { state: 'fail', note: toNoteError(error) });
+            patchItem('quran-list', { state: 'fail', note: toNoteError(error) });
           }
         })(),
         (async () => {
           try {
-            const { result, latency } = await withTiming(() => getJuzAmmaChapters());
-            patchItem('quranfoundation', { state: 'ok', note: `OK (${result.length} surah juz 30) ${latency}ms` });
-          } catch (error) {
-            patchItem('quranfoundation', { state: 'fail', note: toNoteError(error) });
-          }
-        })(),
-        (async () => {
-          try {
-            const { result, latency } = await withTiming(() => testWeatherPrimaryProvider(TEST_COORDS.lat, TEST_COORDS.lng));
-            patchItem('weather-primary', {
+            const { result, latency } = await withTiming(() => fetchApiHealth('/api/quran/detail?provider=equran&id=1'));
+            patchItem('quran-detail', {
               state: 'ok',
-              note: `OK (${result.locationName}) ${latency}ms`,
+              note: `OK (${Boolean(result.payload)} payload) ${latency}ms, cache=${result.cache}`,
             });
           } catch (error) {
-            patchItem('weather-primary', { state: 'fail', note: toNoteError(error) });
+            patchItem('quran-detail', { state: 'fail', note: toNoteError(error) });
           }
         })(),
         (async () => {
           try {
-            const { result, latency } = await withTiming(() => testWeatherFallbackProvider(TEST_COORDS.lat, TEST_COORDS.lng));
-            patchItem('weather-fallback', {
+            const { result, latency } = await withTiming(() => fetchApiHealth('/api/quran/audio-timing?chapterId=1&reciterId=7'));
+            patchItem('quran-audio', {
               state: 'ok',
-              note: `OK (${result.locationName}) ${latency}ms`,
+              note: `OK (${Boolean(result.payload)} payload) ${latency}ms, cache=${result.cache}`,
             });
           } catch (error) {
-            patchItem('weather-fallback', { state: 'fail', note: toNoteError(error) });
+            patchItem('quran-audio', { state: 'fail', note: toNoteError(error) });
+          }
+        })(),
+        (async () => {
+          try {
+            const { result, latency } = await withTiming(() => fetchApiHealth('/api/weather?city=Jakarta'));
+            patchItem('weather', {
+              state: 'ok',
+              note: `OK (${result.payload?.data?.locationName || 'weather'}) ${latency}ms, cache=${result.cache}`,
+            });
+          } catch (error) {
+            patchItem('weather', { state: 'fail', note: toNoteError(error) });
+          }
+        })(),
+        (async () => {
+          try {
+            const { result, latency } = await withTiming(() => fetchApiHealth('/api/hadith?action=collections&lang=id'));
+            patchItem('hadith', {
+              state: 'ok',
+              note: `OK (${Boolean(result.payload)} payload) ${latency}ms, cache=${result.cache}`,
+            });
+          } catch (error) {
+            patchItem('hadith', { state: 'fail', note: toNoteError(error) });
           }
         })(),
       ]);

@@ -1,7 +1,7 @@
 import { fetchJson } from '@/lib/http';
 import type { QuranChapter, QuranVerse } from '@/lib/quran/provider';
 
-const EQURAN_BASE = 'https://equran.id/api/v2';
+const QURAN_GATEWAY_BASE = '/api/quran';
 
 const clean = (value: unknown) => String(value || '').replace(/<[^>]+>/g, '').trim();
 
@@ -26,7 +26,8 @@ const toVerseNumber = (value: unknown, fallback: string) => {
 };
 
 export const getEquranSurahs = async () => {
-  const payload = await fetchJson<any>(`${EQURAN_BASE}/surat`, {
+  const payload = await fetchJson<any>(`${QURAN_GATEWAY_BASE}/list`, {
+    query: { provider: 'equran' },
     timeoutMs: 10_000,
     retries: 2,
     cacheTtlSec: 3600,
@@ -47,7 +48,8 @@ export const getEquranSurahs = async () => {
 };
 
 export const getEquranSurahDetail = async (surahID: number): Promise<EquranSurahDetail> => {
-  const payload = await fetchJson<any>(`${EQURAN_BASE}/surat/${surahID}`, {
+  const payload = await fetchJson<any>(`${QURAN_GATEWAY_BASE}/detail`, {
+    query: { provider: 'equran', id: surahID },
     timeoutMs: 10_000,
     retries: 2,
   });
@@ -78,4 +80,3 @@ export const getEquranSurahDetail = async (surahID: number): Promise<EquranSurah
     sourceLabel: 'EQuran.id API v2',
   };
 };
-

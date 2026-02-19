@@ -1,6 +1,6 @@
 import { fetchJson } from '@/lib/http';
 
-const DUA_DHIKR_BASES = ['https://dua-dhikr.vercel.app', 'https://dua-dhikr.onrender.com'];
+const DUA_DHIKR_BASE = '/api/dua-dhikr';
 
 const normalizeText = (value: unknown) => String(value || '').trim();
 
@@ -43,21 +43,8 @@ const withLanguageHeader = (acceptLanguage = 'id') => ({
   },
 });
 
-const fetchDuaDhikr = async <T>(path: string, options: Parameters<typeof fetchJson<T>>[1]) => {
-  let lastError: unknown = null;
-  for (let i = 0; i < DUA_DHIKR_BASES.length; i += 1) {
-    const base = DUA_DHIKR_BASES[i];
-    try {
-      return await fetchJson<T>(`${base}${path}`, options);
-    } catch (error) {
-      lastError = error;
-      if (import.meta.env.DEV) {
-        console.warn(`[dua-dhikr] request failed at ${base}${path}`, error);
-      }
-    }
-  }
-  throw lastError;
-};
+const fetchDuaDhikr = async <T>(path: string, options: Parameters<typeof fetchJson<T>>[1]) =>
+  fetchJson<T>(`${DUA_DHIKR_BASE}${path}`, options);
 
 export const getDuaDhikrLanguages = async () => {
   const payload = await fetchDuaDhikr<any>('/languages', {

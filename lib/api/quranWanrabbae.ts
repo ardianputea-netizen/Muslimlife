@@ -1,7 +1,7 @@
 import { fetchJson } from '@/lib/http';
 import type { QuranChapter, QuranVerse } from '@/lib/quran/provider';
 
-const WANRABBAE_BASE = 'https://api-alquranid.herokuapp.com';
+const QURAN_GATEWAY_BASE = '/api/quran';
 
 const clean = (value: unknown) => String(value || '').replace(/<[^>]+>/g, '').trim();
 
@@ -33,7 +33,8 @@ export interface WanrabbaeSurahDetail {
 }
 
 export const getWanrabbaeSurahs = async () => {
-  const payload = await fetchJson<any>(`${WANRABBAE_BASE}/surah`, {
+  const payload = await fetchJson<any>(`${QURAN_GATEWAY_BASE}/list`, {
+    query: { provider: 'wanrabbae' },
     timeoutMs: 10_000,
     retries: 2,
     cacheTtlSec: 3600,
@@ -56,7 +57,8 @@ export const getWanrabbaeSurahs = async () => {
 };
 
 export const getWanrabbaeSurahDetail = async (surahID: number): Promise<WanrabbaeSurahDetail> => {
-  const payload = await fetchJson<any>(`${WANRABBAE_BASE}/surah/${surahID}`, {
+  const payload = await fetchJson<any>(`${QURAN_GATEWAY_BASE}/detail`, {
+    query: { provider: 'wanrabbae', id: surahID },
     timeoutMs: 10_000,
     retries: 2,
   });
@@ -94,7 +96,8 @@ export const getWanrabbaeSurahDetail = async (surahID: number): Promise<Wanrabba
 };
 
 export const searchWanrabbaeSurah = async (query: string) => {
-  const payload = await fetchJson<any>(`${WANRABBAE_BASE}/surah/search/${encodeURIComponent(query)}`, {
+  const payload = await fetchJson<any>(`${QURAN_GATEWAY_BASE}/search`, {
+    query: { provider: 'wanrabbae', q: query },
     timeoutMs: 10_000,
     retries: 2,
     cacheTtlSec: 900,
@@ -109,4 +112,3 @@ export const searchWanrabbaeSurah = async (query: string) => {
     audioFullUrl: clean(row?.audio || row?.audioFull || ''),
   })) as Array<QuranChapter & { audioFullUrl?: string }>;
 };
-
