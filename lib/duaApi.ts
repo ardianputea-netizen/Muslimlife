@@ -1,8 +1,19 @@
-import { AZKAR_CATALOG } from '../data/dua-dzikir/azkarCatalog';
-import { DUA_DZIKIR_CATALOG } from '../data/dua-dzikir/duaDzikirCatalog';
-import type { DuaDzikirEntry } from '../data/contentSchemas';
+import {
+  getDuaDhikrCategories,
+  getDuaDhikrCategoryItems,
+  getDuaDhikrItemDetail,
+  type DuaDhikrItemSummary,
+} from '@/lib/api/duaDhikr';
 
-export interface DuaItem extends DuaDzikirEntry {
+export interface DuaItem {
+  id: string;
+  title: string;
+  arabicText: string;
+  transliteration: string;
+  meaningId: string;
+  sourceLabel: string;
+  category: string;
+  kind: 'dua' | 'dzikir' | 'mixed';
   is_bookmarked: boolean;
 }
 
@@ -39,7 +50,7 @@ export interface DuaBookmarksResponse {
 }
 
 const BOOKMARK_KEY = 'ml_dua_bookmarks_local_v2';
-const SOURCE_META = 'Dataset lokal Hisnul Muslim + kurasi internal MuslimLife';
+const SOURCE_META = 'dua-dhikr API (Fitrahive)';
 
 const readBookmarks = (): string[] => {
   if (typeof window === 'undefined') return [];
@@ -58,10 +69,10 @@ const writeBookmarks = (ids: string[]) => {
   localStorage.setItem(BOOKMARK_KEY, JSON.stringify(Array.from(new Set(ids))));
 };
 
-const sortEntries = (entries: DuaDzikirEntry[]) =>
+const sortEntries = (entries: DuaItem[]) =>
   [...entries].sort((a, b) => a.title.localeCompare(b.title));
 
-const withBookmarkState = (entries: DuaDzikirEntry[]): DuaItem[] => {
+const withBookmarkState = (entries: DuaItem[]): DuaItem[] => {
   const set = new Set(readBookmarks());
   return entries.map((entry) => ({
     ...entry,
@@ -69,9 +80,14 @@ const withBookmarkState = (entries: DuaDzikirEntry[]): DuaItem[] => {
   }));
 };
 
-const baseCatalog = () => sortEntries(DUA_DZIKIR_CATALOG);
+const normalizeKind = (categorySlug: string): DuaItem['kind'] => {
+  const normalized = categorySlug.toLowerCase();
+  if (normalized.includes('dzikir') || normalized.includes('zikir') || normalized.includes('azkar')) return 'dzikir';
+  if (normalized.includes('doa') || normalized.includes('dua')) return 'dua';
+  return 'mixed';
+};
 
-const matchQuery = (item: DuaDzikirEntry, query: string) => {
+const matchQuery = (item: DuaItem, query: string) => {
   if (!query) return true;
   const normalized = query.toLowerCase();
   return [
@@ -87,6 +103,51 @@ const matchQuery = (item: DuaDzikirEntry, query: string) => {
     .includes(normalized);
 };
 
+const categoryCache = new Map<string, DuaItem[]>();
+
+const getAllDuaFromApi = async () => {
+  if (categoryCache.has('__all__')) {
+    return categoryCache.get('__all__') || [];
+  }
+
+  const categories = await getDuaDhikrCategories('id');
+  const mapped = await Promise.all(
+    categories.map(async (category) => {
+      const items = await getDuaDhikrCategoryItems(category.slug, 'id');
+      return items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        arabicText: item.arabic,
+        transliteration: item.latin,
+        meaningId: item.translation,
+        sourceLabel: SOURCE_META,
+        category: category.slug,
+        kind: normalizeKind(category.slug),
+        is_bookmarked: false,
+      })) as DuaItem[];
+    })
+  );
+
+  const rows = sortEntries(mapped.flat());
+  categoryCache.set('__all__', rows);
+  return rows;
+};
+
+const hydrateDetailIfNeeded = async (item: DuaItem) => {
+  try {
+    const detail = await getDuaDhikrItemDetail(item.category, item.id, 'id');
+    return {
+      ...item,
+      arabicText: detail.arabic || item.arabicText,
+      transliteration: detail.latin || item.transliteration,
+      meaningId: detail.translation || item.meaningId,
+      sourceLabel: detail.source || item.sourceLabel,
+    };
+  } catch {
+    return item;
+  }
+};
+
 export const getDuas = async (params: {
   category?: string;
   q?: string;
@@ -95,7 +156,7 @@ export const getDuas = async (params: {
   const category = (params.category || '').trim().toLowerCase();
   const query = (params.q || '').trim().toLowerCase();
 
-  let rows = baseCatalog();
+  let rows = await getAllDuaFromApi();
 
   if (params.kind) {
     rows = rows.filter((item) => item.kind === params.kind);
@@ -139,7 +200,7 @@ export const getDuaToday = async (category?: string): Promise<DuaTodayResponse> 
   const dateKey = toDateSeed(date);
   const normalizedCategory = (category || '').trim().toLowerCase();
 
-  let rows = baseCatalog();
+  let rows = await getAllDuaFromApi();
   if (normalizedCategory && normalizedCategory !== 'all') {
     rows = rows.filter((item) => item.category.toLowerCase() === normalizedCategory);
   }
@@ -164,7 +225,7 @@ export const getDuaToday = async (category?: string): Promise<DuaTodayResponse> 
 export const getDailyRecommendedDua = async (): Promise<DailyRecommendedDuaResponse> => {
   const date = new Date();
   const dateKey = toDateSeed(date);
-  const pool = sortEntries([...DUA_DZIKIR_CATALOG, ...AZKAR_CATALOG]);
+  const pool = await getAllDuaFromApi();
 
   if (pool.length === 0) {
     return {
@@ -180,13 +241,15 @@ export const getDailyRecommendedDua = async (): Promise<DailyRecommendedDuaRespo
   const index = hashString(`recommended:${dateKey}`) % pool.length;
   const selected = pool[index];
   const recommendationType =
-    selected.kind === 'dua' || selected.kind === 'dzikir' || selected.kind === 'azkar'
+    selected.kind === 'dua' || selected.kind === 'dzikir'
       ? selected.kind
       : 'mixed';
 
+  const enriched = await hydrateDetailIfNeeded(selected);
+
   return {
     date: dateKey,
-    data: withBookmarkState([selected])[0],
+    data: withBookmarkState([enriched])[0],
     meta: {
       source: SOURCE_META,
       recommendationType,
@@ -208,7 +271,7 @@ export const setDuaBookmark = async (payload: { dua_id: string; bookmark: boolea
 
 export const getDuaBookmarks = async (): Promise<DuaBookmarksResponse> => {
   const set = new Set(readBookmarks());
-  const rows = baseCatalog().filter((item) => set.has(item.id));
+  const rows = (await getAllDuaFromApi()).filter((item) => set.has(item.id));
 
   return {
     data: withBookmarkState(rows),
@@ -219,4 +282,7 @@ export const getDuaBookmarks = async (): Promise<DuaBookmarksResponse> => {
   };
 };
 
-export const getAzkarCatalog = () => withBookmarkState(sortEntries(AZKAR_CATALOG));
+export const getAzkarCatalog = async () => {
+  const rows = await getAllDuaFromApi();
+  return withBookmarkState(rows.filter((item) => item.kind === 'dzikir'));
+};

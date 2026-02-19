@@ -34,6 +34,9 @@ const HadithRoutesPage = lazy(() =>
 const DoaRoutesPage = lazy(() =>
   import('./components/DoaRoutesPage').then((m) => ({ default: m.DoaRoutesPage }))
 );
+const ApiHealthCheckDev = lazy(() =>
+  import('./components/settings/ApiHealthCheckDev').then((m) => ({ default: m.ApiHealthCheckDev }))
+);
 
 function AppContent() {
   const supabaseConfigured = isSupabaseConfigured();
@@ -125,6 +128,9 @@ function AppContent() {
     if (path.startsWith('/doa')) {
       return <DoaRoutesPage path={path} />;
     }
+    if (path === '/settings/dev') {
+      return <ApiHealthCheckDev />;
+    }
 
     switch (activeTab) {
       case Tab.HOME:
@@ -144,7 +150,7 @@ function AppContent() {
     }
   };
 
-  const showBottomNav = !path.startsWith('/hadits') && !path.startsWith('/doa');
+  const showBottomNav = !path.startsWith('/hadits') && !path.startsWith('/doa') && path !== '/settings/dev';
 
   return (
     <AppShell

@@ -25,7 +25,6 @@ import { RamadhanTrackerPage } from './RamadhanTrackerPage';
 import { PrayerTimesPage } from './PrayerTimesPage';
 import { LastRead } from '../types';
 import { ASMAUL_HUSNA_99 } from '../data/asmaulHusna';
-import { AZKAR_CATALOG } from '../data/dua-dzikir/azkarCatalog';
 import { DuaItem, getDailyRecommendedDua } from '../lib/duaApi';
 import {
   PRAYER_SETTINGS_UPDATED_EVENT,
@@ -458,27 +457,6 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
              </div>
           </div>
         );
-      case 'AZKAR':
-        return (
-          <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col">
-            <div className="bg-[#0F9D58] p-4 text-white flex gap-2 items-center sticky top-0 z-10 shadow-md">
-              <button onClick={() => setActiveFeature(null)}><X /></button>
-              <h2 className="font-bold">Dzikir Pagi</h2>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {AZKAR_CATALOG.map((dzikir) => (
-                <div key={dzikir.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                  <h3 className="font-bold text-[#0F9D58] mb-2">{dzikir.title}</h3>
-                  <p className="font-serif text-2xl text-right leading-loose mb-3 text-gray-800">
-                    {dzikir.arabicText}
-                  </p>
-                  <p className="text-sm text-gray-600">{dzikir.meaningId}</p>
-                  <p className="text-xs text-gray-500 mt-2">{dzikir.sourceLabel}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
       case 'DUAS':
         return null;
       case 'PELACAK':
@@ -634,6 +612,10 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
                               return;
                             }
                             if (item.id === 'DUAS') {
+                              navigateTo('/doa');
+                              return;
+                            }
+                            if (item.id === 'AZKAR') {
                               navigateTo('/doa');
                               return;
                             }

@@ -7,6 +7,7 @@ import {
   Calculator,
   RefreshCw,
   LogIn,
+  BookOpenText,
 } from 'lucide-react';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { getOAuthRedirectTo } from '../lib/oauth';
@@ -31,6 +32,7 @@ import {
 } from '../lib/profileSettings';
 import { savePrayerSettings } from '../lib/prayerTimes';
 import { applyThemePreference, getThemeLabel } from '../lib/themePreference';
+import { navigateTo } from '../lib/appRouter';
 import { UserAccountCard } from './settings/UserAccountCard';
 import { SettingsRow } from './settings/SettingsRow';
 import { NotificationSheet } from './settings/NotificationSheet';
@@ -51,6 +53,37 @@ interface ToastState {
 
 type ProviderType = 'google' | 'apple' | 'unknown';
 type SavingKey = 'notification' | 'method' | 'compass' | 'logout' | null;
+
+const CONTENT_SOURCES: Array<{ title: string; source: string }> = [
+  {
+    title: 'Al-Quran',
+    source: 'wanrabbae/al-quran-indonesia-api (fallback otomatis: EQuran.id API v2)',
+  },
+  {
+    title: 'Juz Amma',
+    source: 'QuranFoundation / Quran.com API v4 (audio + timing)',
+  },
+  {
+    title: 'Jadwal Sholat',
+    source: 'Perhitungan lokal adhan-js berdasarkan koordinat pengguna',
+  },
+  {
+    title: 'Jadwal Puasa',
+    source: 'Aladhan API (api.aladhan.com) untuk imsak, subuh, dan maghrib',
+  },
+  {
+    title: 'Azkar',
+    source: 'Dataset lokal Hisnul Muslim + sourceLabel per item',
+  },
+  {
+    title: '99 Nama Asmaul Husna',
+    source: "Dataset lokal Asma al-Husna (Al-Quran & hadits sahih, kurasi internal)",
+  },
+  {
+    title: 'Doa & Dzikir',
+    source: 'dua-dhikr API (Fitrahive)',
+  },
+];
 
 const resolveProvider = (user: SupabaseUser | null): ProviderType => {
   if (!user) return 'unknown';
@@ -453,6 +486,33 @@ export const SettingsPage: React.FC = () => {
             onClick={() => setCompassOpen(true)}
             disabled={disableRows}
           />
+        </section>
+
+        <div>
+          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-slate-500 dark:text-slate-400">TENTANG APLIKASI</p>
+        </div>
+
+        <section className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/70">
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 inline-flex items-center gap-2">
+            <BookOpenText size={15} className="text-cyan-600 dark:text-cyan-200" />
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Sumber Konten</p>
+          </div>
+
+          <div className="px-4 py-2">
+            {CONTENT_SOURCES.map((item) => (
+              <div key={item.title} className="py-2 border-b last:border-b-0 border-slate-200 dark:border-white/10">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{item.title}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">{item.source}</p>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => navigateTo('/settings/dev')}
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-semibold text-slate-700 dark:border-white/20 dark:bg-white/5 dark:text-slate-200"
+            >
+              Buka Dev Health Check API
+            </button>
+          </div>
         </section>
       </div>
 
