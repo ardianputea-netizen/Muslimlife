@@ -86,16 +86,39 @@ export const getQuranFoundationChapterAudioTrack = async (
   chapterID: number,
   reciterID = 7
 ): Promise<QuranFoundationAudioTrack> => {
-  const payload = await fetchJson<any>(API_BASE, {
-    query: { route: 'audio', id: chapterID, reciter: reciterID },
-    timeoutMs: 8_000,
-    retries: 2,
-    cacheTtlSec: 3600,
-  });
-  const source = payload?.payload || payload?.data || payload;
-  const audioUrl = toPlayableAudioURL(source?.audioURL || source?.audioUrl || '');
+  let audioUrl = '';
+  try {
+    const payload = await fetchJson<any>(API_BASE, {
+      query: { route: 'audio', id: chapterID, reciter: reciterID },
+      timeoutMs: 20_000,
+      retries: 2,
+      cacheTtlSec: 3600,
+    });
+    const source = payload?.payload || payload?.data || payload;
+    audioUrl = toPlayableAudioURL(source?.audioURL || source?.audioUrl || '');
+  } catch {
+    audioUrl = '';
+  }
+
+  // Fallback lama: tetap coba dari daftar chapter jika route audio gagal/timeout.
   if (!audioUrl) {
-    throw new Error('Audio Qur\'an tidak tersedia untuk qari ini.');
+    const payload = await fetchJson<any>(`${API_BASE}/chapters`, {
+      query: { reciter: reciterID },
+      timeoutMs: 20_000,
+      retries: 2,
+      cacheTtlSec: 3600,
+    });
+    const chapters = Array.isArray(payload?.chapters)
+      ? payload.chapters
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : [];
+    const chapter = chapters.find((row: any) => Number(row?.id) === chapterID) || {};
+    audioUrl = toPlayableAudioURL(chapter?.audioURL || chapter?.audioUrl || '');
+  }
+
+  if (!audioUrl) {
+    throw new Error('Audio Quran tidak tersedia untuk qari ini.');
   }
 
   return {

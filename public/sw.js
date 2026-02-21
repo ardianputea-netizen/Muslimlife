@@ -1,4 +1,4 @@
-const CACHE_NAME = 'muslimlife-v2';
+const CACHE_NAME = 'muslimlife-v3';
 const OFFLINE_URL = '/offline.html';
 const CORE_ASSETS = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/icons/icon-192.png'];
 
