@@ -494,7 +494,11 @@ const resolveEquranRegion = async (input: {
   const reverse = await fetchReverseGeoByCoords(input.lat, input.lng);
 
   const requestedProvince = toText(input.provinsi) || reverse.province;
-  const bestProvince = pickBestProvince(requestedProvince, provinces);
+  const cityHints = [toText(input.kabkota), ...reverse.cityCandidates].map((row) => row.toLowerCase());
+  const hasJakartaHint =
+    requestedProvince.toLowerCase().includes('jakarta') ||
+    cityHints.some((row) => row.includes('jakarta'));
+  const bestProvince = hasJakartaHint ? 'DKI Jakarta' : pickBestProvince(requestedProvince, provinces);
   const kabkotaRows = await fetchEquranKabkota(bestProvince);
 
   const requestedCityCandidates = [
