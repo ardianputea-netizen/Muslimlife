@@ -193,6 +193,58 @@ const handleQuranSurah = async (req: ServerlessRequestLike, res: ServerlessRespo
   }
 };
 
+const handleQuranAudio = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
+  if ((req.method || 'GET').toUpperCase() !== 'GET') {
+    res.setHeader('Cache-Control', CHAPTERS_CACHE_CONTROL);
+    res.status(405).json({ success: false, message: 'Method not allowed' });
+    return;
+  }
+
+  const rawId = pickQuery(req.query?.id) || pickQuery(req.query?.chapterId);
+  const surahID = Number(String(rawId || '0'));
+  if (!Number.isFinite(surahID) || surahID <= 0) {
+    res.setHeader('Cache-Control', CHAPTERS_CACHE_CONTROL);
+    res.status(400).json({ success: false, ok: false, message: 'Query id/chapterId wajib valid.' });
+    return;
+  }
+
+  try {
+    const detailResponse = await fetch(`${EQURAN_BASE}/surat/${surahID}`);
+    if (!detailResponse.ok) {
+      throw new Error(`EQuran detail error (${detailResponse.status})`);
+    }
+
+    const detailPayload = (await detailResponse.json()) as { data?: EquranSurahDetailRow };
+    const chapterRaw = detailPayload?.data || {};
+    const reciter = String(pickQuery(req.query?.reciter) || '');
+    const audioURL = pickEquranAudio(chapterRaw?.audioFull, reciter);
+
+    if (!audioURL) {
+      res.setHeader('Cache-Control', CHAPTERS_CACHE_CONTROL);
+      res.status(404).json({ success: false, ok: false, message: 'Audio tidak tersedia untuk surah ini.' });
+      return;
+    }
+
+    res.setHeader('Cache-Control', CHAPTERS_CACHE_CONTROL);
+    const normalized = {
+      success: true,
+      ok: true,
+      sourceLabel: 'EQuran.id API v2',
+      surahId: surahID,
+      audioURL,
+    };
+    res.status(200).json({
+      ...normalized,
+      data: normalized,
+      payload: normalized,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Gagal memuat audio surah.';
+    res.setHeader('Cache-Control', CHAPTERS_CACHE_CONTROL);
+    res.status(500).json({ success: false, ok: false, message });
+  }
+};
+
 export default async function handler(req: ServerlessRequestLike, res: ServerlessResponseLike) {
   const route = String(pickQuery(req.query?.route) || '').trim().toLowerCase();
 
@@ -203,6 +255,11 @@ export default async function handler(req: ServerlessRequestLike, res: Serverles
 
   if (route === 'surah') {
     await handleQuranSurah(req, res);
+    return;
+  }
+
+  if (route === 'audio') {
+    await handleQuranAudio(req, res);
     return;
   }
 
