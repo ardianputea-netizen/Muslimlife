@@ -22,7 +22,8 @@ import {
   getPrayerTimes,
   upsertPrayerCheckin,
 } from '../lib/ibadahApi';
-import { savePrayerSettings } from '../lib/prayerTimes';
+import { DEFAULT_PRAYER_SETTINGS } from '../lib/prayerTimes';
+import { useLocationPrefs } from '@/src/hooks/useLocationPrefs';
 import { MiniCalendarItem, MiniCalendarStrip } from './MiniCalendarStrip';
 
 interface IbadahPageProps {
@@ -126,14 +127,14 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
   const [monthData, setMonthData] = useState<PrayerMonthResponse | null>(null);
   const [stats, setStats] = useState<PrayerStatsResponse | null>(null);
   const [prayerTimes, setPrayerTimes] = useState<Record<PrayerName, string> | null>(null);
-  const [geoLocation, setGeoLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [timesErrorMessage, setTimesErrorMessage] = useState<string | null>(null);
 
   const [isLoadingMonth, setIsLoadingMonth] = useState(true);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
-  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
   const [savingPrayer, setSavingPrayer] = useState<PrayerName | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { location, hasLocation, status: locationStatus, error: locationError, refreshFromDevice, clear } = useLocationPrefs();
 
   const monthKey = useMemo(() => toMonthKey(monthCursor), [monthCursor]);
 
@@ -184,55 +185,42 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
     }
   }, [monthData, selectedDate]);
 
-  const requestLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      setErrorMessage('Geolocation tidak tersedia di perangkat ini.');
-      return;
-    }
+  const defaultCoords = useMemo(
+    () => ({
+      lat: DEFAULT_PRAYER_SETTINGS.lat ?? -6.2088,
+      lng: DEFAULT_PRAYER_SETTINGS.lng ?? 106.8456,
+    }),
+    []
+  );
 
-    setIsRequestingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setGeoLocation({ lat: coords.latitude, lng: coords.longitude });
-        savePrayerSettings({
-          lat: coords.latitude,
-          lng: coords.longitude,
-          cityPreset: 'manual',
-        });
-        setErrorMessage(null);
-        setIsRequestingLocation(false);
-      },
-      () => {
-        setGeoLocation(null);
-        setErrorMessage('Izin lokasi ditolak. Aktifkan lokasi untuk menampilkan waktu adzan per area.');
-        setIsRequestingLocation(false);
-      },
-      { timeout: 7000, enableHighAccuracy: true }
-    );
-  }, []);
+  const activeCoords = useMemo(
+    () => (hasLocation && location ? { lat: location.lat, lng: location.lng } : defaultCoords),
+    [defaultCoords, hasLocation, location]
+  );
+
+  const loadLocationPrayerTimes = useCallback(async () => {
+    if (!selectedDate) return;
+    setIsLoadingTimes(true);
+    setTimesErrorMessage(null);
+    try {
+      const result = await getPrayerTimes({
+        lat: activeCoords.lat,
+        lng: activeCoords.lng,
+        date: selectedDate,
+      });
+      setPrayerTimes(result.prayer_times);
+    } catch (error) {
+      console.error(error);
+      setPrayerTimes(null);
+      setTimesErrorMessage('Gagal memuat jadwal sholat untuk lokasi ini.');
+    } finally {
+      setIsLoadingTimes(false);
+    }
+  }, [activeCoords.lat, activeCoords.lng, selectedDate]);
 
   useEffect(() => {
-    if (!geoLocation || !selectedDate) return;
-
-    const loadTimes = async () => {
-      setIsLoadingTimes(true);
-      try {
-        const result = await getPrayerTimes({
-          lat: geoLocation.lat,
-          lng: geoLocation.lng,
-          date: selectedDate,
-        });
-        setPrayerTimes(result.prayer_times);
-      } catch (error) {
-        console.error(error);
-        setPrayerTimes(null);
-      } finally {
-        setIsLoadingTimes(false);
-      }
-    };
-
-    void loadTimes();
-  }, [geoLocation, selectedDate]);
+    void loadLocationPrayerTimes();
+  }, [loadLocationPrayerTimes]);
 
   const selectedDay = useMemo(() => findDayByDate(monthData, selectedDate), [monthData, selectedDate]);
 
@@ -483,17 +471,26 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
             <h2 className="font-bold text-foreground">Waktu Sholat per Lokasi</h2>
             <div className="flex items-center gap-2">
               <button
-                onClick={requestLocation}
-                disabled={isRequestingLocation}
+                onClick={() => {
+                  void refreshFromDevice();
+                }}
+                disabled={locationStatus === 'loading'}
                 className="text-xs px-2 py-1 border border-border rounded-lg text-muted-foreground inline-flex items-center gap-1"
               >
-                {isRequestingLocation ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
+                {locationStatus === 'loading' ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
                 Ambil Lokasi
+              </button>
+              <button
+                onClick={clear}
+                className="text-xs px-2 py-1 border border-border rounded-lg text-muted-foreground inline-flex items-center gap-1"
+              >
+                Reset Lokasi
               </button>
               <button
                 onClick={() => {
                   void loadMonth();
                   void loadStats();
+                  void loadLocationPrayerTimes();
                 }}
                 className="text-xs px-2 py-1 border border-border rounded-lg text-muted-foreground inline-flex items-center gap-1"
               >
@@ -502,6 +499,49 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
               </button>
             </div>
           </div>
+
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span
+              className={`text-[11px] font-semibold px-2 py-1 rounded-full ${
+                hasLocation
+                  ? 'bg-emerald-100/80 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {hasLocation ? 'Lokasi aktif: Lokasi perangkat' : 'Lokasi default'}
+            </span>
+            {locationStatus === 'error' ? (
+              <button
+                onClick={() => {
+                  void refreshFromDevice();
+                }}
+                className="text-[11px] px-2 py-1 border border-rose-300/50 rounded-lg text-rose-500 dark:text-rose-200"
+              >
+                Retry
+              </button>
+            ) : null}
+          </div>
+
+          {locationStatus === 'error' && locationError ? (
+            <div className="mb-3 rounded-xl border border-rose-300/60 bg-rose-500/10 px-3 py-2 text-xs text-rose-600 dark:text-rose-200">
+              {locationError}
+            </div>
+          ) : null}
+
+          {timesErrorMessage ? (
+            <div className="mb-3 rounded-xl border border-amber-300/60 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-200 flex items-center justify-between gap-2">
+              <span>{timesErrorMessage}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  void loadLocationPrayerTimes();
+                }}
+                className="px-2 py-1 rounded border border-amber-300/60 text-[11px] font-semibold"
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             {PRAYER_NAMES.map((prayer) => (
@@ -529,9 +569,9 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
 
           <div className="mt-3 text-xs text-muted-foreground flex items-center gap-2">
             <MapPin size={14} />
-            {geoLocation
-              ? 'Waktu adzan menyesuaikan lokasi perangkat.'
-              : 'Lokasi belum aktif, waktu adzan tidak tersedia.'}
+            {hasLocation
+              ? `${location?.label || 'Lokasi perangkat'} aktif (${location?.lat.toFixed(5)}, ${location?.lng.toFixed(5)})`
+              : `Lokasi default (${defaultCoords.lat.toFixed(5)}, ${defaultCoords.lng.toFixed(5)})`}
           </div>
         </section>
 

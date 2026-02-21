@@ -1,5 +1,6 @@
 import { CalculationMethod, Coordinates, Madhab, PrayerTimes } from 'adhan';
-import { getLocation, getSavedLocation } from './locationPermission';
+import { getLocation, getSavedLocation as getLegacySavedLocation } from './locationPermission';
+import { getSavedLocation as getLocationPrefsSavedLocation } from '../src/lib/locationPrefs';
 import { getCachedProfilePrayerMethod, getPrayerCalcConfig } from './profileSettings';
 
 export type PrayerName = 'subuh' | 'dzuhur' | 'ashar' | 'maghrib' | 'isya';
@@ -195,11 +196,25 @@ export const setManualCoords = (lat: number, lng: number) => {
 
 export const getCoords = async (options?: { askPermission?: boolean }): Promise<{ lat: number; lng: number } | null> => {
   const settings = loadPrayerSettings();
+  const locationPrefs = getLocationPrefsSavedLocation();
+  if (locationPrefs) {
+    const shouldSyncSettings =
+      settings.cityPreset !== 'manual' || settings.lat !== locationPrefs.lat || settings.lng !== locationPrefs.lng;
+    if (shouldSyncSettings) {
+      savePrayerSettings({
+        lat: locationPrefs.lat,
+        lng: locationPrefs.lng,
+        cityPreset: 'manual',
+      });
+    }
+    return { lat: locationPrefs.lat, lng: locationPrefs.lng };
+  }
+
   if (typeof settings.lat === 'number' && typeof settings.lng === 'number') {
     return { lat: settings.lat, lng: settings.lng };
   }
 
-  const savedLocation = getSavedLocation();
+  const savedLocation = getLegacySavedLocation();
   if (savedLocation) {
     savePrayerSettings({
       lat: savedLocation.lat,

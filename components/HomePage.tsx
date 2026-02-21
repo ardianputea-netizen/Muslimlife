@@ -11,6 +11,8 @@ import {
   Hash,
   Heart,
   List,
+  Loader2,
+  MapPin,
   Moon,
   RotateCcw,
   ScrollText,
@@ -25,12 +27,12 @@ import { PrayerTimesPage } from './PrayerTimesPage';
 import { DuaItem, getDailyRecommendedDua } from '../lib/duaApi';
 import {
   PRAYER_SETTINGS_UPDATED_EVENT,
+  DEFAULT_PRAYER_SETTINGS,
   PrayerName,
   PrayerTimesResult,
   computeTimes,
   formatCountdown,
   formatTime,
-  getCoords,
   getNextPrayer,
   loadPrayerSettings,
   savePrayerSettings,
@@ -52,6 +54,7 @@ import { ensurePushSubscription, syncPushSubscriptionToSupabase } from '../lib/p
 import { AsmaulHusnaItem, getAsmaulHusnaAll } from '@/lib/api/asmaulHusna';
 import { readLastReadV1, readQuranBookmarks, type LastReadV1 } from '@/lib/quran/storage/readingState';
 import { readYasinBookmarks, readYasinLastRead } from '@/lib/yasinTracker';
+import { useLocationPrefs } from '@/src/hooks/useLocationPrefs';
 
 interface HomePageProps {
   isLoggedIn: boolean;
@@ -169,6 +172,8 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
   const [isLoadingTodayDua, setIsLoadingTodayDua] = useState(true);
   const [todayTimes, setTodayTimes] = useState<PrayerTimesResult | null>(null);
   const [tomorrowTimes, setTomorrowTimes] = useState<PrayerTimesResult | null>(null);
+  const [isPrayerLoading, setIsPrayerLoading] = useState(false);
+  const [prayerLoadError, setPrayerLoadError] = useState<string | null>(null);
   const [tick, setTick] = useState(Date.now());
   const [currentUserID, setCurrentUserID] = useState<string | null>(null);
   const [profilePopupOpen, setProfilePopupOpen] = useState(false);
@@ -191,6 +196,7 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
   });
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => new Date());
   const [doaBookmarkCount, setDoaBookmarkCount] = useState(0);
+  const { location, hasLocation, status: locationStatus, error: locationError, refreshFromDevice } = useLocationPrefs();
 
   useEffect(() => {
     setLastRead(readLastReadV1());
@@ -290,32 +296,67 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
   }, []);
 
   const loadTodayPrayerTimes = useCallback(async () => {
+    setIsPrayerLoading(true);
+    setPrayerLoadError(null);
     const settings = loadPrayerSettings();
-    const coords = await getCoords({ askPermission: false });
-    if (!coords) {
-      setTodayTimes(null);
-      return;
-    }
+    const defaultCoords = {
+      lat: DEFAULT_PRAYER_SETTINGS.lat ?? -6.2088,
+      lng: DEFAULT_PRAYER_SETTINGS.lng ?? 106.8456,
+    };
+    const coords = hasLocation && location ? { lat: location.lat, lng: location.lng } : defaultCoords;
 
-    const result = computeTimes(new Date(), coords.lat, coords.lng, {
-      calculationMethod: settings.calculationMethod,
-      madhab: settings.madhab,
-      imsakOffsetMinutes: settings.imsakOffsetMinutes,
-    });
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const nextResult = computeTimes(tomorrow, coords.lat, coords.lng, {
-      calculationMethod: settings.calculationMethod,
-      madhab: settings.madhab,
-      imsakOffsetMinutes: settings.imsakOffsetMinutes,
-    });
-    setTodayTimes(result);
-    setTomorrowTimes(nextResult);
-  }, []);
+    try {
+      const result = computeTimes(new Date(), coords.lat, coords.lng, {
+        calculationMethod: settings.calculationMethod,
+        madhab: settings.madhab,
+        imsakOffsetMinutes: settings.imsakOffsetMinutes,
+      });
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const nextResult = computeTimes(tomorrow, coords.lat, coords.lng, {
+        calculationMethod: settings.calculationMethod,
+        madhab: settings.madhab,
+        imsakOffsetMinutes: settings.imsakOffsetMinutes,
+      });
+      setTodayTimes(result);
+      setTomorrowTimes(nextResult);
+    } catch (error) {
+      console.error(error);
+      setPrayerLoadError('Jadwal sholat gagal dimuat. Menampilkan lokasi default.');
+      try {
+        const result = computeTimes(new Date(), defaultCoords.lat, defaultCoords.lng, {
+          calculationMethod: settings.calculationMethod,
+          madhab: settings.madhab,
+          imsakOffsetMinutes: settings.imsakOffsetMinutes,
+        });
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const nextResult = computeTimes(tomorrow, defaultCoords.lat, defaultCoords.lng, {
+          calculationMethod: settings.calculationMethod,
+          madhab: settings.madhab,
+          imsakOffsetMinutes: settings.imsakOffsetMinutes,
+        });
+        setTodayTimes(result);
+        setTomorrowTimes(nextResult);
+      } catch (fallbackError) {
+        console.error(fallbackError);
+        setTodayTimes(null);
+        setTomorrowTimes(null);
+      }
+    } finally {
+      setIsPrayerLoading(false);
+    }
+  }, [hasLocation, location]);
 
   useEffect(() => {
     void loadTodayPrayerTimes();
   }, [loadTodayPrayerTimes]);
+
+  useEffect(() => {
+    if (locationStatus !== 'error') return;
+    setPrayerLoadError(locationError || 'Lokasi gagal diambil. Menampilkan lokasi default.');
+    void loadTodayPrayerTimes();
+  }, [loadTodayPrayerTimes, locationError, locationStatus]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -903,31 +944,81 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-medium text-white/80">Jam Sekarang</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    locationStatus === 'error'
+                      ? 'bg-rose-500/20 text-rose-100'
+                      : hasLocation
+                      ? 'bg-emerald-500/20 text-emerald-100'
+                      : 'bg-background/20 text-white/90'
+                  }`}
+                >
+                  {locationStatus === 'error' ? 'Lokasi gagal' : hasLocation ? 'Lokasi aktif' : 'Lokasi default'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void refreshFromDevice();
+                  }}
+                  disabled={locationStatus === 'loading'}
+                  className="inline-flex items-center gap-1 rounded-full border border-white/40 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-background/20 disabled:opacity-70"
+                >
+                  {locationStatus === 'loading' ? <Loader2 size={10} className="animate-spin" /> : <MapPin size={10} />}
+                  Ambil Lokasi
+                </button>
+              </div>
               <h2 className="text-3xl font-bold tracking-tight text-white">{realtimeClock}</h2>
             </div>
             <div className="text-right">
               <p className="text-xs font-medium text-white/80">{nextPrayer ? `Next Adzan: ${nextPrayer.label}` : 'Next Adzan'}</p>
-              <p className="text-base font-bold tracking-tight text-white">{nextPrayer ? formatTime(nextPrayer.time) : '--:--'}</p>
+              <p className="text-base font-bold tracking-tight text-white">
+                {isPrayerLoading && !nextPrayer ? 'Memuat...' : nextPrayer ? formatTime(nextPrayer.time) : '--:--'}
+              </p>
             </div>
           </div>
+
+          {locationStatus === 'error' || prayerLoadError ? (
+            <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-rose-300/40 bg-rose-500/15 px-2 py-1.5">
+              <p className="text-[11px] text-rose-100">{locationError || prayerLoadError || 'Lokasi gagal dimuat.'}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  void refreshFromDevice();
+                }}
+                className="rounded border border-rose-200/60 px-1.5 py-0.5 text-[10px] font-semibold text-rose-100 hover:bg-rose-500/20"
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-3 gap-2 mt-3">
             <div className="rounded-xl border border-white/40 bg-background/10 px-2 py-2">
               <p className="text-[10px] font-medium text-white/80">Adzan</p>
-              <p className="text-xs font-bold tracking-tight text-white">{adzanCountdown || '--:--:--'}</p>
+              <p className="text-xs font-bold tracking-tight text-white">{isPrayerLoading ? 'Memuat...' : adzanCountdown || '--:--:--'}</p>
             </div>
             <div className="rounded-xl border border-white/40 bg-background/10 px-2 py-2">
               <p className="text-[10px] font-medium text-white/80">Imsak</p>
-              <p className="text-xs font-bold tracking-tight text-white">{imsakCountdown || '--:--:--'}</p>
+              <p className="text-xs font-bold tracking-tight text-white">{isPrayerLoading ? 'Memuat...' : imsakCountdown || '--:--:--'}</p>
             </div>
             <div className="rounded-xl border border-white/40 bg-background/10 px-2 py-2">
               <p className="text-[10px] font-medium text-white/80">Buka</p>
-              <p className="text-xs font-bold tracking-tight text-white">{bukaCountdown || '--:--:--'}</p>
+              <p className="text-xs font-bold tracking-tight text-white">{isPrayerLoading ? 'Memuat...' : bukaCountdown || '--:--:--'}</p>
             </div>
           </div>
         </div>
         <div className="mt-3 rounded-2xl border border-white/40 bg-background/10 p-3 text-white shadow-sm">
-          {prayerTimeline.length > 0 ? (
+          {isPrayerLoading && prayerTimeline.length === 0 ? (
+            <div className="grid grid-cols-5 gap-2">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div key={`prayer-skeleton-${idx}`} className="space-y-1">
+                  <div className="h-2 w-full rounded bg-background/20" />
+                  <div className="h-3 w-full rounded bg-background/30" />
+                </div>
+              ))}
+            </div>
+          ) : prayerTimeline.length > 0 ? (
             <div className="grid grid-cols-5 gap-1">
               {prayerTimeline.map((item) => {
                 const isNext = nextPrayer?.name === item.prayer;
