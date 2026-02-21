@@ -59,7 +59,29 @@ interface PaceForecastPayload {
   }>;
 }
 
+interface EquranShalatCalendarRow {
+  tanggal?: number;
+  tanggal_lengkap?: string;
+  imsak?: string;
+  subuh?: string;
+  dzuhur?: string;
+  ashar?: string;
+  maghrib?: string;
+  isya?: string;
+}
+
+interface EquranShalatPayload {
+  data?: {
+    provinsi?: string;
+    kabkota?: string;
+    bulan?: number;
+    tahun?: number;
+    jadwal?: EquranShalatCalendarRow[];
+  };
+}
+
 const TTL_SEC = 10 * 60;
+const PRAYER_TTL_SEC = 12 * 60 * 60;
 const DEFAULT_CITY = 'Jakarta';
 const cache = new Map<string, { expiresAt: number; data: unknown }>();
 const RATING_TABLE = 'app_ratings';
@@ -321,6 +343,364 @@ const fetchBmkgFallbackByCity = async (city: string) => {
   }
 
   throw new Error('Provider weather fallback gagal.');
+};
+
+const normalizeRegionName = (value: unknown) =>
+  toText(value)
+    .toLowerCase()
+    .replace(/\b(daerah|provinsi|khusus|ibukota|special|region|kota|kabupaten|kab\.?|city|regency)\b/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const toPrayerCacheKey = (scope: string, parts: Array<string | number>) =>
+  `prayer:${scope}:${parts.map((item) => String(item).trim().toLowerCase()).join(':')}`;
+
+const fetchEquranProvinces = async () => {
+  const cacheKey = toPrayerCacheKey('provinsi', ['all']);
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() < hit.expiresAt) {
+    return hit.data as string[];
+  }
+
+  const payload = await fetchJsonWithRetry<{ data?: string[] }>('https://equran.id/api/v2/shalat/provinsi');
+  const rows = (Array.isArray(payload?.data) ? payload.data : []).map((row) => toText(row)).filter(Boolean);
+  if (rows.length === 0) {
+    throw new Error('Daftar provinsi shalat tidak tersedia.');
+  }
+
+  cache.set(cacheKey, {
+    data: rows,
+    expiresAt: Date.now() + PRAYER_TTL_SEC * 1000,
+  });
+  return rows;
+};
+
+const fetchEquranKabkota = async (provinsi: string) => {
+  const cacheKey = toPrayerCacheKey('kabkota', [provinsi]);
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() < hit.expiresAt) {
+    return hit.data as string[];
+  }
+
+  const payload = await fetchJsonWithRetry<{ data?: string[] }>('https://equran.id/api/v2/shalat/kabkota', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provinsi }),
+  });
+  const rows = (Array.isArray(payload?.data) ? payload.data : []).map((row) => toText(row)).filter(Boolean);
+  if (rows.length === 0) {
+    throw new Error(`Daftar kab/kota untuk provinsi ${provinsi} tidak tersedia.`);
+  }
+
+  cache.set(cacheKey, {
+    data: rows,
+    expiresAt: Date.now() + PRAYER_TTL_SEC * 1000,
+  });
+  return rows;
+};
+
+const fetchReverseGeoByCoords = async (lat: number, lng: number) => {
+  const cacheKey = toPrayerCacheKey('reverse', [lat.toFixed(3), lng.toFixed(3)]);
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() < hit.expiresAt) {
+    return hit.data as { province: string; cityCandidates: string[] };
+  }
+
+  const payload = await fetchJsonWithRetry<{
+    address?: Record<string, unknown>;
+  }>(
+    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1&zoom=10`,
+    {
+      headers: {
+        'Accept-Language': 'id,en',
+        'User-Agent': 'MuslimLife/1.0 (+https://www.muslimlife.my.id)',
+      },
+    }
+  );
+
+  const addr = payload?.address || {};
+  const province =
+    toText(addr.state || addr.province || addr.region || '') || 'DKI Jakarta';
+  const cityCandidates = [
+    addr.city,
+    addr.city_district,
+    addr.town,
+    addr.county,
+    addr.municipality,
+    addr.suburb,
+  ]
+    .map((row) => toText(row))
+    .filter(Boolean);
+
+  const data = {
+    province,
+    cityCandidates: cityCandidates.length > 0 ? cityCandidates : ['Jakarta'],
+  };
+  cache.set(cacheKey, {
+    data,
+    expiresAt: Date.now() + PRAYER_TTL_SEC * 1000,
+  });
+  return data;
+};
+
+const pickBestProvince = (requestedProvince: string, provinces: string[]) => {
+  const needle = normalizeRegionName(requestedProvince);
+  if (!needle) return provinces[0] || 'DKI Jakarta';
+  const exact = provinces.find((row) => normalizeRegionName(row) === needle);
+  if (exact) return exact;
+  const partial = provinces.find((row) => {
+    const candidate = normalizeRegionName(row);
+    return candidate.includes(needle) || needle.includes(candidate);
+  });
+  return partial || provinces[0] || 'DKI Jakarta';
+};
+
+const toKabkotaComparable = (value: string) =>
+  normalizeRegionName(value)
+    .replace(/\b(kab|kabupaten|kota)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const pickBestKabkota = (requestedCityCandidates: string[], kabkotaRows: string[]) => {
+  const needles = requestedCityCandidates
+    .map((row) => toKabkotaComparable(row))
+    .filter(Boolean);
+  if (needles.length === 0) return kabkotaRows[0] || 'Kota Jakarta';
+
+  for (const needle of needles) {
+    const exact = kabkotaRows.find((row) => toKabkotaComparable(row) === needle);
+    if (exact) return exact;
+  }
+
+  for (const needle of needles) {
+    const partial = kabkotaRows.find((row) => {
+      const candidate = toKabkotaComparable(row);
+      return candidate.includes(needle) || needle.includes(candidate);
+    });
+    if (partial) return partial;
+  }
+
+  return kabkotaRows[0] || 'Kota Jakarta';
+};
+
+const resolveEquranRegion = async (input: {
+  lat: number;
+  lng: number;
+  provinsi?: string;
+  kabkota?: string;
+}) => {
+  const provinces = await fetchEquranProvinces();
+  const reverse = await fetchReverseGeoByCoords(input.lat, input.lng);
+
+  const requestedProvince = toText(input.provinsi) || reverse.province;
+  const bestProvince = pickBestProvince(requestedProvince, provinces);
+  const kabkotaRows = await fetchEquranKabkota(bestProvince);
+
+  const requestedCityCandidates = [
+    toText(input.kabkota),
+    ...reverse.cityCandidates,
+  ].filter(Boolean);
+  const bestKabkota = pickBestKabkota(requestedCityCandidates, kabkotaRows);
+
+  return {
+    provinsi: bestProvince,
+    kabkota: bestKabkota,
+  };
+};
+
+const fetchEquranPrayerMonth = async (params: {
+  provinsi: string;
+  kabkota: string;
+  bulan: number;
+  tahun: number;
+}) => {
+  const cacheKey = toPrayerCacheKey('calendar', [
+    params.provinsi,
+    params.kabkota,
+    params.tahun,
+    params.bulan,
+  ]);
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() < hit.expiresAt) {
+    return hit.data as EquranShalatPayload['data'];
+  }
+
+  const payload = await fetchJsonWithRetry<EquranShalatPayload>('https://equran.id/api/v2/shalat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      provinsi: params.provinsi,
+      kabkota: params.kabkota,
+      bulan: params.bulan,
+      tahun: params.tahun,
+    }),
+  });
+
+  const data = payload?.data;
+  const rows = Array.isArray(data?.jadwal) ? data.jadwal : [];
+  if (!data || rows.length === 0) {
+    throw new Error('Jadwal shalat bulanan tidak tersedia.');
+  }
+
+  cache.set(cacheKey, {
+    data,
+    expiresAt: Date.now() + PRAYER_TTL_SEC * 1000,
+  });
+  return data;
+};
+
+const toDateFromKey = (dateKey: string) => {
+  const matched = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!matched) return null;
+  return {
+    year: Number(matched[1]),
+    month: Number(matched[2]),
+    day: Number(matched[3]),
+  };
+};
+
+const normalizePrayerTime = (value: unknown) => toText(value).slice(0, 5);
+
+const mapEquranTimings = (row: EquranShalatCalendarRow) => ({
+  imsak: normalizePrayerTime(row.imsak),
+  subuh: normalizePrayerTime(row.subuh),
+  dzuhur: normalizePrayerTime(row.dzuhur),
+  ashar: normalizePrayerTime(row.ashar),
+  maghrib: normalizePrayerTime(row.maghrib),
+  isya: normalizePrayerTime(row.isya),
+});
+
+const handlePrayerTimes = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
+  if ((req.method || 'GET').toUpperCase() !== 'GET') {
+    res.status(405).json({ success: false, message: 'Method not allowed' });
+    return;
+  }
+
+  const lat = Number(readQuery(req, 'lat'));
+  const lng = Number(readQuery(req, 'lng'));
+  const date = readQuery(req, 'date') || readQuery(req, 'dateKey');
+  const parsedDate = toDateFromKey(date);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !parsedDate) {
+    res.status(400).json({ success: false, message: 'lat, lng, dan date/dateKey wajib valid.' });
+    return;
+  }
+
+  try {
+    const region = await resolveEquranRegion({
+      lat,
+      lng,
+      provinsi: readQuery(req, 'provinsi'),
+      kabkota: readQuery(req, 'kabkota'),
+    });
+    const monthData = await fetchEquranPrayerMonth({
+      provinsi: region.provinsi,
+      kabkota: region.kabkota,
+      bulan: parsedDate.month,
+      tahun: parsedDate.year,
+    });
+    const rows = Array.isArray(monthData?.jadwal) ? monthData.jadwal : [];
+    const target =
+      rows.find((row) => toText(row.tanggal_lengkap) === date) ||
+      rows.find((row) => Number(row.tanggal) === parsedDate.day);
+
+    if (!target) {
+      res.status(502).json({ success: false, message: 'Jadwal harian tidak ditemukan dari upstream.' });
+      return;
+    }
+
+    res.setHeader(
+      'Cache-Control',
+      `public, max-age=0, s-maxage=${PRAYER_TTL_SEC}, stale-while-revalidate=${PRAYER_TTL_SEC}`
+    );
+    res.status(200).json({
+      success: true,
+      data: {
+        date,
+        location: {
+          lat,
+          lng,
+          provinsi: region.provinsi,
+          kabkota: region.kabkota,
+        },
+        prayer_times: mapEquranTimings(target),
+        meta: {
+          provider: 'equran.id/api/v2/shalat',
+          method: 'equran',
+          timezone: 'Asia/Jakarta',
+        },
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Gagal memuat jadwal shalat.';
+    res.status(502).json({ success: false, message });
+  }
+};
+
+const handlePrayerCalendar = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
+  if ((req.method || 'GET').toUpperCase() !== 'GET') {
+    res.status(405).json({ success: false, message: 'Method not allowed' });
+    return;
+  }
+
+  const lat = Number(readQuery(req, 'lat'));
+  const lng = Number(readQuery(req, 'lng'));
+  const month = Number(readQuery(req, 'month'));
+  const year = Number(readQuery(req, 'year'));
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    !Number.isInteger(month) ||
+    month < 1 ||
+    month > 12 ||
+    !Number.isInteger(year) ||
+    year < 1900
+  ) {
+    res.status(400).json({ success: false, message: 'lat, lng, month, year wajib valid.' });
+    return;
+  }
+
+  try {
+    const region = await resolveEquranRegion({
+      lat,
+      lng,
+      provinsi: readQuery(req, 'provinsi'),
+      kabkota: readQuery(req, 'kabkota'),
+    });
+    const monthData = await fetchEquranPrayerMonth({
+      provinsi: region.provinsi,
+      kabkota: region.kabkota,
+      bulan: month,
+      tahun: year,
+    });
+    const rows = (Array.isArray(monthData?.jadwal) ? monthData.jadwal : [])
+      .map((row) => ({
+        dateKey: toText(row.tanggal_lengkap),
+        timings: mapEquranTimings(row),
+      }))
+      .filter((row) => row.dateKey);
+
+    res.setHeader(
+      'Cache-Control',
+      `public, max-age=0, s-maxage=${PRAYER_TTL_SEC}, stale-while-revalidate=${PRAYER_TTL_SEC}`
+    );
+    res.status(200).json({
+      success: true,
+      data: rows,
+      meta: {
+        provider: 'equran.id/api/v2/shalat',
+        location: {
+          lat,
+          lng,
+          provinsi: region.provinsi,
+          kabkota: region.kabkota,
+        },
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Gagal memuat kalender shalat.';
+    res.status(502).json({ success: false, message });
+  }
 };
 
 const getSupabaseAdmin = () => {
@@ -665,6 +1045,14 @@ const handleRating = async (req: ServerlessRequestLike, res: ServerlessResponseL
 };
 
 export default async function handler(req: ServerlessRequestLike, res: ServerlessResponseLike) {
+  if (readQuery(req, 'ml_route') === 'prayer-times') {
+    await handlePrayerTimes(req, res);
+    return;
+  }
+  if (readQuery(req, 'ml_route') === 'prayer-calendar') {
+    await handlePrayerCalendar(req, res);
+    return;
+  }
   if (readQuery(req, 'ml_route') === 'rating') {
     await handleRating(req, res);
     return;

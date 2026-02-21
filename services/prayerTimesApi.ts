@@ -28,14 +28,10 @@ export interface PrayerCalendarDay {
 }
 
 interface AladhanCalendarResponse {
-  code: number;
+  success?: boolean;
   data?: Array<{
+    dateKey?: string;
     timings?: Record<string, string>;
-    date?: {
-      gregorian?: {
-        date?: string;
-      };
-    };
   }>;
 }
 
@@ -49,12 +45,11 @@ interface TimingsCachePayload {
   data: PrayerDayTimings;
 }
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const CACHE_PREFIX = 'prayer';
 const TIMINGS_CACHE_PREFIX = 'prayer:timings';
 const DEFAULT_METHOD = 20;
-const API_ENDPOINT = 'https://api.aladhan.com/v1/calendar';
-const TIMINGS_ENDPOINT = 'https://api.aladhan.com/v1/timings';
+const API_ENDPOINT = '/api/weather';
 
 const toRoundedCoord = (value: number) => value.toFixed(3);
 
@@ -66,28 +61,22 @@ const toTimingsCacheKey = (lat: number, lng: number, dateKey: string, method: nu
   return `${TIMINGS_CACHE_PREFIX}:${toRoundedCoord(lat)}:${toRoundedCoord(lng)}:${dateKey}:${method}`;
 };
 
-const toDateKey = (rawDate: string) => {
-  const matched = rawDate.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-  if (!matched) return null;
-  return `${matched[3]}-${matched[2]}-${matched[1]}`;
-};
-
 const cleanTimingValue = (value: string | undefined) => {
   if (!value) return '';
   return value.replace(/\s*\(.+\)\s*/g, '').trim();
 };
 
 const normalizeTimings = (timings?: Record<string, string>): PrayerDayTimings => ({
-  imsak: cleanTimingValue(timings?.Imsak),
-  subuh: cleanTimingValue(timings?.Fajr),
-  dzuhur: cleanTimingValue(timings?.Dhuhr),
-  ashar: cleanTimingValue(timings?.Asr),
-  maghrib: cleanTimingValue(timings?.Maghrib),
-  isya: cleanTimingValue(timings?.Isha),
+  imsak: cleanTimingValue(timings?.imsak || timings?.Imsak),
+  subuh: cleanTimingValue(timings?.subuh || timings?.Fajr),
+  dzuhur: cleanTimingValue(timings?.dzuhur || timings?.Dhuhr),
+  ashar: cleanTimingValue(timings?.ashar || timings?.Asr),
+  maghrib: cleanTimingValue(timings?.maghrib || timings?.Maghrib),
+  isya: cleanTimingValue(timings?.isya || timings?.Isha),
 });
 
 const normalizeDay = (item: NonNullable<AladhanCalendarResponse['data']>[number]): PrayerCalendarDay | null => {
-  const dateKey = toDateKey(item?.date?.gregorian?.date || '');
+  const dateKey = String(item?.dateKey || '').trim();
   if (!dateKey) return null;
 
   const timings = item?.timings || {};
@@ -167,8 +156,9 @@ const fetchPrayerCalendar = async ({
   method = DEFAULT_METHOD,
 }: PrayerCalendarParams): Promise<PrayerCalendarDay[]> => {
   const params = new URLSearchParams({
-    latitude: String(lat),
-    longitude: String(lng),
+    ml_route: 'prayer-calendar',
+    lat: String(lat),
+    lng: String(lng),
     method: String(method),
     month: String(month),
     year: String(year),
@@ -176,7 +166,7 @@ const fetchPrayerCalendar = async ({
 
   const response = await fetch(`${API_ENDPOINT}?${params.toString()}`);
   if (!response.ok) {
-    throw new Error(`Gagal memuat jadwal sholat (${response.status}).`);
+    throw new Error(`Gagal memuat jadwal sholat equran (${response.status}).`);
   }
 
   const payload = (await response.json()) as AladhanCalendarResponse;
@@ -191,22 +181,25 @@ const fetchPrayerTimingsByDate = async ({
   method = DEFAULT_METHOD,
 }: PrayerTimingsParams): Promise<PrayerDayTimings> => {
   const params = new URLSearchParams({
-    latitude: String(lat),
-    longitude: String(lng),
+    ml_route: 'prayer-times',
+    lat: String(lat),
+    lng: String(lng),
+    date: dateKey,
     method: String(method),
   });
 
-  const response = await fetch(`${TIMINGS_ENDPOINT}/${dateKey}?${params.toString()}`);
+  const response = await fetch(`${API_ENDPOINT}?${params.toString()}`);
   if (!response.ok) {
-    throw new Error(`Gagal memuat jadwal sholat (${response.status}).`);
+    throw new Error(`Gagal memuat jadwal sholat equran (${response.status}).`);
   }
 
   const payload = (await response.json()) as {
     data?: {
       timings?: Record<string, string>;
+      prayer_times?: Record<string, string>;
     };
   };
-  return normalizeTimings(payload?.data?.timings);
+  return normalizeTimings(payload?.data?.timings || payload?.data?.prayer_times);
 };
 
 export const getPrayerCalendar = async ({

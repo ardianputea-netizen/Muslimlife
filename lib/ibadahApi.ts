@@ -1,9 +1,4 @@
 import { authenticatedFetch, readJsonResponse } from './authClient';
-import {
-  CalculationMethodId,
-  computeTimes,
-  formatTime,
-} from './prayerTimes';
 
 export const PRAYER_NAMES = ['subuh', 'dzuhur', 'ashar', 'maghrib', 'isya'] as const;
 export type PrayerName = (typeof PRAYER_NAMES)[number];
@@ -64,11 +59,6 @@ const toDateKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
     date.getDate()
   ).padStart(2, '0')}`;
-
-const parseDateKey = (value: string) => {
-  const [year, month, day] = value.split('-').map(Number);
-  return new Date(year, (month || 1) - 1, day || 1);
-};
 
 const getMondayIndex = (date: Date) => (date.getDay() + 6) % 7;
 
@@ -224,44 +214,6 @@ const buildLocalStats = (range: string): PrayerStatsResponse => {
   };
 };
 
-const methodToCalculationId = (method?: string): CalculationMethodId => {
-  if (method === '3') return 'muslim_world_league';
-  if (method === '2') return 'muslim_world_league';
-  if (method === 'umm_al_qura') return 'umm_al_qura';
-  if (method === 'singapore') return 'singapore';
-  return 'kemenag';
-};
-
-const buildLocalPrayerTimes = (params: {
-  lat: number;
-  lng: number;
-  date: string;
-  method?: string;
-  timezone?: string;
-}): PrayerTimesResponse => {
-  const date = parseDateKey(params.date);
-  const times = computeTimes(date, params.lat, params.lng, {
-    calculationMethod: methodToCalculationId(params.method),
-  });
-
-  return {
-    date: params.date,
-    location: { lat: params.lat, lng: params.lng },
-    prayer_times: {
-      subuh: formatTime(times.subuh),
-      dzuhur: formatTime(times.dzuhur),
-      ashar: formatTime(times.ashar),
-      maghrib: formatTime(times.maghrib),
-      isya: formatTime(times.isya),
-    },
-    meta: {
-      provider: 'local-adhan-js',
-      method: params.method || '20',
-      timezone: params.timezone || times.timezone,
-    },
-  };
-};
-
 export const getPrayerMonth = async (month: string): Promise<PrayerMonthResponse> => {
   try {
     const response = await authenticatedFetch(`/ibadah/prayer?month=${encodeURIComponent(month)}`);
@@ -319,19 +271,25 @@ export const getPrayerTimes = async (params: {
   method?: string;
   timezone?: string;
 }): Promise<PrayerTimesResponse> => {
-  try {
-    const query = new URLSearchParams({
-      lat: String(params.lat),
-      lng: String(params.lng),
-      date: params.date,
-    });
-    if (params.method) query.set('method', params.method);
-    if (params.timezone) query.set('timezone', params.timezone);
+  const query = new URLSearchParams({
+    ml_route: 'prayer-times',
+    lat: String(params.lat),
+    lng: String(params.lng),
+    date: params.date,
+  });
+  if (params.method) query.set('method', params.method);
+  if (params.timezone) query.set('timezone', params.timezone);
 
-    const response = await authenticatedFetch(`/ibadah/prayer/times?${query.toString()}`);
-    return await readJsonResponse<PrayerTimesResponse>(response);
-  } catch (error) {
-    console.warn('getPrayerTimes fallback local', error);
-    return buildLocalPrayerTimes(params);
+  const response = await fetch(`/api/weather?${query.toString()}`);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `HTTP ${response.status}`);
   }
+  const payload = (await response.json()) as {
+    data?: PrayerTimesResponse;
+  };
+  if (!payload?.data) {
+    throw new Error('Payload jadwal sholat tidak valid.');
+  }
+  return payload.data;
 };
