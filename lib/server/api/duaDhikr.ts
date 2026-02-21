@@ -1,57 +1,63 @@
 type QueryValue = string | string[] | undefined;
 
-export interface ServerlessRequestLike {
+interface ServerlessRequestLike {
   method?: string;
   query?: Record<string, QueryValue>;
   url?: string;
 }
 
-export interface ServerlessResponseLike {
+interface ServerlessResponseLike {
   status: (code: number) => ServerlessResponseLike;
   json: (payload: unknown) => void;
   setHeader: (name: string, value: string) => void;
 }
 
-const TTL_SEC = 7 * 24 * 60 * 60;
-const DUA_DHIKR_BASES = ['https://dua-dhikr.vercel.app', 'https://dua-dhikr.onrender.com'];
+interface EquranDoaRow {
+  id?: number;
+  grup?: string;
+  nama?: string;
+  ar?: string;
+  tr?: string;
+  idn?: string;
+  tentang?: string;
+  tag?: string[];
+}
+
+const EQURAN_DOA_BASE = 'https://equran.id/api/doa';
+const LIST_TTL_SEC = 24 * 60 * 60;
+const DETAIL_TTL_SEC = 7 * 24 * 60 * 60;
 const cache = new Map<string, { expiresAt: number; data: unknown }>();
 
 const pickQuery = (value: QueryValue) => (Array.isArray(value) ? value[0] : value);
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const applyCacheHeaders = (res: ServerlessResponseLike, status: 'hit' | 'miss') => {
-  res.setHeader('Cache-Control', `public, max-age=0, s-maxage=${TTL_SEC}, stale-while-revalidate=${TTL_SEC}`);
+
+const applyCacheHeaders = (
+  res: ServerlessResponseLike,
+  status: 'hit' | 'miss',
+  ttlSec: number
+) => {
+  res.setHeader('Cache-Control', `public, max-age=0, s-maxage=${ttlSec}, stale-while-revalidate=${ttlSec}`);
   res.setHeader('x-cache', status);
 };
 
-const asArray = (value: unknown) => {
-  if (Array.isArray(value)) return value;
-  if (Array.isArray((value as any)?.data)) return (value as any).data;
-  if (Array.isArray((value as any)?.result)) return (value as any).result;
-  if (Array.isArray((value as any)?.payload)) return (value as any).payload;
-  return [];
+const normalizeText = (value: unknown) => String(value || '').trim();
+
+const normalizeTags = (value: unknown) => {
+  if (!Array.isArray(value)) return [] as string[];
+  return value.map((item) => normalizeText(item)).filter(Boolean);
 };
 
-const asObject = (value: unknown) => {
-  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
-  return {};
-};
+const slugify = (value: string) =>
+  normalizeText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'umum';
 
-const readLang = (req: ServerlessRequestLike) => String(pickQuery(req.query?.lang) || '').trim() || undefined;
-const resolveUpstreamLang = (lang: string | undefined) => {
-  const normalized = String(lang || '').toLowerCase();
-  if (!normalized) return 'en';
-  if (normalized.startsWith('id')) return 'en';
-  return normalized;
-};
-
-const fetchWithRetry = async (url: string, lang?: string) => {
-  const upstreamLang = resolveUpstreamLang(lang);
+const fetchJsonWithRetry = async (url: string) => {
   let attempt = 0;
   while (attempt <= 2) {
     try {
-      const response = await fetch(url, {
-        headers: { 'Accept-Language': upstreamLang },
-      });
+      const response = await fetch(url);
       if (!response.ok) {
         if (attempt < 2 && (response.status === 429 || response.status >= 500)) {
           await sleep(350 * 2 ** attempt);
@@ -70,7 +76,204 @@ const fetchWithRetry = async (url: string, lang?: string) => {
       throw error;
     }
   }
-  throw new Error('Request gagal');
+  throw new Error('Upstream tidak tersedia');
+};
+
+const fetchEquranDoaList = async () => {
+  const cacheKey = 'equran:doa:list';
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() < hit.expiresAt) {
+    return { rows: hit.data as EquranDoaRow[], cacheStatus: 'hit' as const };
+  }
+
+  const raw = (await fetchJsonWithRetry(EQURAN_DOA_BASE)) as {
+    data?: EquranDoaRow[];
+  };
+  const rows = Array.isArray(raw?.data) ? raw.data : [];
+  cache.set(cacheKey, {
+    data: rows,
+    expiresAt: Date.now() + LIST_TTL_SEC * 1000,
+  });
+  return { rows, cacheStatus: 'miss' as const };
+};
+
+const mapCategoryRows = (rows: EquranDoaRow[]) => {
+  const counts = new Map<string, number>();
+  rows.forEach((row) => {
+    const group = normalizeText(row.grup) || 'Umum';
+    counts.set(group, (counts.get(group) || 0) + 1);
+  });
+
+  const dynamic = Array.from(counts.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([group, total]) => ({
+      slug: `dzikir-${slugify(group)}`,
+      title: group,
+      description: 'Doa harian (EQuran.id)',
+      total_items: total,
+      source: 'equran.id',
+    }));
+
+  const fallback = {
+    slug: 'matsurat-equran',
+    title: "Al-Ma'tsurat EQuran",
+    description: 'Kumpulan doa dari EQuran.id',
+    total_items: rows.length,
+    source: 'equran.id',
+  };
+
+  return [fallback, ...dynamic];
+};
+
+const mapSummaryRow = (row: EquranDoaRow) => ({
+  id: normalizeText(row.id),
+  title: normalizeText(row.nama || `Doa ${normalizeText(row.id)}`),
+  arabic: normalizeText(row.ar),
+  latin: normalizeText(row.tr),
+  translation: normalizeText(row.idn),
+  category: normalizeText(row.grup || 'Umum'),
+  tags: normalizeTags(row.tag),
+  source: 'equran.id/api/doa',
+});
+
+const mapDetailRow = (row: EquranDoaRow, fallbackId: string) => ({
+  id: normalizeText(row.id || fallbackId),
+  title: normalizeText(row.nama || `Doa ${fallbackId}`),
+  arabic: normalizeText(row.ar),
+  latin: normalizeText(row.tr),
+  translation: normalizeText(row.idn),
+  notes: normalizeText(row.tentang),
+  fawaid: '',
+  source: normalizeText(row.grup || 'equran.id/api/doa'),
+  category: normalizeText(row.grup || 'Umum'),
+  tags: normalizeTags(row.tag),
+});
+
+const mapRowsByCategory = (rows: EquranDoaRow[], category: string) => {
+  const normalized = normalizeText(category).toLowerCase();
+  if (normalized === 'matsurat-equran') {
+    return rows;
+  }
+
+  if (normalized.startsWith('dzikir-')) {
+    const expectedGroupSlug = normalized.replace(/^dzikir-/, '');
+    return rows.filter((row) => slugify(normalizeText(row.grup) || 'umum') === expectedGroupSlug);
+  }
+
+  return [] as EquranDoaRow[];
+};
+
+const sendOk = (res: ServerlessResponseLike, payload: unknown, cacheStatus: 'hit' | 'miss', ttlSec: number) => {
+  applyCacheHeaders(res, cacheStatus, ttlSec);
+  res.status(200).json(payload);
+};
+
+const sendUpstreamError = (res: ServerlessResponseLike, fallbackMessage: string, error: unknown, ttlSec: number) => {
+  applyCacheHeaders(res, 'miss', ttlSec);
+  const message = error instanceof Error ? error.message : fallbackMessage;
+  res.status(502).json({ success: false, ok: false, message });
+};
+
+const handleLanguages = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
+  if ((req.method || 'GET').toUpperCase() !== 'GET') {
+    applyCacheHeaders(res, 'miss', LIST_TTL_SEC);
+    res.status(405).json({ success: false, ok: false, message: 'Method not allowed' });
+    return;
+  }
+
+  const data = [{ code: 'id', label: 'Indonesia' }];
+  sendOk(res, { success: true, ok: true, data, result: data, payload: data }, 'miss', LIST_TTL_SEC);
+};
+
+const handleCategories = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
+  if ((req.method || 'GET').toUpperCase() !== 'GET') {
+    applyCacheHeaders(res, 'miss', LIST_TTL_SEC);
+    res.status(405).json({ success: false, ok: false, message: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const { rows, cacheStatus } = await fetchEquranDoaList();
+    const categories = mapCategoryRows(rows);
+    sendOk(
+      res,
+      { success: true, ok: true, data: categories, result: categories, payload: categories },
+      cacheStatus,
+      LIST_TTL_SEC
+    );
+  } catch (error) {
+    sendUpstreamError(res, 'Gagal memuat daftar kategori.', error, LIST_TTL_SEC);
+  }
+};
+
+const handleCategoryItems = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
+  if ((req.method || 'GET').toUpperCase() !== 'GET') {
+    applyCacheHeaders(res, 'miss', LIST_TTL_SEC);
+    res.status(405).json({ success: false, ok: false, message: 'Method not allowed' });
+    return;
+  }
+
+  const category = normalizeText(pickQuery(req.query?.category));
+  if (!category) {
+    applyCacheHeaders(res, 'miss', LIST_TTL_SEC);
+    res.status(400).json({ success: false, ok: false, message: 'category wajib diisi.' });
+    return;
+  }
+
+  try {
+    const { rows, cacheStatus } = await fetchEquranDoaList();
+    const filtered = mapRowsByCategory(rows, category).map(mapSummaryRow);
+    sendOk(
+      res,
+      { success: true, ok: true, data: filtered, result: filtered, payload: filtered },
+      cacheStatus,
+      LIST_TTL_SEC
+    );
+  } catch (error) {
+    sendUpstreamError(res, 'Gagal memuat daftar bacaan.', error, LIST_TTL_SEC);
+  }
+};
+
+const handleCategoryDetail = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
+  if ((req.method || 'GET').toUpperCase() !== 'GET') {
+    applyCacheHeaders(res, 'miss', DETAIL_TTL_SEC);
+    res.status(405).json({ success: false, ok: false, message: 'Method not allowed' });
+    return;
+  }
+
+  const id = normalizeText(pickQuery(req.query?.id));
+  if (!id) {
+    applyCacheHeaders(res, 'miss', DETAIL_TTL_SEC);
+    res.status(400).json({ success: false, ok: false, message: 'id wajib diisi.' });
+    return;
+  }
+
+  const cacheKey = `equran:doa:detail:${id}`;
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() < hit.expiresAt) {
+    sendOk(res, hit.data, 'hit', DETAIL_TTL_SEC);
+    return;
+  }
+
+  try {
+    const raw = (await fetchJsonWithRetry(`${EQURAN_DOA_BASE}/${encodeURIComponent(id)}`)) as {
+      data?: EquranDoaRow;
+    };
+    const row = raw?.data;
+    if (!row || !normalizeText(row.id)) {
+      throw new Error('Data detail doa tidak ditemukan.');
+    }
+
+    const detail = mapDetailRow(row, id);
+    const payload = { success: true, ok: true, data: detail, result: detail, payload: detail };
+    cache.set(cacheKey, {
+      data: payload,
+      expiresAt: Date.now() + DETAIL_TTL_SEC * 1000,
+    });
+    sendOk(res, payload, 'miss', DETAIL_TTL_SEC);
+  } catch (error) {
+    sendUpstreamError(res, 'Gagal memuat detail bacaan.', error, DETAIL_TTL_SEC);
+  }
 };
 
 const normalizePath = (slug: QueryValue) => {
@@ -91,227 +294,73 @@ const normalizePathFromUrl = (urlRaw: string | undefined) => {
   return normalized.slice(idx + marker.length).replace(/^\/+|\/+$/g, '');
 };
 
-const normalizeGatewayShape = (path: string, raw: unknown) => {
-  const normalizedPath = path.replace(/^\/+|\/+$/g, '');
-  if (!normalizedPath) return raw;
-
-  if (normalizedPath === 'categories' || normalizedPath === 'languages') {
-    const rows = asArray(raw);
-    return {
-      ok: true,
-      success: true,
-      data: rows,
-      result: rows,
-      payload: rows,
-    };
-  }
-
-  if (normalizedPath.startsWith('categories/')) {
-    const segments = normalizedPath.split('/').filter(Boolean);
-    if (segments.length >= 3) {
-      const row = asObject((raw as any)?.data || (raw as any)?.result || (raw as any)?.payload || raw);
-      return {
-        ok: true,
-        success: true,
-        data: row,
-        result: row,
-        payload: row,
-      };
-    }
-
-    const rows = asArray(raw);
-    return {
-      ok: true,
-      success: true,
-      data: rows,
-      result: rows,
-      payload: rows,
-    };
-  }
-
-  return raw;
-};
-
-export const handleDuaDhikrCategories = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
-  if ((req.method || 'GET').toUpperCase() !== 'GET') {
-    applyCacheHeaders(res, 'miss');
-    res.status(405).json({ success: false, ok: false, message: 'Method not allowed' });
-    return;
-  }
-
-  const lang = readLang(req);
-  const key = `categories:${lang || 'id'}`;
-
-  try {
-    const hit = cache.get(key);
-    if (hit && Date.now() < hit.expiresAt) {
-      applyCacheHeaders(res, 'hit');
-      res.status(200).json(hit.data);
-      return;
-    }
-
-    let lastError: unknown = null;
-    for (const base of DUA_DHIKR_BASES) {
-      try {
-        const upstreamData = await fetchWithRetry(`${base}/categories`, lang);
-        const rows = asArray(upstreamData);
-        const data = { success: true, ok: true, data: rows, result: rows, payload: rows };
-        cache.set(key, { data, expiresAt: Date.now() + TTL_SEC * 1000 });
-        applyCacheHeaders(res, 'miss');
-        res.status(200).json(data);
-        return;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError || new Error('Upstream dua-dhikr tidak tersedia.');
-  } catch (error) {
-    applyCacheHeaders(res, 'miss');
-    const message = error instanceof Error ? error.message : 'Gagal memuat daftar kategori.';
-    res.status(502).json({ success: false, ok: false, message });
-  }
-};
-
-export const handleDuaDhikrCategoryItems = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
-  if ((req.method || 'GET').toUpperCase() !== 'GET') {
-    applyCacheHeaders(res, 'miss');
-    res.status(405).json({ success: false, ok: false, message: 'Method not allowed' });
-    return;
-  }
-
-  const category = String(pickQuery(req.query?.category) || '').trim();
-  if (!category) {
-    applyCacheHeaders(res, 'miss');
-    res.status(400).json({ success: false, ok: false, message: 'category wajib diisi.' });
-    return;
-  }
-
-  const lang = readLang(req);
-  const key = `${category}:${lang || 'id'}`;
-
-  try {
-    const hit = cache.get(key);
-    if (hit && Date.now() < hit.expiresAt) {
-      applyCacheHeaders(res, 'hit');
-      res.status(200).json(hit.data);
-      return;
-    }
-
-    let lastError: unknown = null;
-    for (const base of DUA_DHIKR_BASES) {
-      try {
-        const upstreamData = await fetchWithRetry(`${base}/categories/${encodeURIComponent(category)}`, lang);
-        const rows = asArray(upstreamData);
-        const data = { success: true, ok: true, data: rows, result: rows, payload: rows };
-        cache.set(key, { data, expiresAt: Date.now() + TTL_SEC * 1000 });
-        applyCacheHeaders(res, 'miss');
-        res.status(200).json(data);
-        return;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError || new Error('Upstream dua-dhikr tidak tersedia.');
-  } catch (error) {
-    applyCacheHeaders(res, 'miss');
-    const message = error instanceof Error ? error.message : 'Gagal memuat daftar kategori.';
-    res.status(502).json({ success: false, ok: false, message });
-  }
-};
-
-export const handleDuaDhikrCategoryDetail = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
-  if ((req.method || 'GET').toUpperCase() !== 'GET') {
-    applyCacheHeaders(res, 'miss');
-    res.status(405).json({ success: false, ok: false, message: 'Method not allowed' });
-    return;
-  }
-
-  const category = String(pickQuery(req.query?.category) || '').trim();
-  const id = String(pickQuery(req.query?.id) || '').trim();
-  if (!category || !id) {
-    applyCacheHeaders(res, 'miss');
-    res.status(400).json({ success: false, ok: false, message: 'category dan id wajib diisi.' });
-    return;
-  }
-
-  const lang = readLang(req);
-  const key = `${category}:${id}:${lang || 'id'}`;
-
-  try {
-    const hit = cache.get(key);
-    if (hit && Date.now() < hit.expiresAt) {
-      applyCacheHeaders(res, 'hit');
-      res.status(200).json(hit.data);
-      return;
-    }
-
-    let lastError: unknown = null;
-    for (const base of DUA_DHIKR_BASES) {
-      try {
-        const upstreamData = await fetchWithRetry(
-          `${base}/categories/${encodeURIComponent(category)}/${encodeURIComponent(id)}`,
-          lang
-        );
-        const row = asObject((upstreamData as any)?.data || (upstreamData as any)?.result || (upstreamData as any)?.payload || upstreamData);
-        const data = { success: true, ok: true, data: row, result: row, payload: row };
-        cache.set(key, { data, expiresAt: Date.now() + TTL_SEC * 1000 });
-        applyCacheHeaders(res, 'miss');
-        res.status(200).json(data);
-        return;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError || new Error('Upstream dua-dhikr tidak tersedia.');
-  } catch (error) {
-    applyCacheHeaders(res, 'miss');
-    const message = error instanceof Error ? error.message : 'Gagal memuat detail kategori.';
-    res.status(502).json({ success: false, ok: false, message });
-  }
-};
-
-export const handleDuaDhikrPassthrough = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
-  if ((req.method || 'GET').toUpperCase() !== 'GET') {
-    applyCacheHeaders(res, 'miss');
-    res.status(405).json({ success: false, message: 'Method not allowed' });
-    return;
-  }
-
+const handlePassthrough = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
   const path = normalizePath(req.query?.slug) || normalizePathFromUrl(req.url);
   if (!path) {
-    applyCacheHeaders(res, 'miss');
-    res.status(400).json({ success: false, message: 'Path doa-dhikr wajib diisi.' });
+    applyCacheHeaders(res, 'miss', LIST_TTL_SEC);
+    res.status(400).json({ success: false, ok: false, message: 'Path doa-dhikr wajib diisi.' });
     return;
   }
 
-  const lang = readLang(req);
-  const key = `${path}:${lang || 'id'}`;
-
-  try {
-    const hit = cache.get(key);
-    if (hit && Date.now() < hit.expiresAt) {
-      applyCacheHeaders(res, 'hit');
-      res.status(200).json(hit.data);
-      return;
-    }
-
-    let lastError: unknown = null;
-    for (const base of DUA_DHIKR_BASES) {
-      try {
-        const upstreamData = await fetchWithRetry(`${base}/${path}`, lang);
-        const data = normalizeGatewayShape(path, upstreamData);
-        cache.set(key, { data, expiresAt: Date.now() + TTL_SEC * 1000 });
-        applyCacheHeaders(res, 'miss');
-        res.status(200).json(data);
-        return;
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError || new Error('Upstream dua-dhikr tidak tersedia.');
-  } catch (error) {
-    applyCacheHeaders(res, 'miss');
-    const message = error instanceof Error ? error.message : 'Gagal memuat doa-dhikr.';
-    res.status(502).json({ success: false, message });
+  if (path === 'categories') {
+    await handleCategories(req, res);
+    return;
   }
+
+  if (path === 'languages') {
+    await handleLanguages(req, res);
+    return;
+  }
+
+  const segments = path.split('/').filter(Boolean);
+  if (segments[0] === 'categories' && segments.length === 2) {
+    req.query = { ...(req.query || {}), category: segments[1] };
+    await handleCategoryItems(req, res);
+    return;
+  }
+
+  if (segments[0] === 'categories' && segments.length >= 3) {
+    req.query = {
+      ...(req.query || {}),
+      category: segments[1],
+      id: segments[2],
+    };
+    await handleCategoryDetail(req, res);
+    return;
+  }
+
+  applyCacheHeaders(res, 'miss', LIST_TTL_SEC);
+  res.status(404).json({ success: false, ok: false, message: 'Path doa-dhikr tidak ditemukan.' });
 };
+
+export default async function handler(req: ServerlessRequestLike, res: ServerlessResponseLike) {
+  const route = String(pickQuery(req.query?.route) || '').trim().toLowerCase();
+
+  if (route === 'languages') {
+    await handleLanguages(req, res);
+    return;
+  }
+
+  if (route === 'categories') {
+    await handleCategories(req, res);
+    return;
+  }
+
+  if (route === 'category-items') {
+    await handleCategoryItems(req, res);
+    return;
+  }
+
+  if (route === 'category-detail') {
+    await handleCategoryDetail(req, res);
+    return;
+  }
+
+  if (route === 'passthrough') {
+    await handlePassthrough(req, res);
+    return;
+  }
+
+  applyCacheHeaders(res, 'miss', LIST_TTL_SEC);
+  res.status(400).json({ success: false, ok: false, message: 'route dua-dhikr tidak valid.' });
+}
