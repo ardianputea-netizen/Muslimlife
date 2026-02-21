@@ -22,6 +22,7 @@ import {
   getPrayerTimes,
   upsertPrayerCheckin,
 } from '../lib/ibadahApi';
+import { savePrayerSettings } from '../lib/prayerTimes';
 import { MiniCalendarItem, MiniCalendarStrip } from './MiniCalendarStrip';
 
 interface IbadahPageProps {
@@ -193,6 +194,11 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         setGeoLocation({ lat: coords.latitude, lng: coords.longitude });
+        savePrayerSettings({
+          lat: coords.latitude,
+          lng: coords.longitude,
+          cityPreset: 'manual',
+        });
         setErrorMessage(null);
         setIsRequestingLocation(false);
       },

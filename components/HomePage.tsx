@@ -899,49 +899,49 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
           </button>
         </div>
 
-        <div className="mt-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-white/40 bg-background/10 p-3 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Jam Sekarang</p>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground">{realtimeClock}</h2>
+              <p className="text-xs font-medium text-white/80">Jam Sekarang</p>
+              <h2 className="text-3xl font-bold tracking-tight text-white">{realtimeClock}</h2>
             </div>
             <div className="text-right">
-              <p className="text-xs font-medium text-muted-foreground">{nextPrayer ? `Next Adzan: ${nextPrayer.label}` : 'Next Adzan'}</p>
-              <p className="text-base font-bold tracking-tight text-foreground">{nextPrayer ? formatTime(nextPrayer.time) : '--:--'}</p>
+              <p className="text-xs font-medium text-white/80">{nextPrayer ? `Next Adzan: ${nextPrayer.label}` : 'Next Adzan'}</p>
+              <p className="text-base font-bold tracking-tight text-white">{nextPrayer ? formatTime(nextPrayer.time) : '--:--'}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 mt-3">
-            <div className="rounded-xl border border-border bg-muted/50 px-2 py-2">
-              <p className="text-[10px] font-medium text-muted-foreground">Adzan</p>
-              <p className="text-xs font-bold tracking-tight text-foreground">{adzanCountdown || '--:--:--'}</p>
+            <div className="rounded-xl border border-white/40 bg-background/10 px-2 py-2">
+              <p className="text-[10px] font-medium text-white/80">Adzan</p>
+              <p className="text-xs font-bold tracking-tight text-white">{adzanCountdown || '--:--:--'}</p>
             </div>
-            <div className="rounded-xl border border-border bg-muted/50 px-2 py-2">
-              <p className="text-[10px] font-medium text-muted-foreground">Imsak</p>
-              <p className="text-xs font-bold tracking-tight text-foreground">{imsakCountdown || '--:--:--'}</p>
+            <div className="rounded-xl border border-white/40 bg-background/10 px-2 py-2">
+              <p className="text-[10px] font-medium text-white/80">Imsak</p>
+              <p className="text-xs font-bold tracking-tight text-white">{imsakCountdown || '--:--:--'}</p>
             </div>
-            <div className="rounded-xl border border-border bg-muted/50 px-2 py-2">
-              <p className="text-[10px] font-medium text-muted-foreground">Buka</p>
-              <p className="text-xs font-bold tracking-tight text-foreground">{bukaCountdown || '--:--:--'}</p>
+            <div className="rounded-xl border border-white/40 bg-background/10 px-2 py-2">
+              <p className="text-[10px] font-medium text-white/80">Buka</p>
+              <p className="text-xs font-bold tracking-tight text-white">{bukaCountdown || '--:--:--'}</p>
             </div>
           </div>
         </div>
-        <div className="mt-3 bg-card text-foreground rounded-2xl p-3 border border-border shadow-sm">
+        <div className="mt-3 rounded-2xl border border-white/40 bg-background/10 p-3 text-white shadow-sm">
           {prayerTimeline.length > 0 ? (
             <div className="grid grid-cols-5 gap-1">
               {prayerTimeline.map((item) => {
                 const isNext = nextPrayer?.name === item.prayer;
                 return (
                   <div key={item.prayer} className="flex flex-col items-center min-w-0">
-                    <span className="text-xs text-muted-foreground mb-1">{item.label}</span>
-                    <span className={`text-sm font-semibold ${isNext ? 'text-emerald-700 dark:text-emerald-300' : 'text-foreground'}`}>{item.time}</span>
-                    {isNext && <div className="w-1 h-1 bg-emerald-500 rounded-full mt-1" />}
+                    <span className="mb-1 text-xs text-white/80">{item.label}</span>
+                    <span className={`text-sm font-semibold ${isNext ? 'text-white' : 'text-white'}`}>{item.time}</span>
+                    {isNext && <div className="mt-1 h-1 w-1 rounded-full bg-primary-foreground" />}
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="text-xs text-muted-foreground">Set lokasi di Settings untuk memuat jadwal sholat.</div>
+            <div className="text-xs text-white/80">Set lokasi di Settings untuk memuat jadwal sholat.</div>
           )}
         </div>
       </div>
