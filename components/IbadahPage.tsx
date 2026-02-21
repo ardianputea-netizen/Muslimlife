@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -163,7 +163,10 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
   const [savingPrayer, setSavingPrayer] = useState<PrayerName | null>(null);
   const [missedNotes, setMissedNotes] = useState<PrayerMissedNotes>(() => readMissedNotes());
+  const [missedNoteDrafts, setMissedNoteDrafts] = useState<PrayerMissedNotes>(() => readMissedNotes());
+  const [savedMissedNoteKey, setSavedMissedNoteKey] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const savedNoteHintTimeoutRef = useRef<number | null>(null);
   const { location, hasLocation, status: locationStatus, error: locationError, refreshFromDevice, clear } = useLocationPrefs();
 
   const monthKey = useMemo(() => toMonthKey(monthCursor), [monthCursor]);
@@ -258,11 +261,28 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
     void loadLocationPrayerTimes();
   }, [loadLocationPrayerTimes]);
 
+  useEffect(
+    () => () => {
+      if (savedNoteHintTimeoutRef.current !== null) {
+        window.clearTimeout(savedNoteHintTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   const selectedDay = useMemo(() => findDayByDate(monthData, selectedDate), [monthData, selectedDate]);
 
-  const setPrayerMissedNote = useCallback((date: string, prayer: PrayerName, noteText: string) => {
+  const setPrayerMissedNoteDraft = useCallback((date: string, prayer: PrayerName, noteText: string) => {
     const key = buildMissedNoteKey(date, prayer);
-    const trimmed = noteText.trim().slice(0, 180);
+    setMissedNoteDrafts((prev) => ({
+      ...prev,
+      [key]: noteText.slice(0, 180),
+    }));
+  }, []);
+
+  const savePrayerMissedNote = useCallback((date: string, prayer: PrayerName) => {
+    const key = buildMissedNoteKey(date, prayer);
+    const trimmed = String(missedNoteDrafts[key] || '').trim().slice(0, 180);
     setMissedNotes((prev) => {
       const next = { ...prev };
       if (trimmed) {
@@ -273,7 +293,25 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
       writeMissedNotes(next);
       return next;
     });
-  }, []);
+    setMissedNoteDrafts((prev) => {
+      const next = { ...prev };
+      if (trimmed) {
+        next[key] = trimmed;
+      } else {
+        delete next[key];
+      }
+      return next;
+    });
+
+    setSavedMissedNoteKey(key);
+    if (savedNoteHintTimeoutRef.current !== null) {
+      window.clearTimeout(savedNoteHintTimeoutRef.current);
+    }
+    savedNoteHintTimeoutRef.current = window.setTimeout(() => {
+      setSavedMissedNoteKey((prev) => (prev === key ? null : prev));
+      savedNoteHintTimeoutRef.current = null;
+    }, 1800);
+  }, [missedNoteDrafts]);
 
   const clearPrayerMissedNote = useCallback((date: string, prayer: PrayerName) => {
     const key = buildMissedNoteKey(date, prayer);
@@ -284,6 +322,13 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
       writeMissedNotes(next);
       return next;
     });
+    setMissedNoteDrafts((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setSavedMissedNoteKey((prev) => (prev === key ? null : prev));
   }, []);
 
   const handleStatusUpdate = async (prayer: PrayerName, status: 'done' | 'missed') => {
@@ -419,6 +464,9 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
                 const currentStatus = selectedDay.statuses[prayer] || 'pending';
                 const noteKey = buildMissedNoteKey(selectedDate, prayer);
                 const missedNoteValue = missedNotes[noteKey] || '';
+                const missedNoteDraftValue = missedNoteDrafts[noteKey] ?? missedNoteValue;
+                const trimmedDraft = missedNoteDraftValue.trim().slice(0, 180);
+                const canSaveMissedNote = trimmedDraft !== missedNoteValue;
 
                 return (
                   <div
@@ -488,12 +536,26 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
                           Alasan tidak sholat (opsional)
                         </p>
                         <textarea
-                          value={missedNoteValue}
-                          onChange={(event) => setPrayerMissedNote(selectedDate, prayer, event.target.value)}
+                          value={missedNoteDraftValue}
+                          onChange={(event) => setPrayerMissedNoteDraft(selectedDate, prayer, event.target.value)}
                           placeholder="Contoh: sedang perjalanan, sakit, atau kondisi darurat."
                           rows={2}
+                          maxLength={180}
                           className="mt-1 w-full resize-none rounded-md border border-rose-300/70 bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-rose-400"
                         />
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => savePrayerMissedNote(selectedDate, prayer)}
+                            disabled={!canSaveMissedNote}
+                            className="rounded-md border border-rose-300/70 bg-rose-100 px-2 py-1 text-[11px] font-semibold text-rose-700 disabled:opacity-50 dark:border-rose-400/40 dark:bg-rose-500/20 dark:text-rose-200"
+                          >
+                            Simpan Catatan
+                          </button>
+                          <span className="text-[10px] text-rose-700/80 dark:text-rose-200/80">
+                            {savedMissedNoteKey === noteKey ? 'Tersimpan' : `${trimmedDraft.length}/180`}
+                          </span>
+                        </div>
                       </div>
                     ) : null}
                   </div>

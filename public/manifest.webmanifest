@@ -1,6 +1,6 @@
 {
-  "name": "MuslimLife Super App",
-  "short_name": "MuslimLife",
+  "name": "MuslimLife Flow",
+  "short_name": "MuslimLife Flow",
   "description": "Jadwal sholat, ibadah tracker, doa, dzikir, dan pengingat.",
   "start_url": "/",
   "scope": "/",

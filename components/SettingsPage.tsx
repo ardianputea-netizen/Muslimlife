@@ -18,6 +18,7 @@ import {
   Share2,
   PlusSquare,
   History,
+  Trash2,
 } from 'lucide-react';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { getOAuthRedirectTo } from '../lib/oauth';
@@ -147,6 +148,14 @@ const DEFAULT_RATING_SUMMARY: RatingSummary = {
   items: [],
 };
 
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL?.trim() || import.meta.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || '';
+const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+  '';
+
 export const SettingsPage: React.FC = () => {
   const supabaseConfigured = isSupabaseConfigured();
   const supabaseClient = getSupabaseClient();
@@ -169,6 +178,8 @@ export const SettingsPage: React.FC = () => {
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [otherAppsOpen, setOtherAppsOpen] = useState(false);
   const [installOpen, setInstallOpen] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [ratingSummary, setRatingSummary] = useState<RatingSummary>(DEFAULT_RATING_SUMMARY);
   const [ratingLoading, setRatingLoading] = useState(true);
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
@@ -552,6 +563,84 @@ export const SettingsPage: React.FC = () => {
     setInstallPromptEvent(null);
   }, [installPromptEvent, showToast]);
 
+  const clearAppLocalData = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('clear local data failed', error);
+      }
+    }
+  }, []);
+
+  const requestSupabaseDeleteCurrentUser = useCallback(async () => {
+    if (!supabaseClient) throw new Error('Client auth tidak tersedia.');
+
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) throw error;
+
+    const accessToken = String(data.session?.access_token || '').trim();
+    if (!accessToken) {
+      throw new Error('Sesi login tidak ditemukan.');
+    }
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      throw new Error('Konfigurasi Supabase belum lengkap.');
+    }
+
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      method: 'DELETE',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(body || `DELETE /auth/v1/user gagal (${response.status})`);
+    }
+  }, [supabaseClient]);
+
+  const handleDeleteAccount = useCallback(async () => {
+    if (!supabaseClient || !user) {
+      showToast('Login dulu sebelum menghapus akun.', 'error');
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      let deletedFromAuth = false;
+      try {
+        await requestSupabaseDeleteCurrentUser();
+        deletedFromAuth = true;
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn('delete auth user fallback to app-data cleanup', error);
+        }
+        await Promise.allSettled([
+          supabaseClient.from('push_subscriptions').delete().eq('user_id', user.id),
+          supabaseClient.from('profiles').delete().eq('id', user.id),
+        ]);
+      }
+
+      clearAppLocalData();
+      await supabaseClient.auth.signOut();
+      setDeleteAccountOpen(false);
+      showToast(
+        deletedFromAuth
+          ? 'Akun berhasil dihapus.'
+          : 'Akun keluar dan data aplikasi dibersihkan di perangkat ini.',
+        'success'
+      );
+    } catch (error) {
+      console.error('Delete account failed', error);
+      showToast('Gagal menghapus akun. Coba lagi.', 'error');
+    } finally {
+      setDeletingAccount(false);
+    }
+  }, [clearAppLocalData, requestSupabaseDeleteCurrentUser, showToast, supabaseClient, user]);
+
   const notificationSubtitle = useMemo(
     () => getNotificationSubtitle(permission, profile.notification_settings),
     [permission, profile.notification_settings]
@@ -598,6 +687,21 @@ export const SettingsPage: React.FC = () => {
             <RefreshCw size={13} className="animate-spin" /> Sinkronisasi pengaturan...
           </div>
         ) : null}
+
+        <div>
+          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-muted-foreground dark:text-foreground">AKUN</p>
+        </div>
+
+        <section className="rounded-2xl border border-border bg-card overflow-hidden dark:border-white/10 dark:bg-card">
+          <SettingsRow
+            icon={Trash2}
+            iconClassName="text-rose-600 dark:text-rose-200"
+            title="Hapus Akun"
+            subtitle={user ? 'Hapus akun dan data aplikasi' : 'Login dulu untuk menghapus akun'}
+            onClick={() => setDeleteAccountOpen(true)}
+            disabled={!user || isAuthLoading || deletingAccount}
+          />
+        </section>
 
         <div>
           <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-muted-foreground dark:text-foreground">PENGATURAN UMUM</p>
@@ -717,6 +821,10 @@ export const SettingsPage: React.FC = () => {
             onClick={() => setOtherAppsOpen(true)}
           />
         </section>
+
+        <div className="pb-6 pt-2 text-center text-[11px] font-medium text-muted-foreground dark:text-foreground">
+          © {new Date().getFullYear()} MuslimLife Flow
+        </div>
       </div>
 
       <NotificationSheet
@@ -750,6 +858,57 @@ export const SettingsPage: React.FC = () => {
           showToast('Tema tampilan diperbarui.', 'success');
         }}
       />
+
+      {deleteAccountOpen ? (
+        <div className="fixed inset-0 z-[130] flex items-end bg-black/40 p-0 backdrop-blur-sm dark:bg-black/60 sm:items-center sm:justify-center sm:p-4">
+          <button className="absolute inset-0" aria-label="Tutup hapus akun" onClick={() => setDeleteAccountOpen(false)} />
+          <div className="relative w-full max-h-[86vh] overflow-y-auto rounded-t-2xl border border-border bg-[#ffffff] p-4 shadow-xl dark:bg-[hsl(var(--card))] sm:max-w-xl sm:rounded-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">Hapus Akun</h3>
+              <button
+                type="button"
+                onClick={() => setDeleteAccountOpen(false)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted dark:hover:bg-card/10"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Sebelum lanjut, baca dampaknya. Tindakan ini bersifat permanen untuk data yang dihapus.
+            </p>
+
+            <div className="mt-3 rounded-xl border border-rose-300/60 bg-rose-500/10 p-3">
+              <p className="text-xs font-semibold text-rose-700 dark:text-rose-200">Dampak Hapus Akun:</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-relaxed text-rose-700 dark:text-rose-100">
+                <li>Anda akan langsung logout dari aplikasi.</li>
+                <li>Profil dan preferensi akun pada MuslimLife Flow akan dibersihkan.</li>
+                <li>Bookmark, catatan, dan cache lokal di perangkat ini akan dihapus.</li>
+                <li>Tindakan ini tidak dapat dibatalkan.</li>
+              </ul>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteAccountOpen(false)}
+                disabled={deletingAccount}
+                className="rounded-xl border border-border bg-card py-2 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeleteAccount()}
+                disabled={deletingAccount}
+                className="rounded-xl border border-rose-300 bg-rose-100 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-200 disabled:opacity-50 dark:border-rose-400/40 dark:bg-rose-500/20 dark:text-rose-100"
+              >
+                {deletingAccount ? 'Memproses...' : 'Hapus Akun'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {privacyOpen ? (
         <div className="fixed inset-0 z-[130] flex items-end bg-black/40 p-0 backdrop-blur-sm dark:bg-black/60 sm:items-center sm:justify-center sm:p-4">
@@ -797,7 +956,7 @@ export const SettingsPage: React.FC = () => {
                   key={`${label}-${index}`}
                   className="rounded-2xl border border-emerald-200/80 bg-[linear-gradient(160deg,#effcf4_0%,#d8f6ea_55%,#c8efe0_100%)] p-4 shadow-sm dark:border-emerald-400/30 dark:bg-[linear-gradient(160deg,#0d2e24_0%,#0f3d2f_55%,#144f3d_100%)]"
                 >
-                  <p className="text-[10px] font-semibold tracking-[0.2em] text-emerald-700 dark:text-emerald-200">MUSLIMLIFE</p>
+                  <p className="text-[10px] font-semibold tracking-[0.2em] text-emerald-700 dark:text-emerald-200">MUSLIMLIFE FLOW</p>
                   <p className="mt-2 text-sm font-bold text-emerald-900 dark:text-emerald-50">{label}</p>
                 </div>
               ))}
