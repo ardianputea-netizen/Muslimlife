@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DEFAULT_PRAYER_SETTINGS, savePrayerSettings } from '../../lib/prayerTimes';
+import {
+  DEFAULT_PRAYER_SETTINGS,
+  loadPrayerSettings,
+  PRAYER_SETTINGS_UPDATED_EVENT,
+  savePrayerSettings,
+} from '../../lib/prayerTimes';
 import {
   clearLocation,
   getSavedLocation,
@@ -12,6 +17,7 @@ export type LocationPrefsStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 const DEFAULT_LAT = DEFAULT_PRAYER_SETTINGS.lat ?? -6.2088;
 const DEFAULT_LNG = DEFAULT_PRAYER_SETTINGS.lng ?? 106.8456;
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 const getGeolocationErrorMessage = (error: GeolocationPositionError | Error) => {
   if ('code' in error) {
@@ -30,7 +36,20 @@ const getGeolocationErrorMessage = (error: GeolocationPositionError | Error) => 
 
 const readInitialLocation = () => {
   if (typeof window === 'undefined') return null;
-  return getSavedLocation();
+  const saved = getSavedLocation();
+  if (saved) return saved;
+
+  const settings = loadPrayerSettings();
+  if (settings.cityPreset === 'manual' && isFiniteNumber(settings.lat) && isFiniteNumber(settings.lng)) {
+    return {
+      lat: settings.lat,
+      lng: settings.lng,
+      label: 'Lokasi perangkat',
+      source: 'device',
+      updatedAt: Date.now(),
+    } as LocationPrefs;
+  }
+  return null;
 };
 
 export const useLocationPrefs = () => {
@@ -41,14 +60,39 @@ export const useLocationPrefs = () => {
   useEffect(() => {
     const sync = () => {
       const saved = getSavedLocation();
-      setLocation(saved);
-      setStatus(saved ? 'ready' : 'idle');
-      setError(null);
+      if (saved) {
+        setLocation(saved);
+        setStatus('ready');
+        setError(null);
+        return;
+      }
+
+      const settings = loadPrayerSettings();
+      if (settings.cityPreset === 'manual' && isFiniteNumber(settings.lat) && isFiniteNumber(settings.lng)) {
+        const migrated: LocationPrefs = {
+          lat: settings.lat,
+          lng: settings.lng,
+          label: 'Lokasi perangkat',
+          source: 'device',
+          updatedAt: Date.now(),
+        };
+        saveLocation(migrated);
+        setLocation(migrated);
+        setStatus('ready');
+        setError(null);
+        return;
+      }
+
+      setLocation(null);
+      setStatus((prev) => (prev === 'error' ? 'error' : 'idle'));
+      setError((prev) => (prev && prev.trim() ? prev : null));
     };
 
     window.addEventListener(LOCATION_CHANGED_EVENT, sync);
+    window.addEventListener(PRAYER_SETTINGS_UPDATED_EVENT, sync);
     return () => {
       window.removeEventListener(LOCATION_CHANGED_EVENT, sync);
+      window.removeEventListener(PRAYER_SETTINGS_UPDATED_EVENT, sync);
     };
   }, []);
 
