@@ -47,6 +47,16 @@ interface EquranSurahDetailRow extends EquranSuratListRow {
   ayat?: EquranAyatRow[];
 }
 
+interface AudioProbeResult {
+  url: string;
+  status: number;
+  contentType: string;
+  contentLength: string;
+  isAudio: boolean;
+  checkedWith: 'HEAD' | 'GET';
+  error?: string;
+}
+
 const toInt = (value: unknown, fallback = 0) => {
   const num = Number(value);
   return Number.isFinite(num) ? Math.floor(num) : fallback;
@@ -78,6 +88,75 @@ const pickEquranAudio = (audioMap: unknown, reciter: string) => {
 const toVerseKey = (surahID: number, ayatNumber: unknown, fallbackNumber: number) => {
   const verseNumber = toInt(ayatNumber, fallbackNumber);
   return `${surahID}:${verseNumber}`;
+};
+
+const isAudioContentType = (value: unknown) => {
+  const text = clean(value).toLowerCase();
+  if (!text) return false;
+  return text.includes('audio/mpeg') || text.includes('audio/mp3') || text.startsWith('audio/');
+};
+
+const probeAudioURL = async (audioURL: string): Promise<AudioProbeResult> => {
+  const fallback: AudioProbeResult = {
+    url: audioURL,
+    status: 0,
+    contentType: '',
+    contentLength: '',
+    isAudio: false,
+    checkedWith: 'HEAD',
+  };
+  if (!audioURL) return fallback;
+
+  try {
+    const head = await fetch(audioURL, {
+      method: 'HEAD',
+      cache: 'no-store',
+      redirect: 'follow',
+    });
+    const headContentType = clean(head.headers.get('content-type'));
+    const headContentLength = clean(head.headers.get('content-length'));
+    const fromHead: AudioProbeResult = {
+      url: audioURL,
+      status: head.status,
+      contentType: headContentType,
+      contentLength: headContentLength,
+      isAudio: (head.status === 200 || head.status === 206) && isAudioContentType(headContentType),
+      checkedWith: 'HEAD',
+    };
+    if (fromHead.isAudio) {
+      return fromHead;
+    }
+  } catch (error) {
+    fallback.error = error instanceof Error ? error.message : 'HEAD probe failed';
+  }
+
+  try {
+    const get = await fetch(audioURL, {
+      method: 'GET',
+      cache: 'no-store',
+      redirect: 'follow',
+      headers: {
+        Range: 'bytes=0-1023',
+        Accept: 'audio/mpeg,audio/*,*/*;q=0.8',
+      },
+    });
+    const contentType = clean(get.headers.get('content-type'));
+    const contentLength = clean(get.headers.get('content-length') || get.headers.get('content-range'));
+    return {
+      url: audioURL,
+      status: get.status,
+      contentType,
+      contentLength,
+      isAudio: (get.status === 200 || get.status === 206) && isAudioContentType(contentType),
+      checkedWith: 'GET',
+    };
+  } catch (error) {
+    return {
+      ...fallback,
+      checkedWith: 'GET',
+      error: error instanceof Error ? error.message : 'GET probe failed',
+    };
+  }
 };
 
 export const handleQuranChapters = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
@@ -209,7 +288,9 @@ export const handleQuranAudio = async (req: ServerlessRequestLike, res: Serverle
   }
 
   try {
-    const detailResponse = await fetch(`${EQURAN_BASE}/surat/${surahID}`);
+    const detailResponse = await fetch(`${EQURAN_BASE}/surat/${surahID}`, {
+      cache: 'no-store',
+    });
     if (!detailResponse.ok) {
       throw new Error(`EQuran detail error (${detailResponse.status})`);
     }
@@ -217,11 +298,47 @@ export const handleQuranAudio = async (req: ServerlessRequestLike, res: Serverle
     const detailPayload = (await detailResponse.json()) as { data?: EquranSurahDetailRow };
     const chapterRaw = detailPayload?.data || {};
     const reciter = String(pickQuery(req.query?.reciter) || '');
-    const audioURL = pickEquranAudio(chapterRaw?.audioFull, reciter);
+    let audioURL = pickEquranAudio(chapterRaw?.audioFull, reciter);
+    let audioSource: 'detail' | 'chapters-fallback' = 'detail';
+    let probe = await probeAudioURL(audioURL);
+
+    if (!probe.isAudio) {
+      const chaptersResponse = await fetch(`${EQURAN_BASE}/surat`, {
+        cache: 'no-store',
+      });
+      if (chaptersResponse.ok) {
+        const chaptersPayload = (await chaptersResponse.json()) as { data?: EquranSuratListRow[] };
+        const chapter = (Array.isArray(chaptersPayload?.data) ? chaptersPayload.data : []).find(
+          (row) => toInt(row?.nomor, 0) === surahID
+        );
+        const fallbackAudioURL = pickEquranAudio(chapter?.audioFull, reciter);
+        if (fallbackAudioURL && fallbackAudioURL !== audioURL) {
+          const fallbackProbe = await probeAudioURL(fallbackAudioURL);
+          if (fallbackProbe.isAudio) {
+            audioURL = fallbackAudioURL;
+            probe = fallbackProbe;
+            audioSource = 'chapters-fallback';
+          }
+        }
+      }
+    }
 
     if (!audioURL) {
       res.setHeader('Cache-Control', CHAPTERS_CACHE_CONTROL);
       res.status(404).json({ success: false, ok: false, message: 'Audio tidak tersedia untuk surah ini.' });
+      return;
+    }
+
+    if (!probe.isAudio) {
+      res.setHeader('Cache-Control', CHAPTERS_CACHE_CONTROL);
+      res.status(502).json({
+        success: false,
+        ok: false,
+        code: 'AUDIO_SOURCE_INVALID',
+        message: 'Audio full surah dari provider tidak valid.',
+        audioURL,
+        audioProbe: probe,
+      });
       return;
     }
 
@@ -232,6 +349,8 @@ export const handleQuranAudio = async (req: ServerlessRequestLike, res: Serverle
       sourceLabel: 'EQuran.id API v2',
       surahId: surahID,
       audioURL,
+      audioSource,
+      audioProbe: probe,
     };
     res.status(200).json({
       ...normalized,

@@ -305,6 +305,8 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
               const track = await getQuranFoundationChapterAudioTrackCached(detailState.chapter.id, reciterId);
               return {
                 audioUrl: track.audioUrl,
+                audioProbe: track.audioProbe,
+                audioSource: track.audioSource,
               };
             }}
           />

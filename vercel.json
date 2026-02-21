@@ -85,7 +85,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob: https://download.quranicaudio.com https://audio.qurancdn.com https://verses.quran.com https://cdn.equran.id; frame-src 'self' https://form.typeform.com https://*.typeform.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:;"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss: https://cdn.equran.id; media-src 'self' data: blob: https://download.quranicaudio.com https://audio.qurancdn.com https://verses.quran.com https://cdn.equran.id; frame-src 'self' https://form.typeform.com https://*.typeform.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:;"
         }
       ]
     }

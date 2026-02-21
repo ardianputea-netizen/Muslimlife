@@ -7,6 +7,15 @@ const DEFAULT_TRANSLATION_ID = 33;
 export interface QuranFoundationAudioTrack {
   audioUrl: string;
   reciterId: number;
+  audioProbe?: {
+    status?: number;
+    contentType?: string;
+    contentLength?: string;
+    isAudio?: boolean;
+    checkedWith?: string;
+    error?: string;
+  };
+  audioSource?: string;
 }
 
 export interface JuzAmmaSurahDetail {
@@ -87,6 +96,8 @@ export const getQuranFoundationChapterAudioTrack = async (
   reciterID = 7
 ): Promise<QuranFoundationAudioTrack> => {
   let audioUrl = '';
+  let audioProbe: QuranFoundationAudioTrack['audioProbe'] | undefined;
+  let audioSource = '';
   try {
     const payload = await fetchJson<any>(API_BASE, {
       query: { route: 'audio', id: chapterID, reciter: reciterID },
@@ -96,6 +107,8 @@ export const getQuranFoundationChapterAudioTrack = async (
     });
     const source = payload?.payload || payload?.data || payload;
     audioUrl = toPlayableAudioURL(source?.audioURL || source?.audioUrl || '');
+    audioProbe = source?.audioProbe;
+    audioSource = clean(source?.audioSource);
   } catch {
     audioUrl = '';
   }
@@ -124,6 +137,8 @@ export const getQuranFoundationChapterAudioTrack = async (
   return {
     audioUrl,
     reciterId: reciterID,
+    audioProbe,
+    audioSource,
   };
 };
 

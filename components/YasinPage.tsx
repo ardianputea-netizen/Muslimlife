@@ -146,6 +146,8 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
               const track = await getQuranFoundationChapterAudioTrackCached(36, reciterId);
               return {
                 audioUrl: track.audioUrl,
+                audioProbe: track.audioProbe,
+                audioSource: track.audioSource,
               };
             }}
           />

@@ -13,6 +13,16 @@ export interface QuranAudioVerse {
 
 interface QuranAudioPayload {
   audioUrl: string;
+  audioSource?: string;
+  audioProbe?: {
+    url?: string;
+    status?: number;
+    contentType?: string;
+    contentLength?: string;
+    isAudio?: boolean;
+    checkedWith?: string;
+    error?: string;
+  };
 }
 
 interface QuranAudioPlayerProps {
@@ -103,6 +113,8 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [lastAudioURL, setLastAudioURL] = useState('');
+  const [canPlayFullSurah, setCanPlayFullSurah] = useState(false);
+  const [fullAudioProbe, setFullAudioProbe] = useState<QuranAudioPayload['audioProbe'] | null>(null);
   const [activeVerseKey, setActiveVerseKey] = useState<string | null>(null);
   const [isVersePlaying, setIsVersePlaying] = useState(false);
   const [verseLoadingKey, setVerseLoadingKey] = useState<string | null>(null);
@@ -114,10 +126,13 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   const rafRef = useRef<number | null>(null);
   const lastUpdateMsRef = useRef(0);
   const activeVerseKeyRef = useRef<string | null>(null);
+  const fullSurahSourceFallbackTriedRef = useRef(false);
 
   useEffect(() => {
     setAudioPayload(null);
     setAudioError(null);
+    setCanPlayFullSurah(false);
+    setFullAudioProbe(null);
     setVerseErrorByKey({});
     setVerseLoadingKey(null);
     setActiveVerseKey(null);
@@ -132,6 +147,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
       }
       audioRef.current.load();
     }
+    fullSurahSourceFallbackTriedRef.current = false;
   }, [onLoadAudio, surahName]);
 
   useEffect(() => {
@@ -155,6 +171,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     const onPlay = () => dispatch({ type: 'play' });
     const onPause = () => dispatch({ type: 'pause' });
     const onEnded = () => dispatch({ type: 'stop' });
+    const onCanPlay = () => setCanPlayFullSurah(true);
     const onError = () => {
       const code = audio.error?.code;
       const detail =
@@ -163,7 +180,14 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
         code === 3 ? 'file audio rusak' :
         code === 4 ? 'format audio tidak didukung' :
         'gagal memuat media';
-      setAudioError(`Gagal memutar audio (${detail}).`);
+      const src = getFullSurahSrc(audio);
+      const probeText = buildProbeText();
+      const chunks = [
+        `Gagal memutar audio (${detail}, code=${String(code || 'unknown')}).`,
+        src ? `src=${src}` : '',
+        probeText ? `probe: ${probeText}` : '',
+      ].filter(Boolean);
+      setAudioError(chunks.join(' '));
     };
     const onTime = () => {
       if (rafRef.current !== null) return;
@@ -176,6 +200,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('canplay', onCanPlay);
     audio.addEventListener('timeupdate', onTime);
     audio.addEventListener('durationchange', onTime);
     audio.addEventListener('error', onError);
@@ -191,6 +216,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('canplay', onCanPlay);
       audio.removeEventListener('timeupdate', onTime);
       audio.removeEventListener('durationchange', onTime);
       audio.removeEventListener('error', onError);
@@ -267,6 +293,58 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     });
   };
 
+  const buildProbeText = () => {
+    if (!fullAudioProbe) return '';
+    const parts = [
+      fullAudioProbe.status ? `status=${fullAudioProbe.status}` : '',
+      fullAudioProbe.contentType ? `type=${fullAudioProbe.contentType}` : '',
+      fullAudioProbe.contentLength ? `size=${fullAudioProbe.contentLength}` : '',
+      fullAudioProbe.checkedWith ? `probe=${fullAudioProbe.checkedWith}` : '',
+    ].filter(Boolean);
+    return parts.join(', ');
+  };
+
+  const getFullSurahSrc = (audio: HTMLAudioElement) =>
+    String(audio.currentSrc || audio.src || fullSurahSourceRef.current?.src || '').trim();
+
+  const applyFullSurahDirectSrcFallback = (audio: HTMLAudioElement) => {
+    const sourceSrc = String(fullSurahSourceRef.current?.src || '').trim();
+    if (!sourceSrc) return false;
+    if (fullSurahSourceFallbackTriedRef.current) return false;
+
+    fullSurahSourceFallbackTriedRef.current = true;
+    if (fullSurahSourceRef.current) {
+      fullSurahSourceRef.current.src = '';
+    }
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = sourceSrc;
+    audio.load();
+    return true;
+  };
+
+  const waitForCanPlay = (audio: HTMLAudioElement, timeoutMs = 5000) =>
+    new Promise<boolean>((resolve) => {
+      if (audio.readyState >= 2) {
+        resolve(true);
+        return;
+      }
+      let settled = false;
+      const finish = (value: boolean) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        audio.removeEventListener('canplay', onCanPlayOnce);
+        audio.removeEventListener('error', onErrorOnce);
+        resolve(value);
+      };
+      const onCanPlayOnce = () => finish(true);
+      const onErrorOnce = () => finish(false);
+      const timer = window.setTimeout(() => finish(false), timeoutMs);
+      audio.addEventListener('canplay', onCanPlayOnce);
+      audio.addEventListener('error', onErrorOnce);
+    });
+
   const ensureAudioLoaded = async () => {
     if (!onLoadAudio) {
       setAudioError('Audio belum tersedia.');
@@ -275,6 +353,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     if (audioPayload?.audioUrl) return audioPayload;
     setIsLoadingAudio(true);
     setAudioError(null);
+    setCanPlayFullSurah(false);
     try {
       const payload = await onLoadAudio();
       if (!payload.audioUrl) {
@@ -282,6 +361,14 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
       }
       setAudioPayload(payload);
       setLastAudioURL(payload.audioUrl);
+      setFullAudioProbe(payload.audioProbe || null);
+      fullSurahSourceFallbackTriedRef.current = false;
+      if (import.meta.env.DEV) {
+        console.info('[quran-full-audio] src', payload.audioUrl, {
+          source: payload.audioSource || '-',
+          probe: payload.audioProbe || null,
+        });
+      }
       if (audioRef.current) {
         if (fullSurahSourceRef.current) {
           fullSurahSourceRef.current.src = payload.audioUrl;
@@ -329,13 +416,60 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     const loaded = await ensureAudioLoaded();
     if (!loaded) return;
     try {
+      const ready = await waitForCanPlay(audio);
+      if (!ready && !applyFullSurahDirectSrcFallback(audio)) {
+        const src = getFullSurahSrc(audio);
+        const probeText = buildProbeText();
+        setAudioError(
+          ['Gagal memutar audio (media belum siap).', src ? `src=${src}` : '', probeText ? `probe: ${probeText}` : '']
+            .filter(Boolean)
+            .join(' ')
+        );
+        return;
+      }
       await audio.play();
     } catch (error) {
       if (import.meta.env.DEV) {
         console.warn('[quran-player] play failed', error);
       }
+      const fallbackApplied = applyFullSurahDirectSrcFallback(audio);
+      if (fallbackApplied) {
+        try {
+          const readyAfterFallback = await waitForCanPlay(audio);
+          if (!readyAfterFallback) {
+            throw new Error('media belum siap setelah fallback');
+          }
+          await audio.play();
+          return;
+        } catch (fallbackError) {
+          const detail = fallbackError instanceof Error ? fallbackError.message : '';
+          const src = getFullSurahSrc(audio);
+          const probeText = buildProbeText();
+          setAudioError(
+            [
+              detail ? `Gagal memutar audio (${detail}).` : 'Gagal memutar audio.',
+              src ? `src=${src}` : '',
+              probeText ? `probe: ${probeText}` : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
+          );
+          return;
+        }
+      }
+
       const detail = error instanceof Error ? error.message : '';
-      setAudioError(detail ? `Gagal memutar audio (${detail}).` : 'Gagal memutar audio.');
+      const src = getFullSurahSrc(audio);
+      const probeText = buildProbeText();
+      setAudioError(
+        [
+          detail ? `Gagal memutar audio (${detail}).` : 'Gagal memutar audio.',
+          src ? `src=${src}` : '',
+          probeText ? `probe: ${probeText}` : '',
+        ]
+          .filter(Boolean)
+          .join(' ')
+      );
     }
   };
 
@@ -344,7 +478,9 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     if (!audio) return;
     setAudioError(null);
     setAudioPayload(null);
+    setCanPlayFullSurah(false);
     if (lastAudioURL) {
+      fullSurahSourceFallbackTriedRef.current = false;
       if (fullSurahSourceRef.current) {
         fullSurahSourceRef.current.src = lastAudioURL;
         audio.removeAttribute('src');

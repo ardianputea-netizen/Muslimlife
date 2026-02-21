@@ -32,7 +32,9 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   const isAudioRequest =
-    request.destination === 'audio' || url.pathname.toLowerCase().endsWith('.mp3');
+    request.destination === 'audio' ||
+    url.pathname.toLowerCase().endsWith('.mp3') ||
+    url.hostname === 'cdn.equran.id';
 
   if (isAudioRequest) {
     // Let audio stream bypass SW cache to avoid stale/partial media responses.
