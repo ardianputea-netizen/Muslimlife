@@ -81,6 +81,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   const [audioPayload, setAudioPayload] = useState<QuranAudioPayload | null>(null);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [lastAudioURL, setLastAudioURL] = useState('');
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const verseRef = useRef<Record<string, HTMLDivElement | null>>({});
@@ -101,6 +102,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'metadata';
+    audio.crossOrigin = 'anonymous';
     audioRef.current = audio;
 
     const emitProgress = () => {
@@ -119,6 +121,16 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     const onPlay = () => dispatch({ type: 'play' });
     const onPause = () => dispatch({ type: 'pause' });
     const onEnded = () => dispatch({ type: 'stop' });
+    const onError = () => {
+      const code = audio.error?.code;
+      const detail =
+        code === 1 ? 'proses diputus user/browser' :
+        code === 2 ? 'gangguan jaringan' :
+        code === 3 ? 'file audio rusak' :
+        code === 4 ? 'format audio tidak didukung' :
+        'gagal memuat media';
+      setAudioError(`Gagal memutar audio (${detail}).`);
+    };
     const onTime = () => {
       if (rafRef.current !== null) return;
       rafRef.current = requestAnimationFrame(() => {
@@ -132,6 +144,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('timeupdate', onTime);
     audio.addEventListener('durationchange', onTime);
+    audio.addEventListener('error', onError);
 
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -143,6 +156,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('timeupdate', onTime);
       audio.removeEventListener('durationchange', onTime);
+      audio.removeEventListener('error', onError);
       audioRef.current = null;
     };
   }, []);
@@ -171,9 +185,11 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
         throw new Error('Audio belum tersedia untuk surah ini.');
       }
       setAudioPayload(payload);
+      setLastAudioURL(payload.audioUrl);
       if (audioRef.current) {
         audioRef.current.src = payload.audioUrl;
         audioRef.current.currentTime = 0;
+        audioRef.current.load();
       }
       return payload;
     } catch (error) {
@@ -203,8 +219,22 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
       if (import.meta.env.DEV) {
         console.warn('[quran-player] play failed', error);
       }
-      setAudioError('Gagal memutar audio.');
+      const detail = error instanceof Error ? error.message : '';
+      setAudioError(detail ? `Gagal memutar audio (${detail}).` : 'Gagal memutar audio.');
     }
+  };
+
+  const retryPlay = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    setAudioError(null);
+    setAudioPayload(null);
+    if (lastAudioURL) {
+      audio.src = lastAudioURL;
+      audio.currentTime = 0;
+      audio.load();
+    }
+    await togglePlay();
   };
 
   const stop = () => {
@@ -254,7 +284,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
           <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-900/20 dark:text-rose-200">
             <p>{audioError}</p>
             <button
-              onClick={() => void ensureAudioLoaded()}
+              onClick={() => void retryPlay()}
               className="mt-1 rounded border border-rose-300 bg-card px-2 py-0.5 font-semibold text-rose-700 dark:border-rose-400/40 dark:bg-transparent dark:text-rose-200"
             >
               Retry
