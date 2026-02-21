@@ -399,7 +399,6 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
         )}
         <div>
           <h1 className="text-lg font-bold text-foreground">Ramadhan Tracker</h1>
-          <p className="text-xs text-muted-foreground">Checklist harian + target line + mini kalender</p>
         </div>
       </div>
 

@@ -48,7 +48,7 @@ export const HadithRoutesPage: React.FC<HadithRoutesPageProps> = ({ path }) => {
       <HadithPage
         onBack={() => navigateTo('/hadits')}
         title={heading}
-        subtitle={`API Hadis Malaysia — ${heading}`}
+        subtitle=""
         initialCollection={collectionID}
         lockCollection
         collectionOptions={routeCollectionOptions}

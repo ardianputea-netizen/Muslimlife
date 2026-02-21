@@ -326,7 +326,6 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
         )}
         <div>
           <h1 className="text-lg font-bold text-foreground">Ibadah Harian</h1>
-          <p className="text-xs text-muted-foreground">Check-in sholat, mini kalender, statistik 30 hari</p>
         </div>
       </div>
 

@@ -278,7 +278,6 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
 
           <div>
             <h2 className="text-lg font-bold text-foreground">Masjid Terdekat</h2>
-            <p className="text-xs text-muted-foreground">MapLibre + OpenStreetMap (tanpa API key)</p>
           </div>
         </div>
       </header>

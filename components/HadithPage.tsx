@@ -49,7 +49,7 @@ const collectionLabel = (collection: string, options?: Array<{ id: string; label
 export const HadithPage: React.FC<HadithPageProps> = ({
   onBack,
   title = 'Hadits',
-  subtitle = 'Sumber: API Hadis Malaysia',
+  subtitle = '',
   initialCollection = 'bukhari',
   initialQuery = '',
   lockCollection = false,
@@ -126,7 +126,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
       setOfflineMode(false);
     } catch (error) {
       console.error(error);
-      setErrorMessage(error instanceof Error ? error.message : 'Gagal memuat hadits dari API Hadis Malaysia.');
+      setErrorMessage(error instanceof Error ? error.message : 'Gagal memuat hadits.');
     } finally {
       setIsLoadingList(false);
     }
@@ -266,11 +266,9 @@ export const HadithPage: React.FC<HadithPageProps> = ({
             {hadith.referenceHadith}
           </p>
           <p className="text-sm font-semibold text-foreground mt-1 line-clamp-2">{hadith.title}</p>
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{hadith.sourceLabel}</p>
         </button>
 
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-[11px] text-muted-foreground line-clamp-1">Sumber: API Hadis Malaysia</p>
+        <div className="mt-3 flex items-center justify-end">
           <button
             onClick={() => void toggleBookmark(hadith, !isBookmarked)}
             className="text-[#0F9D58] p-1.5 rounded-lg hover:bg-green-50"
@@ -292,7 +290,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
         </button>
         <div className="flex-1">
           <h1 className="text-lg font-bold text-foreground">{title}</h1>
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
+          {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
         </div>
         {offlineMode && (
           <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700 inline-flex items-center gap-1">
@@ -405,7 +403,6 @@ export const HadithPage: React.FC<HadithPageProps> = ({
                       className="w-full text-left text-xs p-2 rounded-lg hover:bg-background border border-border"
                     >
                       <p className="font-semibold">{item.title}</p>
-                      <p className="text-muted-foreground line-clamp-1">{item.sourceLabel}</p>
                     </button>
                   ))}
                 </div>
@@ -466,11 +463,6 @@ export const HadithPage: React.FC<HadithPageProps> = ({
                 <p className="text-sm text-foreground leading-relaxed mb-4">
                   {activeHadith.summaryId || 'Terjemahan Indonesia tidak tersedia.'}
                 </p>
-
-                <div className="text-xs rounded-lg border border-border bg-background p-3 mb-3">
-                  <p className="font-semibold text-foreground mb-1">Sumber</p>
-                  <p className="text-muted-foreground">{activeHadith.sourceLabel}</p>
-                </div>
 
                 <div className="flex justify-end">
                   <button

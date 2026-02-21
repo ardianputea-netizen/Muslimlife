@@ -410,7 +410,6 @@ export const NotesPage: React.FC = () => {
       <div className="safe-top sticky top-0 z-10 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-foreground">Notes</h1>
-          <p className="text-xs text-muted-foreground">Catatan + reminder natural language Indonesia</p>
         </div>
         <Button size="sm" onClick={openNewEditor}>
           <Plus size={14} className="mr-1" /> Tambah
