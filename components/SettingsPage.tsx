@@ -44,7 +44,6 @@ import { getThemeLabel } from '../lib/themePreference';
 import { navigateTo } from '../lib/appRouter';
 import { useReaderSettings } from '@/context/ReaderSettingsContext';
 import { getRatingSummary, type RatingSummary } from '../lib/api/rating';
-import { formatUpdateDateID, syncAppUpdateHistory, type AppUpdateEntry } from '../lib/appUpdateLog';
 import { UserAccountCard } from './settings/UserAccountCard';
 import { SettingsRow } from './settings/SettingsRow';
 import { NotificationSheet } from './settings/NotificationSheet';
@@ -105,13 +104,6 @@ const PRIVACY_POLICY_SECTIONS: Array<{ title: string; body: string }> = [
     title: '7. Hubungi Kami',
     body: 'Jika ada pertanyaan terkait kebijakan privasi, hubungi email: wahib.cheszae@gmail.com.',
   },
-];
-
-const APP_UPDATE_ITEMS = [
-  'Perbaikan stabilitas PWA dan menu refresh agar update aplikasi lebih mudah.',
-  'Peningkatan tampilan tema gelap/terang di halaman baca dan doa.',
-  'Optimasi endpoint agar deployment Vercel Hobby tetap aman.',
-  'Perbaikan reliabilitas data konten (Quran, doa, hadits, cuaca, masjid).',
 ];
 
 const OTHER_APP_CARDS = ['NEXT UPDATE', 'NEXT UPDATE'];
@@ -175,12 +167,10 @@ export const SettingsPage: React.FC = () => {
   const [compassOpen, setCompassOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
   const [otherAppsOpen, setOtherAppsOpen] = useState(false);
   const [installOpen, setInstallOpen] = useState(false);
   const [ratingSummary, setRatingSummary] = useState<RatingSummary>(DEFAULT_RATING_SUMMARY);
   const [ratingLoading, setRatingLoading] = useState(true);
-  const [updateHistory, setUpdateHistory] = useState<AppUpdateEntry[]>([]);
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIosDevice, setIsIosDevice] = useState(false);
   const [isStandalonePwa, setIsStandalonePwa] = useState(false);
@@ -211,11 +201,6 @@ export const SettingsPage: React.FC = () => {
     if (!notifOpen) return;
     void refreshPushStatus();
   }, [notifOpen, refreshPushStatus]);
-
-  useEffect(() => {
-    const history = syncAppUpdateHistory(APP_UPDATE_ITEMS);
-    setUpdateHistory(history);
-  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
@@ -578,11 +563,6 @@ export const SettingsPage: React.FC = () => {
     if (ratingLoading) return 'Memuat rating...';
     return `⭐ ${ratingSummary.average_stars.toFixed(1)} (${ratingSummary.total_count} ulasan)`;
   }, [ratingLoading, ratingSummary.average_stars, ratingSummary.total_count]);
-  const lastUpdateSubtitle = useMemo(() => {
-    const latest = updateHistory[0];
-    if (!latest) return 'Informasi versi dan update terbaru';
-    return `Update: ${formatUpdateDateID(latest.deployedAt)}`;
-  }, [updateHistory]);
   const canViewDevHealth = useMemo(() => canAccessDeveloperTools(user?.email), [user?.email]);
   const disableRows = isLoadingProfile || isAuthLoading;
 
@@ -704,14 +684,6 @@ export const SettingsPage: React.FC = () => {
           />
           <div className="h-px bg-card dark:bg-card/10" />
           <SettingsRow
-            icon={Info}
-            iconClassName="text-sky-600 dark:text-sky-200"
-            title="Tentang Aplikasi"
-            subtitle={lastUpdateSubtitle}
-            onClick={() => setAboutOpen(true)}
-          />
-          <div className="h-px bg-card dark:bg-card/10" />
-          <SettingsRow
             icon={History}
             iconClassName="text-violet-600 dark:text-violet-200"
             title="Riwayat Update"
@@ -800,47 +772,6 @@ export const SettingsPage: React.FC = () => {
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{section.body}</p>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {aboutOpen ? (
-        <div className="fixed inset-0 z-[130] flex items-end bg-black/40 p-0 backdrop-blur-sm dark:bg-black/60 sm:items-center sm:justify-center sm:p-4">
-          <button className="absolute inset-0" aria-label="Tutup tentang aplikasi" onClick={() => setAboutOpen(false)} />
-          <div className="relative w-full max-h-[86vh] overflow-y-auto rounded-t-2xl border border-border bg-[#ffffff] p-4 shadow-xl dark:bg-[hsl(var(--card))] sm:max-w-xl sm:rounded-2xl">
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-foreground">Tentang Aplikasi</h3>
-              <button
-                type="button"
-                onClick={() => setAboutOpen(false)}
-                className="rounded-full p-1 text-muted-foreground hover:bg-muted dark:hover:bg-card/10"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="space-y-2 rounded-xl border border-border bg-[#ffffff] p-3 dark:border-white/10 dark:bg-card/[0.03]">
-              <p className="text-sm font-semibold text-foreground">MuslimLife Super App</p>
-              <p className="text-xs text-muted-foreground">Versi aplikasi: PWA (produksi)</p>
-              <p className="text-xs text-muted-foreground">
-                Terakhir deploy: {updateHistory[0] ? formatUpdateDateID(updateHistory[0].deployedAt) : '-'}
-              </p>
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-foreground">Rekap update:</p>
-                {updateHistory.slice(0, 6).map((entry) => (
-                  <div key={entry.buildId} className="rounded-lg border border-border bg-[#ffffff] p-2 dark:border-white/10 dark:bg-card/[0.05]">
-                    <p className="text-[11px] font-semibold text-foreground">{formatUpdateDateID(entry.deployedAt)}</p>
-                    {entry.commitMessage ? <p className="mt-1 text-[11px] text-muted-foreground">{entry.commitMessage}</p> : null}
-                    <ul className="mt-1 space-y-1 pl-4 text-[11px] text-muted-foreground">
-                      {entry.details.map((item) => (
-                        <li key={`${entry.buildId}-${item}`} className="list-disc leading-relaxed">
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </div>

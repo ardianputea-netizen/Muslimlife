@@ -6,6 +6,13 @@ import { getQuranFoundationChapterAudioTrackCached } from '@/lib/api/quranFounda
 import { getYasinSurah } from '@/lib/api/yasin';
 import type { QuranChapter, QuranVerse } from '@/lib/quran/provider';
 import { useReaderSettings } from '@/context/ReaderSettingsContext';
+import {
+  readYasinBookmarks,
+  readYasinLastRead,
+  toggleYasinBookmark,
+  writeYasinLastRead,
+  type YasinBookmarksMap,
+} from '@/lib/yasinTracker';
 
 interface YasinPageProps {
   onBack: () => void;
@@ -26,6 +33,8 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [yasinBookmarks, setYasinBookmarks] = useState<YasinBookmarksMap>({});
+  const [scrollTargetAyah, setScrollTargetAyah] = useState<number | null>(null);
 
   const loadYasin = useCallback(async () => {
     setIsLoading(true);
@@ -50,6 +59,9 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
   useEffect(() => {
     document.title = 'Yasin - MuslimLife';
     void loadYasin();
+    setYasinBookmarks(readYasinBookmarks());
+    const lastRead = readYasinLastRead();
+    setScrollTargetAyah(lastRead?.ayahNumber || null);
   }, [loadYasin]);
 
   return (
@@ -114,6 +126,17 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
             }))}
             showLatin={settings.showLatin}
             showTranslation={settings.showTranslation}
+            bookmarks={yasinBookmarks}
+            bookmarkSurahId={36}
+            scrollToVerseNumber={scrollTargetAyah}
+            onScrolledToVerse={() => setScrollTargetAyah(null)}
+            onToggleBookmark={(verse) => {
+              const next = toggleYasinBookmark(verse.verseNumber);
+              setYasinBookmarks(next);
+            }}
+            onMarkLastRead={(verse) => {
+              writeYasinLastRead(verse.verseNumber);
+            }}
             onLoadAudio={async () => {
               const track = await getQuranFoundationChapterAudioTrackCached(36, reciterId);
               return {

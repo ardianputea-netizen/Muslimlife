@@ -50,7 +50,8 @@ import { getNotificationPermission, requestNotificationPermission } from '../lib
 import { syncDailyNotificationSchedule } from '../lib/notifications';
 import { ensurePushSubscription, syncPushSubscriptionToSupabase } from '../lib/pushNotifications';
 import { AsmaulHusnaItem, getAsmaulHusnaAll } from '@/lib/api/asmaulHusna';
-import { readLastReadV1, type LastReadV1 } from '@/lib/quran/storage/readingState';
+import { readLastReadV1, readQuranBookmarks, type LastReadV1 } from '@/lib/quran/storage/readingState';
+import { readYasinBookmarks, readYasinLastRead } from '@/lib/yasinTracker';
 
 interface HomePageProps {
   isLoggedIn: boolean;
@@ -132,6 +133,21 @@ const PRAYER_LABELS: Record<PrayerName, string> = {
   isya: 'Isya',
 };
 
+const DOA_BOOKMARKS_KEY = 'ml_dua_bookmarks_local_v2';
+
+const readDoaBookmarkCount = () => {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = localStorage.getItem(DOA_BOOKMARKS_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return 0;
+    return new Set(parsed.map((item) => String(item || '').trim()).filter(Boolean)).size;
+  } catch {
+    return 0;
+  }
+};
+
 export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }) => {
   interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>;
@@ -174,9 +190,15 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => new Date());
+  const [doaBookmarkCount, setDoaBookmarkCount] = useState(0);
 
   useEffect(() => {
     setLastRead(readLastReadV1());
+  }, [activeFeature]);
+
+  useEffect(() => {
+    if (activeFeature !== 'PELACAK') return;
+    setDoaBookmarkCount(readDoaBookmarkCount());
   }, [activeFeature]);
 
   useEffect(() => {
@@ -623,16 +645,82 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
       case 'DUAS':
         return null;
       case 'PELACAK':
+        {
+          const quranBookmarks = readQuranBookmarks();
+          const quranBookmarkCount = Object.keys(quranBookmarks).length;
+          const juzAmmaBookmarkCount = Object.keys(quranBookmarks).filter((key) => {
+            const surahId = Number(key.split(':')[0] || 0);
+            return surahId >= 78 && surahId <= 114;
+          }).length;
+          const yasinBookmarks = readYasinBookmarks();
+          const yasinBookmarkCount = Object.keys(yasinBookmarks).length;
+          const yasinLastRead = readYasinLastRead();
+
         return (
-          <div className="fixed inset-0 z-50 bg-card flex flex-col items-center justify-center p-6">
-            <button onClick={() => setActiveFeature(null)} className="absolute top-6 right-6 p-2 bg-muted rounded-full">
-              <X />
-            </button>
-            <Activity size={64} className="text-emerald-600 dark:text-emerald-300 mb-4" />
-            <h2 className="text-2xl font-bold text-foreground">Pelacak Harian</h2>
-            <p className="text-muted-foreground mt-2 text-center">Fitur ini sedang disiapkan.</p>
+          <div className="fixed inset-0 z-50 bg-background pb-20 pt-safe overflow-y-auto">
+            <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
+              <button onClick={() => setActiveFeature(null)} className="rounded-full p-1 hover:bg-muted">
+                <X />
+              </button>
+              <h2 className="text-base font-bold text-foreground">Pelacak</h2>
+            </div>
+
+            <div className="mx-auto max-w-md space-y-3 p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigateTo(lastRead?.route || '/quran')}
+                  className="rounded-2xl border border-border bg-card p-3 text-left shadow-sm active:scale-[0.99] transition-transform"
+                >
+                  <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-300">Al-Quran</p>
+                  <p className="mt-1 text-sm font-bold text-foreground">
+                    {lastRead ? `${lastRead.surahName} : ${lastRead.ayahNumber}` : 'Belum ada terakhir dibaca'}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">Bookmark: {quranBookmarkCount}</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigateTo('/quran')}
+                  className="rounded-2xl border border-border bg-card p-3 text-left shadow-sm active:scale-[0.99] transition-transform"
+                >
+                  <p className="text-xs font-semibold text-sky-600 dark:text-sky-300">Juz Amma</p>
+                  <p className="mt-1 text-sm font-bold text-foreground">
+                    {lastRead?.surahId && lastRead.surahId >= 78 && lastRead.surahId <= 114
+                      ? `${lastRead.surahName} : ${lastRead.ayahNumber}`
+                      : 'Lanjutkan baca Juz Amma'}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">Bookmark: {juzAmmaBookmarkCount}</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigateTo('/doa')}
+                  className="rounded-2xl border border-border bg-card p-3 text-left shadow-sm active:scale-[0.99] transition-transform"
+                >
+                  <p className="text-xs font-semibold text-pink-600 dark:text-pink-300">Doa Pilihan</p>
+                  <p className="mt-1 text-sm font-bold text-foreground">
+                    {doaBookmarkCount > 0 ? `${doaBookmarkCount} bookmark tersimpan` : 'Belum ada bookmark'}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">Buka untuk tambah bookmark</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigateTo('/yasin')}
+                  className="rounded-2xl border border-border bg-card p-3 text-left shadow-sm active:scale-[0.99] transition-transform"
+                >
+                  <p className="text-xs font-semibold text-amber-600 dark:text-amber-300">Yasin</p>
+                  <p className="mt-1 text-sm font-bold text-foreground">
+                    {yasinLastRead ? `Terakhir ayat ${yasinLastRead.ayahNumber}` : 'Belum ada terakhir dibaca'}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">Bookmark: {yasinBookmarkCount}</p>
+                </button>
+              </div>
+            </div>
           </div>
         );
+        }
       case '99NAMA':
          return (
           <div className="fixed inset-0 z-50 bg-background flex flex-col">
