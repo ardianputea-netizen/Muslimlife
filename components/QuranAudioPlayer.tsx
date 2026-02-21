@@ -31,6 +31,8 @@ interface QuranAudioPlayerProps {
   onLoadAudio?: () => Promise<QuranAudioPayload>;
   showLatin?: boolean;
   showTranslation?: boolean;
+  fullSurahAudioEnabled?: boolean;
+  fullSurahDisabledMessage?: string;
   bookmarks?: Record<string, true>;
   bookmarkSurahId?: number;
   onToggleBookmark?: (verse: QuranAudioVerse) => void;
@@ -100,6 +102,8 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   onLoadAudio,
   showLatin = true,
   showTranslation = true,
+  fullSurahAudioEnabled = true,
+  fullSurahDisabledMessage = 'Audio full surah sementara dinonaktifkan. Akan aktif di update berikutnya.',
   bookmarks = {},
   bookmarkSurahId,
   onToggleBookmark,
@@ -393,6 +397,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   };
 
   const togglePlay = async () => {
+    if (!fullSurahAudioEnabled) return;
     const audio = audioRef.current;
     if (!audio) return;
     if (state.isPlaying) {
@@ -474,6 +479,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   };
 
   const retryPlay = async () => {
+    if (!fullSurahAudioEnabled) return;
     const audio = audioRef.current;
     if (!audio) return;
     setAudioError(null);
@@ -594,10 +600,18 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
           Sedang memutar: <span className="font-semibold text-foreground">Surah {surahName}</span>
         </p>
         <div className="mt-2 flex items-center gap-2">
-          <button onClick={() => void togglePlay()} disabled={isLoadingAudio} className="rounded-full bg-emerald-100 p-2 text-emerald-700 disabled:opacity-70 dark:bg-emerald-900/50 dark:text-emerald-300">
+          <button
+            onClick={() => void togglePlay()}
+            disabled={isLoadingAudio || !fullSurahAudioEnabled}
+            className="rounded-full bg-emerald-100 p-2 text-emerald-700 disabled:opacity-70 dark:bg-emerald-900/50 dark:text-emerald-300"
+          >
             {isLoadingAudio ? <Loader2 size={16} className="animate-spin" /> : state.isPlaying ? <Pause size={16} /> : <Play size={16} />}
           </button>
-          <button onClick={stop} className="rounded-full bg-rose-100 p-2 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
+          <button
+            onClick={stop}
+            disabled={!fullSurahAudioEnabled}
+            className="rounded-full bg-rose-100 p-2 text-rose-700 disabled:opacity-70 dark:bg-rose-900/40 dark:text-rose-300"
+          >
             <Square size={16} />
           </button>
           <div className="flex-1">
@@ -606,6 +620,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
               min={0}
               max={Math.max(state.duration, 1)}
               value={Math.min(state.currentTime, Math.max(state.duration, 1))}
+              disabled={!fullSurahAudioEnabled}
               onChange={(event) => seek(Number(event.target.value))}
               className="w-full"
             />
@@ -615,6 +630,11 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
             </div>
           </div>
         </div>
+        {!fullSurahAudioEnabled ? (
+          <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-900/20 dark:text-amber-200">
+            {fullSurahDisabledMessage}
+          </div>
+        ) : null}
         {audioError ? (
           <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-900/20 dark:text-rose-200">
             <p>{audioError}</p>

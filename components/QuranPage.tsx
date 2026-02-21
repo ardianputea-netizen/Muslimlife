@@ -289,6 +289,8 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
             }))}
             showLatin={settings.showLatin}
             showTranslation={settings.showTranslation}
+            fullSurahAudioEnabled={false}
+            fullSurahDisabledMessage="Audio full surah sedang dinonaktifkan sementara. Akan aktif di update berikutnya."
             bookmarks={bookmarks}
             bookmarkSurahId={detailState.chapter.id}
             onToggleBookmark={(verse) => {
