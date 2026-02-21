@@ -170,15 +170,33 @@ function AppContent() {
   }, []);
 
   const handleRefreshApp = useCallback(async () => {
+    const hardReload = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('ml_refresh', String(Date.now()));
+      window.location.replace(url.toString());
+    };
+
     try {
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map((registration) => registration.update()));
+        await Promise.all(
+          registrations.map(async (registration) => {
+            await registration.update();
+            if (registration.waiting) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+          })
+        );
+      }
+
+      if ('caches' in window) {
+        const keys = await window.caches.keys();
+        await Promise.all(keys.map((key) => window.caches.delete(key)));
       }
     } catch {
-      // Ignore refresh update errors and continue reload.
+      // Ignore refresh update errors and continue forced reload.
     } finally {
-      window.location.reload();
+      hardReload();
     }
   }, []);
 

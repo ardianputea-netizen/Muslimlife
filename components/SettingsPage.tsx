@@ -699,7 +699,7 @@ export const SettingsPage: React.FC = () => {
             icon={ShieldCheck}
             iconClassName="text-emerald-600 dark:text-emerald-200"
             title="Kebijakan Privasi"
-            subtitle={`Terakhir diperbarui: ${PRIVACY_POLICY_UPDATED_AT}`}
+            subtitle="Kebijakan penggunaan data aplikasi"
             onClick={() => setPrivacyOpen(true)}
           />
           <div className="h-px bg-card dark:bg-card/10" />

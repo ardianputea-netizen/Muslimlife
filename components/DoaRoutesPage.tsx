@@ -339,30 +339,36 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
                     Kategori belum tersedia.
                   </div>
                 ) : null}
-                {rows.map((category) => (
-                  <button
-                    key={category.slug}
-                    onClick={() => void loadCategoryItems(category)}
-                    className="w-full rounded-2xl border border-border bg-card p-3 text-left shadow-sm"
-                  >
-                    <p className="text-sm font-semibold text-foreground">{category.title}</p>
-                    {category.description ? <p className="mt-1 text-xs text-muted-foreground">{category.description}</p> : null}
-                    <span className="mt-2 inline-block rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
-                      Buka
-                    </span>
-                  </button>
-                ))}
+                <div className="rounded-2xl border border-border bg-muted/40 p-2">
+                  <div className="space-y-2">
+                    {rows.map((category) => (
+                      <button
+                        key={category.slug}
+                        onClick={() => void loadCategoryItems(category)}
+                        className="w-full rounded-2xl border border-border bg-card p-3 text-left shadow-sm"
+                      >
+                        <p className="text-sm font-semibold text-foreground">{category.title}</p>
+                        {category.description ? <p className="mt-1 text-xs text-muted-foreground">{category.description}</p> : null}
+                        <span className="mt-2 inline-block rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
+                          Buka
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </>
             ) : (
               <>
-                <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{selectedCategory.title}</p>
-                    {!categoryLoading && !categoryError ? <p className="text-xs text-muted-foreground">Total item: {categoryItems.length}</p> : null}
+                <div className="rounded-2xl border border-border bg-muted/40 p-2">
+                  <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{selectedCategory.title}</p>
+                      {!categoryLoading && !categoryError ? <p className="text-xs text-muted-foreground">Total item: {categoryItems.length}</p> : null}
+                    </div>
+                    <button onClick={clearCategoryView} className="rounded-lg border border-border bg-card px-2 py-1 text-xs">
+                      Kembali
+                    </button>
                   </div>
-                  <button onClick={clearCategoryView} className="rounded-lg border border-border bg-card px-2 py-1 text-xs">
-                    Kembali
-                  </button>
                 </div>
                 {categoryLoading ? <SkeletonCards count={5} /> : null}
                 {categoryError ? <ErrorBox message={categoryError} onRetry={() => void loadCategoryItems(selectedCategory)} /> : null}
@@ -371,16 +377,20 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
                     Data bacaan tidak tersedia.
                   </div>
                 ) : null}
-                {categoryItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => void loadDetail(selectedCategory.slug, item.id)}
-                    className="w-full rounded-2xl border border-border bg-card p-3 text-left shadow-sm"
-                  >
-                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                    {item.translation ? <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.translation}</p> : null}
-                  </button>
-                ))}
+                <div className="rounded-2xl border border-border bg-muted/40 p-2">
+                  <div className="space-y-2">
+                    {categoryItems.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => void loadDetail(selectedCategory.slug, item.id)}
+                        className="w-full rounded-2xl border border-border bg-card p-3 text-left shadow-sm"
+                      >
+                        <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                        {item.translation ? <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.translation}</p> : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
           </div>
@@ -429,7 +439,7 @@ export const DoaRoutesPage: React.FC<DoaRoutesPageProps> = ({ path }) => {
       {(selectedDetail || detailLoading || detailError) ? (
         <div className="fixed inset-0 z-[80] flex items-end bg-black/40 p-0 sm:items-center sm:justify-center sm:p-4 dark:bg-black/60">
           <button className="absolute inset-0" onClick={() => { setSelectedDetail(null); setDetailError(null); }} />
-          <div className="relative isolate w-full max-h-[85vh] overflow-y-auto rounded-t-2xl border border-border bg-card p-4 shadow-lg sm:max-w-xl sm:rounded-2xl">
+          <div className="relative isolate w-full max-h-[85vh] overflow-y-auto rounded-t-2xl border border-border bg-background p-4 shadow-lg sm:max-w-xl sm:rounded-2xl">
             <button onClick={() => { setSelectedDetail(null); setDetailError(null); }} className="absolute right-3 top-3 rounded-full p-1 hover:bg-muted">
               <X size={16} />
             </button>

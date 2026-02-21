@@ -231,11 +231,7 @@ export const CuacaPage: React.FC<CuacaPageProps> = ({ onBack }) => {
                   </div>
                   <AppIcon icon={WeatherIcon} variant={weatherVisual.variant} shape="squircle" size="md" />
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-xl border border-border bg-card px-2 py-2 text-center dark:border-white/10 dark:bg-card">
-                    <p className="text-[11px] text-muted-foreground dark:text-foreground">Provider</p>
-                    <p className="text-sm font-semibold text-foreground dark:text-foreground">pace11</p>
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-xl border border-border bg-card px-2 py-2 text-center dark:border-white/10 dark:bg-card">
                     <p className="text-[11px] text-muted-foreground dark:text-foreground">Kelembapan</p>
                     <p className="text-sm font-semibold text-foreground dark:text-foreground">

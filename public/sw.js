@@ -20,6 +20,13 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+self.addEventListener('message', (event) => {
+  const message = event.data || {};
+  if (message && message.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
