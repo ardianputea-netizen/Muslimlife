@@ -1,8 +1,62 @@
 {
   "rewrites": [
     {
+      "source": "/api/quran/chapters",
+      "destination": "/api/quran?route=chapters"
+    },
+    {
+      "source": "/api/quran/surah",
+      "destination": "/api/quran?route=surah"
+    },
+    {
+      "source": "/api/dua-dhikr/categories",
+      "destination": "/api/dua-dhikr?route=categories"
+    },
+    {
+      "source": "/api/dua-dhikr/categories/:category/:id",
+      "destination": "/api/dua-dhikr?route=category-detail&category=:category&id=:id"
+    },
+    {
+      "source": "/api/dua-dhikr/categories/:category",
+      "destination": "/api/dua-dhikr?route=category-items&category=:category"
+    },
+    {
+      "source": "/api/dua-dhikr/:slug*",
+      "destination": "/api/dua-dhikr?route=passthrough&slug=:slug*"
+    },
+    {
+      "source": "/api/asmaul-husna",
+      "destination": "/api/content?route=asmaul-husna"
+    },
+    {
+      "source": "/api/tahlil",
+      "destination": "/api/content?route=tahlil"
+    },
+    {
+      "source": "/api/rating",
+      "destination": "/api/weather?ml_route=rating"
+    },
+    {
+      "source": "/api/push-subscribe",
+      "destination": "/api/weather?ml_route=push-subscribe"
+    },
+    {
+      "source": "/api/push-unsubscribe",
+      "destination": "/api/weather?ml_route=push-unsubscribe"
+    },
+    {
+      "source": "/api/yasin",
+      "destination": "/api/quran?route=surah&chapterId=36"
+    },
+    {
       "source": "/((?!api(?:/|$))(?!.*\\..*).*)",
       "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/push-reminders",
+      "schedule": "* * * * *"
     }
   ],
   "headers": [
@@ -31,7 +85,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:;"
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: wss:; media-src 'self' data: blob: https://download.quranicaudio.com https://audio.qurancdn.com https://verses.quran.com; frame-src 'self' https://form.typeform.com https://*.typeform.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; worker-src 'self' blob:;"
         }
       ]
     }
