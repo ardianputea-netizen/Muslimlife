@@ -48,8 +48,8 @@ export interface SurahDetailNormalizedPayload extends SurahDetailPayload {
 }
 
 const getDefaultProvider = (): 'wanrabbae' | 'equran' => {
-  const envProvider = String(import.meta.env.NEXT_PUBLIC_QURAN_PROVIDER || 'wanrabbae').toLowerCase();
-  return envProvider === 'equran' ? 'equran' : 'wanrabbae';
+  const envProvider = String(import.meta.env.NEXT_PUBLIC_QURAN_PROVIDER || 'equran').toLowerCase();
+  return envProvider === 'wanrabbae' ? 'wanrabbae' : 'equran';
 };
 
 const shouldFallbackToEquran = (error: unknown) => {
