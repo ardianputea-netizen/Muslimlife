@@ -31,6 +31,14 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
+  const isAudioRequest =
+    request.destination === 'audio' || url.pathname.toLowerCase().endsWith('.mp3');
+
+  if (isAudioRequest) {
+    // Let audio stream bypass SW cache to avoid stale/partial media responses.
+    return;
+  }
+
   const isRatingEndpoint =
     url.pathname === '/api/rating' || (url.pathname === '/api/weather' && url.searchParams.get('ml_route') === 'rating');
 

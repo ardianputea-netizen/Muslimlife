@@ -285,6 +285,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
               arabicText: verse.arabText,
               latin: verse.transliterationLatin,
               translation: verse.translationId,
+              audioUrl: verse.audioUrl,
             }))}
             showLatin={settings.showLatin}
             showTranslation={settings.showTranslation}
@@ -297,6 +298,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
             onMarkLastRead={(verse) => {
               void persistLastRead(detailState.chapter.id, detailState.chapter.nameSimple, verse.verseNumber);
             }}
+            lastReadVerseNumber={continueInCurrentSurah}
             scrollToVerseNumber={scrollTargetAyah}
             onScrolledToVerse={() => setScrollTargetAyah(null)}
             onLoadAudio={async () => {

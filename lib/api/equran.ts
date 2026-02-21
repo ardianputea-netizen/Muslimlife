@@ -74,6 +74,7 @@ export const getEquranSurahDetail = async (surahID: number): Promise<EquranSurah
         arabText: clean(ayah?.arabText || ayah?.arabic || ayah?.text_uthmani),
         transliterationLatin: clean(ayah?.transliterationLatin || ayah?.latin || ''),
         translationId: clean(ayah?.translationId || ayah?.translation || ''),
+        audioUrl: clean(ayah?.audioUrl || ayah?.audio_url || ''),
       };
     }),
     audioFullUrl: clean(payload?.audioURL || ''),

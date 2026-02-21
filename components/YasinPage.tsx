@@ -35,6 +35,7 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [yasinBookmarks, setYasinBookmarks] = useState<YasinBookmarksMap>({});
   const [scrollTargetAyah, setScrollTargetAyah] = useState<number | null>(null);
+  const [lastReadAyahNumber, setLastReadAyahNumber] = useState<number | null>(null);
 
   const loadYasin = useCallback(async () => {
     setIsLoading(true);
@@ -62,6 +63,7 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
     setYasinBookmarks(readYasinBookmarks());
     const lastRead = readYasinLastRead();
     setScrollTargetAyah(lastRead?.ayahNumber || null);
+    setLastReadAyahNumber(lastRead?.ayahNumber || null);
   }, [loadYasin]);
 
   return (
@@ -123,6 +125,7 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
               arabicText: verse.arabText,
               latin: verse.transliterationLatin,
               translation: verse.translationId,
+              audioUrl: verse.audioUrl,
             }))}
             showLatin={settings.showLatin}
             showTranslation={settings.showTranslation}
@@ -136,7 +139,9 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
             }}
             onMarkLastRead={(verse) => {
               writeYasinLastRead(verse.verseNumber);
+              setLastReadAyahNumber(verse.verseNumber);
             }}
+            lastReadVerseNumber={lastReadAyahNumber}
             onLoadAudio={async () => {
               const track = await getQuranFoundationChapterAudioTrackCached(36, reciterId);
               return {

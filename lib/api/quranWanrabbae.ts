@@ -81,6 +81,7 @@ export const getWanrabbaeSurahDetail = async (surahID: number): Promise<Wanrabba
       arabText: clean(row?.arabText || row?.ar || row?.arab || row?.teks_arab || row?.text || row?.text_arab),
       transliterationLatin: clean(row?.transliterationLatin || row?.tr || row?.latin || row?.teks_latin || row?.transliteration),
       translationId: clean(row?.translationId || row?.idn || row?.terjemah || row?.translation || row?.text_id),
+      audioUrl: clean(row?.audioUrl || row?.audio_url || ''),
     };
   });
 
