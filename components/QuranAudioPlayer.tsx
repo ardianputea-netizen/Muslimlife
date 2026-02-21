@@ -31,6 +31,7 @@ interface QuranAudioPlayerProps {
   onLoadAudio?: () => Promise<QuranAudioPayload>;
   showLatin?: boolean;
   showTranslation?: boolean;
+  persistFullSurahAudio?: boolean;
   fullSurahAudioEnabled?: boolean;
   fullSurahDisabledMessage?: string;
   bookmarks?: Record<string, true>;
@@ -44,6 +45,8 @@ interface QuranAudioPlayerProps {
 
 let sharedVerseAudio: HTMLAudioElement | null = null;
 let sharedVerseSource: HTMLSourceElement | null = null;
+let sharedFullSurahAudio: HTMLAudioElement | null = null;
+let sharedFullSurahSource: HTMLSourceElement | null = null;
 
 const getSharedVerseAudio = () => {
   if (typeof window === 'undefined') return null;
@@ -58,6 +61,23 @@ const getSharedVerseAudio = () => {
   sharedVerseAudio = audio;
   sharedVerseSource = source;
   return sharedVerseAudio;
+};
+
+const getSharedFullSurahAudio = () => {
+  if (typeof window === 'undefined') return { audio: null as HTMLAudioElement | null, source: null as HTMLSourceElement | null };
+  if (sharedFullSurahAudio && sharedFullSurahSource) {
+    return { audio: sharedFullSurahAudio, source: sharedFullSurahSource };
+  }
+
+  const audio = document.createElement('audio');
+  audio.preload = 'metadata';
+  const source = document.createElement('source');
+  source.type = 'audio/mpeg';
+  audio.appendChild(source);
+
+  sharedFullSurahAudio = audio;
+  sharedFullSurahSource = source;
+  return { audio: sharedFullSurahAudio, source: sharedFullSurahSource };
 };
 
 interface PlayerState {
@@ -102,6 +122,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   onLoadAudio,
   showLatin = true,
   showTranslation = true,
+  persistFullSurahAudio = false,
   fullSurahAudioEnabled = true,
   fullSurahDisabledMessage = 'Audio full surah sementara dinonaktifkan. Akan aktif di update berikutnya.',
   bookmarks = {},
@@ -132,6 +153,16 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   const activeVerseKeyRef = useRef<string | null>(null);
   const fullSurahSourceFallbackTriedRef = useRef(false);
 
+  const getFullAudioElements = () => {
+    if (persistFullSurahAudio) {
+      return getSharedFullSurahAudio();
+    }
+    return {
+      audio: audioRef.current,
+      source: fullSurahSourceRef.current,
+    };
+  };
+
   useEffect(() => {
     setAudioPayload(null);
     setAudioError(null);
@@ -143,19 +174,20 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     setIsVersePlaying(false);
     dispatch({ type: 'stop' });
     activeVerseKeyRef.current = null;
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.removeAttribute('src');
-      if (fullSurahSourceRef.current) {
-        fullSurahSourceRef.current.src = '';
+    const fullAudio = getFullAudioElements();
+    if (fullAudio.audio) {
+      fullAudio.audio.pause();
+      fullAudio.audio.removeAttribute('src');
+      if (fullAudio.source) {
+        fullAudio.source.src = '';
       }
-      audioRef.current.load();
+      fullAudio.audio.load();
     }
     fullSurahSourceFallbackTriedRef.current = false;
-  }, [onLoadAudio, surahName]);
+  }, [onLoadAudio, surahName, persistFullSurahAudio]);
 
   useEffect(() => {
-    const audio = audioRef.current;
+    const { audio } = getFullAudioElements();
     if (!audio) return;
     audio.preload = 'metadata';
 
@@ -211,12 +243,15 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
 
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      audio.pause();
-      audio.removeAttribute('src');
-      if (fullSurahSourceRef.current) {
-        fullSurahSourceRef.current.src = '';
+      if (!persistFullSurahAudio) {
+        audio.pause();
+        audio.removeAttribute('src');
+        const { source } = getFullAudioElements();
+        if (source) {
+          source.src = '';
+        }
+        audio.load();
       }
-      audio.load();
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('ended', onEnded);
@@ -225,7 +260,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
       audio.removeEventListener('durationchange', onTime);
       audio.removeEventListener('error', onError);
     };
-  }, []);
+  }, [persistFullSurahAudio]);
 
   useEffect(() => {
     if (!scrollToVerseNumber) return;
@@ -309,16 +344,17 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   };
 
   const getFullSurahSrc = (audio: HTMLAudioElement) =>
-    String(audio.currentSrc || audio.src || fullSurahSourceRef.current?.src || '').trim();
+    String(audio.currentSrc || audio.src || getFullAudioElements().source?.src || '').trim();
 
   const applyFullSurahDirectSrcFallback = (audio: HTMLAudioElement) => {
-    const sourceSrc = String(fullSurahSourceRef.current?.src || '').trim();
+    const { source } = getFullAudioElements();
+    const sourceSrc = String(source?.src || '').trim();
     if (!sourceSrc) return false;
     if (fullSurahSourceFallbackTriedRef.current) return false;
 
     fullSurahSourceFallbackTriedRef.current = true;
-    if (fullSurahSourceRef.current) {
-      fullSurahSourceRef.current.src = '';
+    if (source) {
+      source.src = '';
     }
     audio.pause();
     audio.currentTime = 0;
@@ -373,15 +409,16 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
           probe: payload.audioProbe || null,
         });
       }
-      if (audioRef.current) {
-        if (fullSurahSourceRef.current) {
-          fullSurahSourceRef.current.src = payload.audioUrl;
-          audioRef.current.removeAttribute('src');
+      const { audio, source } = getFullAudioElements();
+      if (audio) {
+        if (source) {
+          source.src = payload.audioUrl;
+          audio.removeAttribute('src');
         } else {
-          audioRef.current.src = payload.audioUrl;
+          audio.src = payload.audioUrl;
         }
-        audioRef.current.currentTime = 0;
-        audioRef.current.load();
+        audio.currentTime = 0;
+        audio.load();
       }
       return payload;
     } catch (error) {
@@ -398,7 +435,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
 
   const togglePlay = async () => {
     if (!fullSurahAudioEnabled) return;
-    const audio = audioRef.current;
+    const { audio } = getFullAudioElements();
     if (!audio) return;
     if (state.isPlaying) {
       audio.pause();
@@ -480,15 +517,15 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
 
   const retryPlay = async () => {
     if (!fullSurahAudioEnabled) return;
-    const audio = audioRef.current;
+    const { audio, source } = getFullAudioElements();
     if (!audio) return;
     setAudioError(null);
     setAudioPayload(null);
     setCanPlayFullSurah(false);
     if (lastAudioURL) {
       fullSurahSourceFallbackTriedRef.current = false;
-      if (fullSurahSourceRef.current) {
-        fullSurahSourceRef.current.src = lastAudioURL;
+      if (source) {
+        source.src = lastAudioURL;
         audio.removeAttribute('src');
       } else {
         audio.src = lastAudioURL;
@@ -500,7 +537,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   };
 
   const stop = () => {
-    const audio = audioRef.current;
+    const { audio } = getFullAudioElements();
     if (!audio) return;
     audio.pause();
     audio.currentTime = 0;
@@ -508,7 +545,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   };
 
   const seek = (nextTime: number) => {
-    const audio = audioRef.current;
+    const { audio } = getFullAudioElements();
     if (!audio) return;
     const duration = Number.isFinite(audio.duration) ? audio.duration : nextTime;
     audio.currentTime = Math.max(0, Math.min(nextTime, duration));
@@ -537,7 +574,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     clearVerseError(verseKey);
     setVerseLoadingKey(verseKey);
 
-    const fullAudio = audioRef.current;
+    const fullAudio = getFullAudioElements().audio;
     if (fullAudio && state.isPlaying) {
       fullAudio.pause();
       fullAudio.currentTime = 0;

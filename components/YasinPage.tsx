@@ -129,6 +129,7 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
             }))}
             showLatin={settings.showLatin}
             showTranslation={settings.showTranslation}
+            persistFullSurahAudio
             bookmarks={yasinBookmarks}
             bookmarkSurahId={36}
             scrollToVerseNumber={scrollTargetAyah}
