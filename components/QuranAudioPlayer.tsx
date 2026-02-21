@@ -102,7 +102,6 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'metadata';
-    audio.crossOrigin = 'anonymous';
     audioRef.current = audio;
 
     const emitProgress = () => {
