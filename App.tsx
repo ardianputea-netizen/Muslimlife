@@ -80,6 +80,12 @@ function AppContent() {
   const canViewDevHealth = canAccessDeveloperTools(userEmail);
 
   useEffect(() => {
+    const runtimeWindow = window as Window & { __APP_RENDERED__?: boolean };
+    runtimeWindow.__APP_RENDERED__ = true;
+    window.dispatchEvent(new Event('ml:app-rendered'));
+  }, []);
+
+  useEffect(() => {
     startNotificationEngine();
     startNotesReminderScheduler();
     return () => {
@@ -322,6 +328,25 @@ function AppContent() {
 
   return (
     <>
+      {showUpdateBanner ? (
+        <div className="fixed inset-x-3 top-[calc(env(safe-area-inset-top,0px)+10px)] z-[130] rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 shadow-lg">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-amber-900">Update aplikasi tersedia</p>
+              <p className="text-[11px] text-amber-700">Muat ulang untuk pakai versi terbaru.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                void handleRefreshApp();
+              }}
+              className="rounded-lg border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-200"
+            >
+              Muat Ulang
+            </button>
+          </div>
+        </div>
+      ) : null}
       {refreshReady ? (
         <div
           className="fixed z-[120]"
