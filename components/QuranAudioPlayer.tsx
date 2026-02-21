@@ -1,58 +1,59 @@
-import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { Loader2, Pause, Play, Square } from 'lucide-react';
+import React, { useEffect, useReducer, useRef, useState } from 'react';
+import { Bookmark, Loader2, Pause, Play, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { VerseTiming } from '@/lib/api/quranFoundation';
 
-interface QuranAudioVerse {
+export interface QuranAudioVerse {
   verseKey: string;
   verseNumber: number;
   arabicText: string;
+  latin?: string;
   translation?: string;
 }
 
 interface QuranAudioPayload {
   audioUrl: string;
-  timestamps: VerseTiming[];
 }
 
 interface QuranAudioPlayerProps {
   surahName: string;
   verses: QuranAudioVerse[];
-  onLoadAudio: () => Promise<QuranAudioPayload>;
+  onLoadAudio?: () => Promise<QuranAudioPayload>;
+  showLatin?: boolean;
+  showTranslation?: boolean;
+  bookmarks?: Record<string, true>;
+  bookmarkSurahId?: number;
+  onToggleBookmark?: (verse: QuranAudioVerse) => void;
+  onMarkLastRead?: (verse: QuranAudioVerse) => void;
+  scrollToVerseNumber?: number | null;
+  onScrolledToVerse?: () => void;
 }
 
 interface PlayerState {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
-  activeVerseIndex: number;
-  activeWordIndex: number;
 }
 
 type PlayerAction =
   | { type: 'play' }
   | { type: 'pause' }
   | { type: 'stop' }
-  | { type: 'time'; currentTime: number; duration: number; activeVerseIndex: number; activeWordIndex: number };
+  | { type: 'time'; currentTime: number; duration: number };
 
 const initialState: PlayerState = {
   isPlaying: false,
   currentTime: 0,
   duration: 0,
-  activeVerseIndex: -1,
-  activeWordIndex: -1,
 };
 
 const reducer = (state: PlayerState, action: PlayerAction): PlayerState => {
   if (action.type === 'play') return { ...state, isPlaying: true };
   if (action.type === 'pause') return { ...state, isPlaying: false };
-  if (action.type === 'stop') return { ...state, isPlaying: false, currentTime: 0, activeVerseIndex: -1, activeWordIndex: -1 };
+  if (action.type === 'stop') return { ...state, isPlaying: false, currentTime: 0 };
   return {
     ...state,
     currentTime: action.currentTime,
     duration: action.duration,
-    activeVerseIndex: action.activeVerseIndex,
-    activeWordIndex: action.activeWordIndex,
   };
 };
 
@@ -63,36 +64,19 @@ const formatTime = (seconds: number) => {
   return `${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`;
 };
 
-const findActiveVerseIndex = (timestamps: VerseTiming[], currentMs: number) => {
-  let low = 0;
-  let high = timestamps.length - 1;
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    const row = timestamps[mid];
-    if (currentMs < row.fromMs) {
-      high = mid - 1;
-      continue;
-    }
-    if (currentMs >= row.toMs) {
-      low = mid + 1;
-      continue;
-    }
-    return mid;
-  }
-  return -1;
-};
-
-const findActiveWordIndex = (segments: VerseTiming['segments'], currentMs: number) => {
-  if (!segments || segments.length === 0) return -1;
-  for (let i = 0; i < segments.length; i += 1) {
-    if (currentMs >= segments[i].startMs && currentMs < segments[i].endMs) {
-      return segments[i].wordIndex;
-    }
-  }
-  return -1;
-};
-
-export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({ surahName, verses, onLoadAudio }) => {
+export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
+  surahName,
+  verses,
+  onLoadAudio,
+  showLatin = true,
+  showTranslation = true,
+  bookmarks = {},
+  bookmarkSurahId,
+  onToggleBookmark,
+  onMarkLastRead,
+  scrollToVerseNumber,
+  onScrolledToVerse,
+}) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [audioPayload, setAudioPayload] = useState<QuranAudioPayload | null>(null);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
@@ -102,14 +86,6 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({ surahName, v
   const verseRef = useRef<Record<string, HTMLDivElement | null>>({});
   const rafRef = useRef<number | null>(null);
   const lastUpdateMsRef = useRef(0);
-
-  const timestamps = audioPayload?.timestamps || [];
-
-  const timestampByVerseKey = useMemo(() => {
-    const map = new Map<string, VerseTiming>();
-    timestamps.forEach((row) => map.set(row.verseKey, row));
-    return map;
-  }, [timestamps]);
 
   useEffect(() => {
     setAudioPayload(null);
@@ -133,16 +109,10 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({ surahName, v
       lastUpdateMsRef.current = now;
 
       const currentTime = audio.currentTime || 0;
-      const currentMs = Math.floor(currentTime * 1000);
-      const activeVerseIndex = findActiveVerseIndex(timestamps, currentMs);
-      const activeSegments = activeVerseIndex >= 0 ? timestamps[activeVerseIndex]?.segments : undefined;
-      const activeWordIndex = findActiveWordIndex(activeSegments, currentMs);
       dispatch({
         type: 'time',
         currentTime,
         duration: Number.isFinite(audio.duration) ? audio.duration : 0,
-        activeVerseIndex,
-        activeWordIndex,
       });
     };
 
@@ -175,24 +145,30 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({ surahName, v
       audio.removeEventListener('durationchange', onTime);
       audioRef.current = null;
     };
-  }, [timestamps]);
+  }, []);
 
   useEffect(() => {
-    if (state.activeVerseIndex < 0) return;
-    const activeVerse = timestamps[state.activeVerseIndex];
-    const target = verseRef.current[activeVerse?.verseKey];
-    if (!target) return;
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [state.activeVerseIndex, timestamps]);
+    if (!scrollToVerseNumber) return;
+    const verse = verses.find((row) => row.verseNumber === scrollToVerseNumber);
+    if (!verse) return;
+    const node = verseRef.current[verse.verseKey];
+    if (!node) return;
+    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    onScrolledToVerse?.();
+  }, [onScrolledToVerse, scrollToVerseNumber, verses]);
 
   const ensureAudioLoaded = async () => {
-    if (audioPayload?.audioUrl && audioPayload.timestamps.length > 0) return audioPayload;
+    if (!onLoadAudio) {
+      setAudioError('Audio belum tersedia.');
+      return null;
+    }
+    if (audioPayload?.audioUrl) return audioPayload;
     setIsLoadingAudio(true);
     setAudioError(null);
     try {
       const payload = await onLoadAudio();
-      if (!payload.audioUrl || payload.timestamps.length === 0) {
-        throw new Error('Audio/timing belum tersedia untuk surah ini.');
+      if (!payload.audioUrl) {
+        throw new Error('Audio belum tersedia untuk surah ini.');
       }
       setAudioPayload(payload);
       if (audioRef.current) {
@@ -204,7 +180,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({ surahName, v
       if (import.meta.env.DEV) {
         console.warn('[quran-player] load audio failed', error);
       }
-      const message = error instanceof Error ? error.message : 'Gagal memuat audio/timing.';
+      const message = error instanceof Error ? error.message : 'Gagal memuat audio.';
       setAudioError(message);
       return null;
     } finally {
@@ -246,23 +222,17 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({ surahName, v
     audio.currentTime = Math.max(0, Math.min(nextTime, duration));
   };
 
-  const activeVerse = state.activeVerseIndex >= 0 ? timestamps[state.activeVerseIndex] : null;
-  const currentPlaying = activeVerse ? verses.find((row) => row.verseKey === activeVerse.verseKey) || null : null;
-
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm">
-        <p className="text-xs text-slate-500">
-          Sedang memutar:{' '}
-          <span className="font-semibold text-slate-800">
-            {currentPlaying ? `Surah ${surahName}, Ayat ${currentPlaying.verseNumber}` : `Surah ${surahName}`}
-          </span>
+      <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
+        <p className="text-xs text-muted-foreground">
+          Sedang memutar: <span className="font-semibold text-foreground">Surah {surahName}</span>
         </p>
         <div className="mt-2 flex items-center gap-2">
-          <button onClick={() => void togglePlay()} disabled={isLoadingAudio} className="rounded-full bg-emerald-100 p-2 text-emerald-700 disabled:opacity-70">
+          <button onClick={() => void togglePlay()} disabled={isLoadingAudio} className="rounded-full bg-emerald-100 p-2 text-emerald-700 disabled:opacity-70 dark:bg-emerald-900/50 dark:text-emerald-300">
             {isLoadingAudio ? <Loader2 size={16} className="animate-spin" /> : state.isPlaying ? <Pause size={16} /> : <Play size={16} />}
           </button>
-          <button onClick={stop} className="rounded-full bg-rose-100 p-2 text-rose-700">
+          <button onClick={stop} className="rounded-full bg-rose-100 p-2 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
             <Square size={16} />
           </button>
           <div className="flex-1">
@@ -274,18 +244,18 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({ surahName, v
               onChange={(event) => seek(Number(event.target.value))}
               className="w-full"
             />
-            <div className="mt-1 flex justify-between text-[11px] text-slate-500">
+            <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
               <span>{formatTime(state.currentTime)}</span>
               <span>{formatTime(state.duration)}</span>
             </div>
           </div>
         </div>
         {audioError ? (
-          <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700">
+          <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 p-2 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-900/20 dark:text-rose-200">
             <p>{audioError}</p>
             <button
               onClick={() => void ensureAudioLoaded()}
-              className="mt-1 rounded border border-rose-300 bg-white px-2 py-0.5 font-semibold text-rose-700"
+              className="mt-1 rounded border border-rose-300 bg-card px-2 py-0.5 font-semibold text-rose-700 dark:border-rose-400/40 dark:bg-transparent dark:text-rose-200"
             >
               Retry
             </button>
@@ -295,43 +265,54 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({ surahName, v
 
       <div className="space-y-2">
         {verses.map((verse) => {
-          const timing = timestampByVerseKey.get(verse.verseKey);
-          const isActive = state.activeVerseIndex >= 0 && timestamps[state.activeVerseIndex]?.verseKey === verse.verseKey;
-          const activeWordIndex = isActive ? state.activeWordIndex : -1;
           const words = verse.arabicText.split(/\s+/).filter(Boolean);
+          const bookmarkKey = `${bookmarkSurahId || 0}:${verse.verseNumber}`;
+          const isBookmarked = Boolean(bookmarks[bookmarkKey]);
           return (
             <article
               key={verse.verseKey}
               ref={(node) => {
                 verseRef.current[verse.verseKey] = node;
               }}
-              className={cn(
-                'rounded-2xl border bg-white px-3 py-3 transition',
-                isActive ? 'border-emerald-300 bg-emerald-50/70 ring-1 ring-emerald-100' : 'border-slate-100'
-              )}
+              className={cn('rounded-2xl border border-border bg-card px-3 py-3 shadow-sm transition')}
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
                   {verse.verseNumber}
                 </span>
-                {timing ? (
-                  <span className="text-[11px] text-slate-500">
-                    {formatTime(timing.fromMs / 1000)} - {formatTime(timing.toMs / 1000)}
-                  </span>
-                ) : null}
               </div>
-              <p className="text-right text-3xl leading-[2.05] text-slate-900" dir="rtl">
-                {words.map((word, index) => (
-                  <span
-                    key={`${verse.verseKey}-${index}`}
-                    className={cn('inline-block rounded px-0.5', activeWordIndex === index + 1 ? 'bg-amber-200 text-slate-900' : '')}
-                  >
-                    {word}
-                    {index < words.length - 1 ? ' ' : ''}
-                  </span>
-                ))}
+
+              <p className="arabic-text text-right leading-[2.05] text-foreground" style={{ fontSize: 'calc(1.875rem * var(--ml-arab-font-scale))' }} dir="rtl">
+                {words.join(' ')}
               </p>
-              {verse.translation ? <p className="mt-2 text-sm text-slate-700">{verse.translation}</p> : null}
+
+              {showLatin && verse.latin ? <p className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">{verse.latin}</p> : null}
+              {showTranslation && verse.translation ? <p className="mt-2 text-sm text-foreground">{verse.translation}</p> : null}
+
+              {(onToggleBookmark || onMarkLastRead) ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {onToggleBookmark ? (
+                    <button
+                      onClick={() => onToggleBookmark(verse)}
+                      className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold ${
+                        isBookmarked
+                          ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-900/30 dark:text-emerald-300'
+                          : 'border-border bg-card text-muted-foreground dark:border-white/15 dark:bg-transparent dark:text-foreground'
+                      }`}
+                    >
+                      <Bookmark size={12} fill={isBookmarked ? 'currentColor' : 'none'} /> Bookmark
+                    </button>
+                  ) : null}
+                  {onMarkLastRead ? (
+                    <button
+                      onClick={() => onMarkLastRead(verse)}
+                      className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 dark:border-blue-500/40 dark:bg-blue-900/30 dark:text-blue-300"
+                    >
+                      Tandai terakhir dibaca
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </article>
           );
         })}
@@ -339,4 +320,3 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({ surahName, v
     </div>
   );
 };
-

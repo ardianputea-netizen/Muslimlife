@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, Volume2, X } from 'lucide-react';
 import {
   ADZAN_TRIGGER_EVENT,
@@ -81,15 +81,15 @@ export const AdzanManager: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm p-4 flex items-center justify-center">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 p-5">
+      <div className="w-full max-w-sm bg-card rounded-2xl shadow-xl border border-border p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="inline-flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-green-100 text-[#0F9D58] flex items-center justify-center">
               <Bell size={18} />
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900">{active.label}</p>
-              <p className="text-xs text-gray-500">Masuk waktu: {formatTime(active.fire_at)}</p>
+              <p className="text-sm font-bold text-foreground">{active.label}</p>
+              <p className="text-xs text-muted-foreground">Masuk waktu: {formatTime(active.fire_at)}</p>
             </div>
           </div>
           <button
@@ -97,13 +97,13 @@ export const AdzanManager: React.FC = () => {
               stopAudio();
               setActive(null);
             }}
-            className="p-2 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50"
+            className="p-2 rounded-full border border-border text-muted-foreground hover:bg-background"
           >
             <X size={16} />
           </button>
         </div>
 
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           {active.source === 'notification_tap'
             ? 'Notifikasi dibuka. Audio adzan diputar.'
             : 'Waktu sholat telah tiba. Jaga ibadah tepat waktu.'}
@@ -112,12 +112,12 @@ export const AdzanManager: React.FC = () => {
         <div className="mt-4 flex items-center justify-between gap-2">
           <button
             onClick={() => void playAdzanAudio()}
-            className="text-xs px-3 py-2 rounded-lg border border-gray-200 inline-flex items-center gap-1.5"
+            className="text-xs px-3 py-2 rounded-lg border border-border inline-flex items-center gap-1.5"
           >
             <Volume2 size={14} />
             Test / Ulangi
           </button>
-          <span className="text-xs text-gray-500">{isPlayingAudio ? 'Audio aktif' : 'Audio idle'}</span>
+          <span className="text-xs text-muted-foreground">{isPlayingAudio ? 'Audio aktif' : 'Audio idle'}</span>
         </div>
 
         {audioError && (

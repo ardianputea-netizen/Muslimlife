@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Pause, Play } from 'lucide-react';
 
 interface AudioPlayerBarProps {
@@ -24,7 +24,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   onSeek,
 }) => {
   return (
-    <div className="fixed bottom-[calc(var(--bottom-nav-safe-h)+8px)] left-1/2 z-40 w-[92%] max-w-md -translate-x-1/2 rounded-2xl border border-emerald-100 bg-white/95 p-3 shadow-lg backdrop-blur">
+    <div className="fixed bottom-[calc(var(--bottom-nav-safe-h)+8px)] left-1/2 z-40 w-[92%] max-w-md -translate-x-1/2 rounded-2xl border border-border bg-card p-3 shadow-lg">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -42,7 +42,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
             onChange={(event) => onSeek(Number(event.target.value))}
             className="w-full"
           />
-          <div className="mt-1 flex justify-between text-[11px] text-gray-500">
+          <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
             <span>{fmt(currentTime)}</span>
             <span>{fmt(duration)}</span>
           </div>
@@ -51,4 +51,3 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
     </div>
   );
 };
-

@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-
 interface CacheRecord<T = unknown> {
   data: T;
   expiresAt: number;
@@ -31,8 +29,14 @@ const stableStringify = (value: unknown): string => {
 };
 
 export const buildCacheKey = (route: string, params: unknown) => {
-  const hash = createHash('sha1').update(stableStringify(params)).digest('hex');
-  return `${route}:${hash}`;
+  const input = stableStringify(params);
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const hex = (hash >>> 0).toString(16).padStart(8, '0');
+  return `${route}:${hex}`;
 };
 
 const kvCommand = async (args: unknown[]) => {

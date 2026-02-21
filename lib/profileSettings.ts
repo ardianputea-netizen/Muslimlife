@@ -1,6 +1,6 @@
 import type { CalculationMethodId, PrayerName } from './prayerTimes';
 
-export type ThemePreference = 'light';
+export type ThemePreference = 'light' | 'dark' | 'system';
 export type PrayerCalcMethod = 'KEMENAG' | 'MUIS' | 'MWL' | 'UMM_AL_QURA';
 
 export interface NotificationSettingsPreference {
@@ -71,8 +71,8 @@ export const PRAYER_METHOD_OPTIONS: Array<{
 ];
 
 const normalizeTheme = (value: unknown): ThemePreference => {
-  if (value === 'light') return 'light';
-  return 'light';
+  if (value === 'dark' || value === 'system' || value === 'light') return value;
+  return 'system';
 };
 
 const normalizePrayerMethod = (value: unknown): PrayerCalcMethod => {

@@ -41,14 +41,21 @@ export interface FetchJsonOptions extends Omit<RequestInit, 'body'> {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const resolveBaseOrigin = () => {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return 'http://localhost';
+};
+
 const toURL = (input: string, query?: Record<string, string | number | undefined | null>) => {
   if (!query) return input;
-  const url = new URL(input);
+  const url = new URL(input, resolveBaseOrigin());
   Object.entries(query).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return;
     url.searchParams.set(key, String(value));
   });
-  return url.toString();
+  return /^https?:\/\//i.test(input) ? url.toString() : `${url.pathname}${url.search}`;
 };
 
 const toBody = (body: FetchJsonOptions['body']): BodyInit | undefined => {
@@ -186,4 +193,3 @@ export const fetchJson = async <T>(
     url: finalURL,
   });
 };
-

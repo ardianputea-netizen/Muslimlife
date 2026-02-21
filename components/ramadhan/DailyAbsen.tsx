@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { HandHeart, Moon, MoonStar, Utensils, X } from 'lucide-react';
 import { RAMADHAN_ABSEN_ITEMS, RamadhanAbsenItemKey } from '@/constants';
 import { Badge } from '@/components/ui/badge';
@@ -34,10 +34,10 @@ const ICON_BY_KEY: Record<RamadhanAbsenItemKey, React.ComponentType<{ className?
 };
 
 const ICON_BG_BY_KEY: Record<RamadhanAbsenItemKey, string> = {
-  sahur: 'bg-amber-50 text-amber-700',
-  puasa: 'bg-indigo-50 text-indigo-700',
-  tarawih: 'bg-violet-50 text-violet-700',
-  sedekah: 'bg-rose-50 text-rose-700',
+  sahur: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200',
+  puasa: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-200',
+  tarawih: 'bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-200',
+  sedekah: 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-200',
 };
 
 const CompletionCongratsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -60,15 +60,15 @@ const CompletionCongratsModal: React.FC<{ onClose: () => void }> = ({ onClose })
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 backdrop-blur-sm dark:bg-black/70 px-4">
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-xs rounded-2xl border border-emerald-200 bg-white p-4 shadow-xl"
+        className="w-full max-w-xs rounded-2xl border border-emerald-300/70 bg-[hsl(var(--popover))] p-4 shadow-2xl ring-1 ring-emerald-200/70 dark:border-emerald-400/35 dark:ring-emerald-400/25"
       >
         <div className="text-center">
-          <h3 className="mt-2 text-base font-bold text-gray-900">MasyaAllah, lengkap!</h3>
-          <p className="mt-1 text-xs text-gray-600">Kamu sudah menyelesaikan semua absen harian hari ini.</p>
+          <h3 className="mt-2 text-base font-bold text-foreground">MasyaAllah, lengkap!</h3>
+          <p className="mt-1 text-xs text-muted-foreground">Kamu sudah menyelesaikan semua absen harian hari ini.</p>
         </div>
         <Button
           type="button"
@@ -115,16 +115,16 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
   }, [allCompleted, selectedDay]);
 
   return (
-    <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+    <section className="bg-card rounded-2xl p-4 border border-border shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-bold text-gray-800">ABSEN HARIAN</h2>
-        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">{selectedDate}</span>
+        <h2 className="font-bold text-foreground">ABSEN HARIAN</h2>
+        <span className="text-xs bg-muted text-foreground px-2 py-1 rounded-full">{selectedDate}</span>
       </div>
 
       {isLoading || !selectedDay ? (
         <div className="space-y-2 animate-pulse">
           {Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="h-24 rounded-2xl bg-gray-100" />
+            <div key={idx} className="h-24 rounded-2xl bg-muted" />
           ))}
         </div>
       ) : (
@@ -140,8 +140,8 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
                 <Card
                   key={item.key}
                   className={cn(
-                    'rounded-2xl border border-gray-100 bg-white shadow-sm',
-                    checked ? 'border-emerald-200 bg-emerald-50/30' : ''
+                    'rounded-2xl border border-border bg-card shadow-sm',
+                    checked ? 'border-emerald-300/70 bg-emerald-50/50 dark:border-emerald-400/35 dark:bg-emerald-500/10' : ''
                   )}
                 >
                   <CardContent className="p-3">
@@ -158,7 +158,7 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                            <p className="text-sm font-semibold text-foreground">{item.title}</p>
 
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -183,6 +183,7 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
                           checked={checked}
                           disabled={disabledState || switching}
                           aria-label={`Absen ${item.title}`}
+                          className="data-[state=unchecked]:bg-black/90 data-[state=unchecked]:border-black/90 dark:data-[state=unchecked]:bg-foreground dark:data-[state=unchecked]:border-foreground"
                           onCheckedChange={() => onToggle(item.key)}
                         />
                       </div>
@@ -199,7 +200,7 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
                             <div className="flex items-start justify-between gap-2">
                               <Badge
                                 variant="secondary"
-                                className="bg-white text-emerald-700 border border-emerald-200"
+                                className="bg-card text-emerald-700 border border-emerald-200"
                               >
                                 {item.infoBadge}
                               </Badge>
@@ -207,7 +208,7 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                className="h-6 w-6 rounded-full p-0 text-gray-500 hover:bg-white"
+                                className="h-6 w-6 rounded-full p-0 text-muted-foreground hover:bg-card"
                                 aria-label={`Tutup info ${item.title}`}
                                 onClick={() => setOpenInfoKey(null)}
                               >
@@ -215,14 +216,14 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
                               </Button>
                             </div>
                             {item.infoArabic ? (
-                              <p className="mt-2 text-sm leading-relaxed text-right text-gray-800">{item.infoArabic}</p>
+                              <p className="mt-2 text-sm leading-relaxed text-right text-foreground">{item.infoArabic}</p>
                             ) : null}
                             {item.infoLatin ? (
-                              <p className="mt-2 text-xs leading-relaxed text-gray-700">
+                              <p className="mt-2 text-xs leading-relaxed text-foreground">
                                 <span className="font-semibold">Latin:</span> {item.infoLatin}
                               </p>
                             ) : null}
-                            <p className="mt-2 text-xs leading-relaxed text-gray-700">
+                            <p className="mt-2 text-xs leading-relaxed text-foreground">
                               <span className="font-semibold">Indonesia:</span> {item.infoIndonesian}
                             </p>
                           </div>
@@ -238,9 +239,9 @@ export const DailyAbsen: React.FC<DailyAbsenProps> = ({
       )}
 
       {selectedDay?.notes ? (
-        <p className="text-xs text-gray-500 mt-3">Catatan: {selectedDay.notes}</p>
+        <p className="text-xs text-muted-foreground mt-3">Catatan: {selectedDay.notes}</p>
       ) : (
-        <p className="text-xs text-gray-400 mt-3">Belum ada catatan harian.</p>
+        <p className="text-xs text-muted-foreground mt-3">Belum ada catatan harian.</p>
       )}
 
       {showCongrats ? <CompletionCongratsModal onClose={() => setShowCongrats(false)} /> : null}

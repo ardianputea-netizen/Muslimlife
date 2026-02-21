@@ -1,14 +1,23 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
   Bell,
   Compass,
+  Info,
+  MapPin,
+  MessageSquareQuote,
   Palette,
+  ShieldCheck,
+  Star,
   RefreshCw,
   LogIn,
-  BookOpenText,
-  ChevronRight,
   X,
+  Download,
+  Smartphone,
+  Apple,
+  Share2,
+  PlusSquare,
+  History,
 } from 'lucide-react';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { getOAuthRedirectTo } from '../lib/oauth';
@@ -18,6 +27,7 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
 } from '../lib/notificationPermission';
+import { getLocation, getLocationPermissionStatus, type LocationPermissionState } from '../lib/locationPermission';
 import {
   DEFAULT_PROFILE_SETTINGS,
   cacheNotificationSettings,
@@ -30,18 +40,25 @@ import {
   type ProfileSettingsRecord,
 } from '../lib/profileSettings';
 import { savePrayerSettings } from '../lib/prayerTimes';
-import { applyThemePreference, getThemeLabel } from '../lib/themePreference';
+import { getThemeLabel } from '../lib/themePreference';
 import { navigateTo } from '../lib/appRouter';
+import { useReaderSettings } from '@/context/ReaderSettingsContext';
+import { getRatingSummary, type RatingSummary } from '../lib/api/rating';
+import { formatUpdateDateID, syncAppUpdateHistory, type AppUpdateEntry } from '../lib/appUpdateLog';
 import { UserAccountCard } from './settings/UserAccountCard';
 import { SettingsRow } from './settings/SettingsRow';
 import { NotificationSheet } from './settings/NotificationSheet';
 import { CompassCalibrationSheet } from './settings/CompassCalibrationSheet';
+import { ThemePicker } from './settings/ThemePicker';
 import {
+  enablePushSubscription,
   ensurePushSubscription,
   getPushSubscriptionStatus,
   type PushSubscriptionStatus,
   syncPushSubscriptionToSupabase,
+  unsubscribePushSubscription,
 } from '../lib/pushNotifications';
+import { canAccessDeveloperTools } from '../lib/devAccess';
 
 interface ToastState {
   id: number;
@@ -52,40 +69,52 @@ interface ToastState {
 type ProviderType = 'google' | 'apple' | 'unknown';
 type SavingKey = 'notification' | 'compass' | 'logout' | null;
 
-const CONTENT_SOURCES: Array<{ title: string; source: string }> = [
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
+const PRIVACY_POLICY_UPDATED_AT = '27 Oktober 2025';
+
+const PRIVACY_POLICY_SECTIONS: Array<{ title: string; body: string }> = [
   {
-    title: 'Al-Quran',
-    source: 'Teks: wanrabbae/al-quran-indonesia-api (fallback otomatis: EQuran.id API v2). Audio + timing: QuranFoundation/Quran.com API v4 (saat Play).',
+    title: '1. Pendahuluan',
+    body: 'MuslimLife menghormati privasi Anda dan berkomitmen melindungi informasi pengguna saat menggunakan aplikasi.',
   },
   {
-    title: 'Juz Amma',
-    source: 'Teks: provider Al-Quran aktif (wanrabbae/equran). Audio + timing highlight: QuranFoundation/Quran.com API v4 (lazy load saat Play).',
+    title: '2. Informasi yang Kami Kumpulkan',
+    body: 'Kami tidak mengumpulkan data pribadi seperti nama, email, atau nomor telepon ke server eksternal. Data yang Anda masukkan disimpan secara lokal di perangkat (LocalStorage).',
   },
   {
-    title: 'Hadits',
-    source: 'API Hadis Malaysia (via serverless proxy /api/hadith).',
+    title: '3. Penggunaan Data Lokasi (GPS)',
+    body: 'Aplikasi memerlukan akses lokasi untuk menghitung waktu sholat yang akurat dan menentukan arah kiblat. Data lokasi diproses di perangkat; jika ada request ke layanan pihak ketiga, hanya data minimum yang dikirim.',
   },
   {
-    title: 'Jadwal Sholat',
-    source: 'Perhitungan lokal adhan-js berdasarkan koordinat pengguna',
+    title: '4. Penyimpanan Data',
+    body: 'Data preferensi pengguna, catatan, dan penanda ibadah disimpan di memori internal perangkat. Jika data aplikasi dibersihkan, data tersebut dapat hilang.',
   },
   {
-    title: 'Jadwal Puasa',
-    source: 'Aladhan API (api.aladhan.com) untuk imsak, subuh, dan maghrib',
+    title: '5. Keamanan',
+    body: 'Kami berupaya menjaga keamanan aplikasi. Tetap pastikan perangkat Anda aman dan tidak membagikan akses ke pihak tidak dikenal.',
   },
   {
-    title: 'Azkar',
-    source: 'dua-dhikr API (Fitrahive).',
+    title: '6. Perubahan Kebijakan',
+    body: 'Kebijakan privasi dapat diperbarui sewaktu-waktu. Perubahan ditampilkan melalui pembaruan aplikasi.',
   },
   {
-    title: '99 Nama Asmaul Husna',
-    source: "Dataset lokal Asma al-Husna (Al-Quran & hadits sahih, kurasi internal)",
-  },
-  {
-    title: 'Doa & Dzikir',
-    source: 'dua-dhikr API (Fitrahive).',
+    title: '7. Hubungi Kami',
+    body: 'Jika ada pertanyaan terkait kebijakan privasi, hubungi email: wahib.cheszae@gmail.com.',
   },
 ];
+
+const APP_UPDATE_ITEMS = [
+  'Perbaikan stabilitas PWA dan menu refresh agar update aplikasi lebih mudah.',
+  'Peningkatan tampilan tema gelap/terang di halaman baca dan doa.',
+  'Optimasi endpoint agar deployment Vercel Hobby tetap aman.',
+  'Perbaikan reliabilitas data konten (Quran, doa, hadits, cuaca, masjid).',
+];
+
+const OTHER_APP_CARDS = ['NEXT UPDATE', 'NEXT UPDATE'];
 
 const resolveProvider = (user: SupabaseUser | null): ProviderType => {
   if (!user) return 'unknown';
@@ -113,14 +142,30 @@ const getNotificationSubtitle = (
   return 'Aktif';
 };
 
+const getLocationSubtitle = (status: LocationPermissionState) => {
+  if (status === 'granted') return 'Aktif';
+  if (status === 'denied') return 'Ditolak browser';
+  if (status === 'unsupported') return 'Tidak didukung perangkat';
+  return 'Belum diizinkan';
+};
+
+const DEFAULT_RATING_SUMMARY: RatingSummary = {
+  average_stars: 0,
+  total_count: 0,
+  items: [],
+};
+
 export const SettingsPage: React.FC = () => {
   const supabaseConfigured = isSupabaseConfigured();
   const supabaseClient = getSupabaseClient();
+  const { settings: readerSettings, setTheme: setReaderTheme } = useReaderSettings();
 
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<ProfileSettingsRecord>(DEFAULT_PROFILE_SETTINGS);
   const [permission, setPermission] = useState<BrowserNotificationPermission>('default');
+  const [locationPermission, setLocationPermission] = useState<LocationPermissionState>('pending');
   const [pushStatus, setPushStatus] = useState<PushSubscriptionStatus>('unsupported');
+  const [isPushBusy, setIsPushBusy] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<SavingKey>(null);
@@ -128,7 +173,17 @@ export const SettingsPage: React.FC = () => {
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [compassOpen, setCompassOpen] = useState(false);
-  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [otherAppsOpen, setOtherAppsOpen] = useState(false);
+  const [installOpen, setInstallOpen] = useState(false);
+  const [ratingSummary, setRatingSummary] = useState<RatingSummary>(DEFAULT_RATING_SUMMARY);
+  const [ratingLoading, setRatingLoading] = useState(true);
+  const [updateHistory, setUpdateHistory] = useState<AppUpdateEntry[]>([]);
+  const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isIosDevice, setIsIosDevice] = useState(false);
+  const [isStandalonePwa, setIsStandalonePwa] = useState(false);
 
   const account = useMemo(() => mapSupabaseUser(user), [user]);
   const provider = useMemo(() => resolveProvider(user), [user]);
@@ -157,8 +212,55 @@ export const SettingsPage: React.FC = () => {
     void refreshPushStatus();
   }, [notifOpen, refreshPushStatus]);
 
+  useEffect(() => {
+    const history = syncAppUpdateHistory(APP_UPDATE_ITEMS);
+    setUpdateHistory(history);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
+
+    const ua = navigator.userAgent.toLowerCase();
+    const ios = /iphone|ipad|ipod/.test(ua);
+    setIsIosDevice(ios);
+
+    const standaloneByMedia = window.matchMedia('(display-mode: standalone)').matches;
+    const standaloneByNavigator = Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    setIsStandalonePwa(standaloneByMedia || standaloneByNavigator);
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadRating = async () => {
+      setRatingLoading(true);
+      try {
+        const summary = await getRatingSummary({ force: true });
+        if (!mounted) return;
+        setRatingSummary(summary);
+      } catch {
+        if (!mounted) return;
+        setRatingSummary(DEFAULT_RATING_SUMMARY);
+      } finally {
+        if (mounted) setRatingLoading(false);
+      }
+    };
+    void loadRating();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const applyProfileEffects = useCallback((next: ProfileSettingsRecord) => {
-    applyThemePreference(next.theme);
     cacheProfilePrayerMethod(next.prayer_calc_method);
     cacheNotificationSettings(next.notification_settings);
     savePrayerSettings({
@@ -171,16 +273,22 @@ export const SettingsPage: React.FC = () => {
   const ensureProfileRow = useCallback(
     async (userId: string) => {
       if (!supabaseClient) return;
-      await supabaseClient.from('profiles').upsert(
-        {
-          id: userId,
-          theme: DEFAULT_PROFILE_SETTINGS.theme,
-          notification_settings: DEFAULT_PROFILE_SETTINGS.notification_settings,
-          prayer_calc_method: DEFAULT_PROFILE_SETTINGS.prayer_calc_method,
-          compass_calibrated_at: null,
-        },
-        { onConflict: 'id', ignoreDuplicates: true }
-      );
+      try {
+        await supabaseClient.from('profiles').upsert(
+          {
+            id: userId,
+            theme: DEFAULT_PROFILE_SETTINGS.theme,
+            notification_settings: DEFAULT_PROFILE_SETTINGS.notification_settings,
+            prayer_calc_method: DEFAULT_PROFILE_SETTINGS.prayer_calc_method,
+            compass_calibrated_at: null,
+          },
+          { onConflict: 'id', ignoreDuplicates: true }
+        );
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn('profiles upsert skipped, fallback to local settings', error);
+        }
+      }
     },
     [supabaseClient]
   );
@@ -204,23 +312,25 @@ export const SettingsPage: React.FC = () => {
         const normalized = normalizeProfileSettings(data || DEFAULT_PROFILE_SETTINGS);
         setProfile(normalized);
         applyProfileEffects(normalized);
-
-        if (data?.theme !== 'light') {
-          await supabaseClient.from('profiles').update({ theme: 'light' }).eq('id', userId);
-        }
       } catch (error) {
         console.error('Failed loading profile settings', error);
-        showToast('Gagal memuat pengaturan profil.', 'error');
+        const fallback = normalizeProfileSettings({
+          ...DEFAULT_PROFILE_SETTINGS,
+          notification_settings: getCachedNotificationSettings(),
+        });
+        setProfile(fallback);
+        applyProfileEffects(fallback);
       } finally {
         setIsLoadingProfile(false);
       }
     },
-    [applyProfileEffects, ensureProfileRow, showToast, supabaseClient]
+    [applyProfileEffects, ensureProfileRow, supabaseClient]
   );
 
   useEffect(() => {
     setPermission(getNotificationPermission());
     void refreshPushStatus();
+    void getLocationPermissionStatus().then(setLocationPermission).catch(() => setLocationPermission('pending'));
     const cachedNotificationSettings = getCachedNotificationSettings();
     setProfile((prev) =>
       normalizeProfileSettings({
@@ -228,8 +338,7 @@ export const SettingsPage: React.FC = () => {
         notification_settings: cachedNotificationSettings,
       })
     );
-    applyThemePreference(profile.theme);
-  }, [profile.theme, refreshPushStatus]);
+  }, [refreshPushStatus]);
 
   useEffect(() => {
     if (!supabaseConfigured || !supabaseClient) {
@@ -325,6 +434,16 @@ export const SettingsPage: React.FC = () => {
 
   const handleNotificationSave = async (value: NotificationSettingsPreference) => {
     await updateProfile({ notification_settings: value }, 'notification');
+    if (permission !== 'granted') return;
+    try {
+      const subscription = await ensurePushSubscription();
+      await syncPushSubscriptionToSupabase(supabaseClient, subscription);
+      await refreshPushStatus();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn('sync push after notification save failed', error);
+      }
+    }
   };
 
   const handleCompassSave = async () => {
@@ -338,14 +457,7 @@ export const SettingsPage: React.FC = () => {
     await refreshPushStatus();
 
     if (next === 'granted') {
-      try {
-        const subscription = await ensurePushSubscription();
-        await syncPushSubscriptionToSupabase(supabaseClient, subscription);
-      } catch (error) {
-        console.error('Failed registering push subscription', error);
-      }
-      await refreshPushStatus();
-      showToast('Izin notifikasi diberikan.', 'success');
+      await handleEnablePush();
       return;
     }
 
@@ -355,6 +467,55 @@ export const SettingsPage: React.FC = () => {
     }
 
     showToast('Izin notifikasi belum diaktifkan.', 'error');
+  };
+
+  const handleEnablePush = async () => {
+    if (isPushBusy) return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      showToast('Izin notifikasi belum diaktifkan.', 'error');
+      return;
+    }
+    setIsPushBusy(true);
+    try {
+      const result = await enablePushSubscription(supabaseClient);
+      setPushStatus(result.status);
+      showToast(
+        result.synced ? 'Push notifikasi aktif.' : 'Push aktif lokal, sinkronisasi server gagal.',
+        result.synced ? 'success' : 'error'
+      );
+    } catch (error) {
+      console.error('Failed enabling push subscription', error);
+      showToast('Gagal mengaktifkan push notifikasi.', 'error');
+    } finally {
+      setIsPushBusy(false);
+    }
+  };
+
+  const handleDisablePush = async () => {
+    if (isPushBusy) return;
+    setIsPushBusy(true);
+    try {
+      const ok = await unsubscribePushSubscription(supabaseClient);
+      await refreshPushStatus();
+      showToast(ok ? 'Push notifikasi dinonaktifkan.' : 'Gagal menonaktifkan push.', ok ? 'success' : 'error');
+    } catch (error) {
+      console.error('Failed disabling push subscription', error);
+      showToast('Gagal menonaktifkan push notifikasi.', 'error');
+    } finally {
+      setIsPushBusy(false);
+    }
+  };
+
+  const handleRequestLocationPermission = async () => {
+    try {
+      await getLocation();
+      setLocationPermission('granted');
+      showToast('Lokasi berhasil diaktifkan.', 'success');
+    } catch {
+      const status = await getLocationPermissionStatus().catch(() => 'pending' as LocationPermissionState);
+      setLocationPermission(status);
+      showToast('Izin lokasi belum diberikan.', 'error');
+    }
   };
 
   const handleLogout = async () => {
@@ -390,20 +551,46 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleInstallAndroid = useCallback(async () => {
+    if (!installPromptEvent) {
+      showToast('Install langsung belum tersedia. Buka dari Chrome Android.', 'error');
+      return;
+    }
+
+    await installPromptEvent.prompt();
+    const choice = await installPromptEvent.userChoice;
+    if (choice.outcome === 'accepted') {
+      showToast('Instalasi dimulai.', 'success');
+    } else {
+      showToast('Instalasi dibatalkan.', 'error');
+    }
+    setInstallPromptEvent(null);
+  }, [installPromptEvent, showToast]);
+
   const notificationSubtitle = useMemo(
     () => getNotificationSubtitle(permission, profile.notification_settings),
     [permission, profile.notification_settings]
   );
+  const locationSubtitle = useMemo(() => getLocationSubtitle(locationPermission), [locationPermission]);
 
-  const themeSubtitle = useMemo(() => `Tema: ${getThemeLabel(profile.theme)}`, [profile.theme]);
-
+  const themeSubtitle = useMemo(() => `Tema: ${getThemeLabel(readerSettings.theme)}`, [readerSettings.theme]);
+  const ratingSubtitle = useMemo(() => {
+    if (ratingLoading) return 'Memuat rating...';
+    return `⭐ ${ratingSummary.average_stars.toFixed(1)} (${ratingSummary.total_count} ulasan)`;
+  }, [ratingLoading, ratingSummary.average_stars, ratingSummary.total_count]);
+  const lastUpdateSubtitle = useMemo(() => {
+    const latest = updateHistory[0];
+    if (!latest) return 'Informasi versi dan update terbaru';
+    return `Update: ${formatUpdateDateID(latest.deployedAt)}`;
+  }, [updateHistory]);
+  const canViewDevHealth = useMemo(() => canAccessDeveloperTools(user?.email), [user?.email]);
   const disableRows = isLoadingProfile || isAuthLoading;
 
   return (
-    <div className="min-h-full bg-slate-50 text-slate-900 dark:bg-[#060B16] dark:text-slate-100 dark:bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),transparent_42%),radial-gradient(circle_at_85%_20%,_rgba(16,185,129,0.12),transparent_35%),#060B16]">
-      <div className="safe-top sticky top-0 z-10 border-b border-slate-200 bg-slate-50/95 backdrop-blur px-4 py-3 dark:border-white/10 dark:bg-[#060B16]/90">
-        <h1 className="text-lg font-bold text-slate-900 dark:text-white">Settings</h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400">Akun, tampilan, notifikasi, kompas, dan sumber konten</p>
+    <div className="min-h-full bg-background text-foreground">
+      <div className="safe-top sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur px-4 py-3">
+        <h1 className="text-lg font-bold text-foreground">Settings</h1>
+        <p className="text-xs text-muted-foreground">Akun, tampilan, notifikasi, kompas, dan aplikasi</p>
       </div>
 
       <div className="p-4 space-y-4">
@@ -420,33 +607,32 @@ export const SettingsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => void handleGoogleSignIn()}
-            className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 text-sm font-semibold text-slate-700 inline-flex items-center justify-center gap-2 dark:border-white/15 dark:bg-white/5 dark:text-slate-100"
+            className="w-full rounded-2xl border border-border bg-card py-2.5 text-sm font-semibold text-foreground inline-flex items-center justify-center gap-2 dark:border-white/15 dark:bg-card/5 dark:text-foreground"
           >
             <LogIn size={15} /> Login dengan Google
           </button>
         ) : null}
 
         {(isLoadingProfile || isAuthLoading) && user ? (
-          <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 inline-flex items-center gap-2 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300">
+          <div className="rounded-2xl border border-border bg-card px-3 py-2 text-xs text-muted-foreground inline-flex items-center gap-2 dark:border-white/10 dark:bg-card/[0.03] dark:text-foreground">
             <RefreshCw size={13} className="animate-spin" /> Sinkronisasi pengaturan...
           </div>
         ) : null}
 
         <div>
-          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-slate-500 dark:text-slate-400">PENGATURAN UMUM</p>
+          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-muted-foreground dark:text-foreground">PENGATURAN UMUM</p>
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white overflow-hidden dark:border-white/10 dark:bg-slate-900/70">
+        <section className="rounded-2xl border border-border bg-card overflow-hidden dark:border-white/10 dark:bg-card">
           <SettingsRow
             icon={Palette}
             iconClassName="text-fuchsia-600"
             title="Tema Tampilan"
             subtitle={themeSubtitle}
-            onClick={() => {}}
-            disabled
+            onClick={() => setThemeOpen(true)}
           />
 
-          <div className="h-px bg-slate-200 dark:bg-white/10" />
+          <div className="h-px bg-card dark:bg-card/10" />
 
           <SettingsRow
             icon={Bell}
@@ -457,7 +643,18 @@ export const SettingsPage: React.FC = () => {
             disabled={disableRows}
           />
 
-          <div className="h-px bg-slate-200 dark:bg-white/10" />
+          <div className="h-px bg-card dark:bg-card/10" />
+
+          <SettingsRow
+            icon={MapPin}
+            iconClassName="text-sky-600 dark:text-sky-200"
+            title="Aktifkan Lokasi"
+            subtitle={locationSubtitle}
+            onClick={() => void handleRequestLocationPermission()}
+            disabled={disableRows || locationPermission === 'unsupported'}
+          />
+
+          <div className="h-px bg-card dark:bg-card/10" />
 
           <SettingsRow
             icon={Compass}
@@ -470,32 +667,83 @@ export const SettingsPage: React.FC = () => {
         </section>
 
         <div>
-          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-slate-500 dark:text-slate-400">TENTANG APLIKASI</p>
+          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-muted-foreground dark:text-foreground">TENTANG APLIKASI</p>
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white overflow-hidden dark:border-white/10 dark:bg-slate-900/70">
-          <button
-            type="button"
-            onClick={() => setSourcesOpen(true)}
-            className="w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-white/[0.03]"
-          >
-            <div className="inline-flex items-center gap-2">
-              <BookOpenText size={15} className="text-cyan-600 dark:text-cyan-200" />
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">Sumber Konten</p>
-            </div>
-            <div className="mt-1 flex items-center justify-between">
-              <p className="text-xs text-slate-600 dark:text-slate-300">Lihat daftar sumber data aplikasi</p>
-              <ChevronRight size={15} className="text-slate-500" />
-            </div>
-          </button>
-          <div className="h-px bg-slate-200 dark:bg-white/10" />
-          <button
-            type="button"
-            onClick={() => navigateTo('/settings/dev')}
-            className="w-full px-4 py-3 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/[0.03]"
-          >
-            Buka Dev Health Check API
-          </button>
+        <section className="rounded-2xl border border-border bg-card overflow-hidden dark:border-white/10 dark:bg-card">
+          <SettingsRow
+            icon={Download}
+            iconClassName="text-emerald-600 dark:text-emerald-200"
+            title="Instal Aplikasi"
+            subtitle={isStandalonePwa ? 'Sudah terpasang di perangkat ini' : 'Panduan Android & iOS'}
+            onClick={() => setInstallOpen(true)}
+          />
+          <div className="h-px bg-card dark:bg-card/10" />
+          <SettingsRow
+            icon={Star}
+            iconClassName="text-amber-500"
+            title="Rating Aplikasi"
+            subtitle={ratingSubtitle}
+            onClick={() => navigateTo('/rating')}
+          />
+          <div className="h-px bg-card dark:bg-card/10" />
+          <SettingsRow
+            icon={MessageSquareQuote}
+            iconClassName="text-indigo-600 dark:text-indigo-200"
+            title="Kasih Saran"
+            subtitle="Kirim masukan tanpa keluar aplikasi"
+            onClick={() => navigateTo('/saran')}
+          />
+          <div className="h-px bg-card dark:bg-card/10" />
+          <SettingsRow
+            icon={ShieldCheck}
+            iconClassName="text-emerald-600 dark:text-emerald-200"
+            title="Kebijakan Privasi"
+            subtitle={`Terakhir diperbarui: ${PRIVACY_POLICY_UPDATED_AT}`}
+            onClick={() => setPrivacyOpen(true)}
+          />
+          <div className="h-px bg-card dark:bg-card/10" />
+          <SettingsRow
+            icon={Info}
+            iconClassName="text-sky-600 dark:text-sky-200"
+            title="Tentang Aplikasi"
+            subtitle={lastUpdateSubtitle}
+            onClick={() => setAboutOpen(true)}
+          />
+          <div className="h-px bg-card dark:bg-card/10" />
+          <SettingsRow
+            icon={History}
+            iconClassName="text-violet-600 dark:text-violet-200"
+            title="Riwayat Update"
+            subtitle="Lihat daftar perubahan fitur aplikasi"
+            onClick={() => navigateTo('/update')}
+          />
+          {canViewDevHealth ? (
+            <>
+              <div className="h-px bg-card dark:bg-card/10" />
+              <button
+                type="button"
+                onClick={() => navigateTo('/settings/dev')}
+                className="w-full px-4 py-3 text-left text-xs font-semibold text-foreground hover:bg-muted dark:text-foreground dark:hover:bg-card/[0.03]"
+              >
+                Buka Dev Health Check API
+              </button>
+            </>
+          ) : null}
+        </section>
+
+        <div>
+          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-muted-foreground dark:text-foreground">APLIKASI LAINNYA</p>
+        </div>
+
+        <section className="rounded-2xl border border-border bg-card overflow-hidden dark:border-white/10 dark:bg-card">
+          <SettingsRow
+            icon={Info}
+            iconClassName="text-emerald-600 dark:text-emerald-200"
+            title="Menu Aplikasi Lainnya"
+            subtitle="Lihat daftar update berikutnya"
+            onClick={() => setOtherAppsOpen(true)}
+          />
         </section>
       </div>
 
@@ -503,10 +751,13 @@ export const SettingsPage: React.FC = () => {
         open={notifOpen}
         permission={permission}
         pushStatus={pushStatus}
+        pushBusy={isPushBusy}
         settings={profile.notification_settings}
         isSaving={savingKey === 'notification'}
         onClose={() => setNotifOpen(false)}
         onRequestPermission={handleRequestPermission}
+        onEnablePush={handleEnablePush}
+        onDisablePush={handleDisablePush}
         onSaveSettings={handleNotificationSave}
       />
 
@@ -517,28 +768,184 @@ export const SettingsPage: React.FC = () => {
         onClose={() => setCompassOpen(false)}
         onSave={handleCompassSave}
       />
+      <ThemePicker
+        open={themeOpen}
+        value={readerSettings.theme}
+        onClose={() => setThemeOpen(false)}
+        onSave={(value) => {
+          setReaderTheme(value);
+          setThemeOpen(false);
+          showToast('Tema tampilan diperbarui.', 'success');
+        }}
+      />
 
-      {sourcesOpen ? (
-        <div className="fixed inset-0 z-[130] flex items-end bg-black/45 p-0 sm:items-center sm:justify-center sm:p-4">
-          <button className="absolute inset-0" aria-label="Tutup sumber konten" onClick={() => setSourcesOpen(false)} />
-          <div className="relative w-full max-h-[82vh] overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-4 sm:max-w-lg sm:rounded-2xl dark:border-white/10 dark:bg-slate-900">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Sumber Konten</h3>
+      {privacyOpen ? (
+        <div className="fixed inset-0 z-[130] flex items-end bg-black/40 p-0 backdrop-blur-sm dark:bg-black/60 sm:items-center sm:justify-center sm:p-4">
+          <button className="absolute inset-0" aria-label="Tutup kebijakan privasi" onClick={() => setPrivacyOpen(false)} />
+          <div className="relative w-full max-h-[86vh] overflow-y-auto rounded-t-2xl border border-border bg-[#ffffff] p-4 shadow-xl dark:bg-[hsl(var(--card))] sm:max-w-xl sm:rounded-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">Kebijakan Privasi</h3>
               <button
                 type="button"
-                onClick={() => setSourcesOpen(false)}
-                className="rounded-full p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+                onClick={() => setPrivacyOpen(false)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted dark:hover:bg-card/10"
               >
                 <X size={16} />
               </button>
             </div>
-            <div className="space-y-2">
-              {CONTENT_SOURCES.map((item) => (
-                <div key={item.title} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/[0.03]">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{item.title}</p>
-                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{item.source}</p>
+            <div className="space-y-3">
+              {PRIVACY_POLICY_SECTIONS.map((section) => (
+                <div key={section.title} className="rounded-xl border border-border bg-[#ffffff] p-3 dark:border-white/10 dark:bg-card/[0.03]">
+                  <p className="text-sm font-semibold text-foreground">{section.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{section.body}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {aboutOpen ? (
+        <div className="fixed inset-0 z-[130] flex items-end bg-black/40 p-0 backdrop-blur-sm dark:bg-black/60 sm:items-center sm:justify-center sm:p-4">
+          <button className="absolute inset-0" aria-label="Tutup tentang aplikasi" onClick={() => setAboutOpen(false)} />
+          <div className="relative w-full max-h-[86vh] overflow-y-auto rounded-t-2xl border border-border bg-[#ffffff] p-4 shadow-xl dark:bg-[hsl(var(--card))] sm:max-w-xl sm:rounded-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">Tentang Aplikasi</h3>
+              <button
+                type="button"
+                onClick={() => setAboutOpen(false)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted dark:hover:bg-card/10"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-2 rounded-xl border border-border bg-[#ffffff] p-3 dark:border-white/10 dark:bg-card/[0.03]">
+              <p className="text-sm font-semibold text-foreground">MuslimLife Super App</p>
+              <p className="text-xs text-muted-foreground">Versi aplikasi: PWA (produksi)</p>
+              <p className="text-xs text-muted-foreground">
+                Terakhir deploy: {updateHistory[0] ? formatUpdateDateID(updateHistory[0].deployedAt) : '-'}
+              </p>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-foreground">Rekap update:</p>
+                {updateHistory.slice(0, 6).map((entry) => (
+                  <div key={entry.buildId} className="rounded-lg border border-border bg-[#ffffff] p-2 dark:border-white/10 dark:bg-card/[0.05]">
+                    <p className="text-[11px] font-semibold text-foreground">{formatUpdateDateID(entry.deployedAt)}</p>
+                    {entry.commitMessage ? <p className="mt-1 text-[11px] text-muted-foreground">{entry.commitMessage}</p> : null}
+                    <ul className="mt-1 space-y-1 pl-4 text-[11px] text-muted-foreground">
+                      {entry.details.map((item) => (
+                        <li key={`${entry.buildId}-${item}`} className="list-disc leading-relaxed">
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {otherAppsOpen ? (
+        <div className="fixed inset-0 z-[130] flex items-end bg-black/40 p-0 backdrop-blur-sm dark:bg-black/60 sm:items-center sm:justify-center sm:p-4">
+          <button className="absolute inset-0" aria-label="Tutup aplikasi lainnya" onClick={() => setOtherAppsOpen(false)} />
+          <div className="relative w-full max-h-[86vh] overflow-y-auto rounded-t-2xl border border-border bg-[#ffffff] p-4 shadow-xl dark:bg-[hsl(var(--card))] sm:max-w-xl sm:rounded-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">Aplikasi Lainnya</h3>
+              <button
+                type="button"
+                onClick={() => setOtherAppsOpen(false)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted dark:hover:bg-card/10"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {OTHER_APP_CARDS.map((label, index) => (
+                <div
+                  key={`${label}-${index}`}
+                  className="rounded-2xl border border-emerald-200/80 bg-[linear-gradient(160deg,#effcf4_0%,#d8f6ea_55%,#c8efe0_100%)] p-4 shadow-sm dark:border-emerald-400/30 dark:bg-[linear-gradient(160deg,#0d2e24_0%,#0f3d2f_55%,#144f3d_100%)]"
+                >
+                  <p className="text-[10px] font-semibold tracking-[0.2em] text-emerald-700 dark:text-emerald-200">MUSLIMLIFE</p>
+                  <p className="mt-2 text-sm font-bold text-emerald-900 dark:text-emerald-50">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {installOpen ? (
+        <div className="fixed inset-0 z-[130] flex items-end bg-black/40 p-0 backdrop-blur-sm dark:bg-black/60 sm:items-center sm:justify-center sm:p-4">
+          <button className="absolute inset-0" aria-label="Tutup instal aplikasi" onClick={() => setInstallOpen(false)} />
+          <div className="relative w-full max-h-[86vh] overflow-y-auto rounded-t-2xl border border-border bg-[#ffffff] p-4 shadow-xl dark:bg-[hsl(var(--card))] sm:max-w-xl sm:rounded-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">Instal Aplikasi</h3>
+              <button
+                type="button"
+                onClick={() => setInstallOpen(false)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted dark:hover:bg-card/10"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-2xl border border-emerald-200/80 bg-[linear-gradient(170deg,#f3fff7_0%,#e2f8ed_60%,#d9f3e9_100%)] p-3 dark:border-emerald-400/20 dark:bg-[linear-gradient(170deg,#0d2e24_0%,#0f3a2f_60%,#114638_100%)]">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-400/20 dark:text-emerald-100">
+                    <Smartphone size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-emerald-900 dark:text-emerald-50">Android</p>
+                    <p className="text-xs text-emerald-700 dark:text-emerald-200">100% Aman & Privat</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-emerald-200/80 bg-card/80 p-3 text-xs leading-relaxed text-emerald-900 dark:border-emerald-300/20 dark:bg-black/20 dark:text-emerald-50">
+                  Data ibadah Anda tersimpan langsung di perangkat. Install aplikasi untuk akses lebih cepat dan offline.
+                </div>
+
+                <div className="mt-2 rounded-xl border border-border bg-muted/60 p-3 text-xs text-foreground dark:border-white/10 dark:bg-card/20">
+                  <p className="font-semibold">Tutorial Android:</p>
+                  <p className="mt-1">1. Tekan menu browser (ikon tiga titik).</p>
+                  <p>2. Pilih menu Install App / Add to Home Screen.</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => void handleInstallAndroid()}
+                  disabled={isIosDevice || !installPromptEvent || isStandalonePwa}
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Download size={14} />
+                  {isStandalonePwa ? 'Sudah Terpasang' : 'Instal Langsung (Android)'}
+                </button>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(170deg,hsl(var(--card))_0%,#f5f7fb_100%)] p-3 dark:border-white/10 dark:bg-[linear-gradient(170deg,#111827_0%,#0b1220_100%)]">
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-card/20 dark:text-white">
+                    <Apple size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-50">iPhone (iOS)</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300">Install otomatis belum didukung browser</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-card p-3 dark:border-white/10 dark:bg-card/20">
+                  <p className="text-xs font-semibold text-foreground">Tutorial iOS:</p>
+                  <div className="mt-2 rounded-xl border border-border bg-muted/60 p-3 text-xs leading-relaxed text-foreground dark:border-white/10 dark:bg-card/30">
+                    <p className="inline-flex items-center gap-1">
+                      1. Tekan tombol <Share2 size={12} /> Share di Safari.
+                    </p>
+                    <p className="mt-1 inline-flex items-center gap-1">
+                      2. Pilih <PlusSquare size={12} /> Add to Home Screen.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -548,10 +955,10 @@ export const SettingsPage: React.FC = () => {
         <div className="fixed bottom-20 left-1/2 z-[120] w-[92%] max-w-sm -translate-x-1/2">
           <div
             key={toast.id}
-            className={`rounded-xl border px-3 py-2 text-sm shadow-lg ${
+            className={`rounded-xl border bg-card px-3 py-2 text-sm font-medium shadow-lg ${
               toast.tone === 'success'
-                ? 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-300/30 dark:bg-emerald-500/20 dark:text-emerald-100'
-                : 'border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-300/30 dark:bg-rose-500/20 dark:text-rose-100'
+                ? 'border-emerald-300/80 text-emerald-800 dark:border-emerald-400/40 dark:text-emerald-100'
+                : 'border-rose-300/80 text-rose-800 dark:border-rose-400/40 dark:text-rose-100'
             }`}
           >
             {toast.message}

@@ -5,10 +5,40 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --bottom-nav-h: 72px;
   --bottom-nav-safe-h: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+  --ml-arab-font-scale: 1;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --muted: #f1f5f9;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --border: #e2e8f0;
+  --input-bg: #ffffff;
+  --input-text: #0f172a;
+  --placeholder: #64748b;
+  --accent: #0f9d58;
+  --accent-text: #f8fafc;
+  --ring: #10b981;
+  --shadow: 0 10px 30px -16px rgba(15, 23, 42, 0.22);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+html[data-theme='dark'] {
+  --bg: #060b16;
+  --card: #0f172a;
+  --muted: #1a2438;
+  --text: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border: #334155;
+  --input-bg: #111827;
+  --input-text: #e2e8f0;
+  --placeholder: #94a3b8;
+  --accent: #34d399;
+  --accent-text: #04120b;
+  --ring: #34d399;
+  --shadow: 0 14px 35px -16px rgba(2, 6, 23, 0.75);
 }
 
 * {
@@ -31,6 +61,14 @@ body {
   overscroll-behavior: none;
 }
 
+input,
+textarea,
+select {
+  font: inherit;
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -50,7 +88,7 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
@@ -66,8 +104,8 @@ body {
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    --border: 214 32% 89%;
+    --input: 0 0% 100%;
     --ring: 160 84% 39%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -76,10 +114,11 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+  html[data-theme='dark'],
   .dark {
-    --background: 222 47% 8%;
+    --background: 222 47% 7%;
     --foreground: 210 40% 96%;
-    --card: 222 47% 11%;
+    --card: 222 47% 12%;
     --card-foreground: 210 40% 96%;
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 96%;
@@ -93,9 +132,9 @@ body {
     --accent-foreground: 210 40% 96%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 217 33% 25%;
-    --input: 217 33% 25%;
-    --ring: 160 84% 39%;
+    --border: 217 33% 24%;
+    --input: 220 40% 12%;
+    --ring: 160 84% 45%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -121,7 +160,26 @@ body {
   padding-bottom: var(--bottom-nav-safe-h);
 }
 
+@layer components {
+  .app-page {
+    @apply min-h-full bg-background text-foreground;
+  }
+
+  .app-card {
+    @apply rounded-2xl border border-border bg-card shadow-sm;
+  }
+
+  .app-input {
+    @apply h-10 w-full rounded-xl border border-border bg-[hsl(var(--input))] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  .app-chip {
+    @apply inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground;
+  }
+}
+
 .arabic-text {
   font-family: 'Noto Naskh Arabic', serif;
+  font-size: calc(1em * var(--ml-arab-font-scale));
 }
 

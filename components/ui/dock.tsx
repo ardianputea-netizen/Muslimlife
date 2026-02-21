@@ -1,4 +1,4 @@
-import * as React from "react"
+﻿import * as React from "react"
 import { useRef } from "react"
 
 import { cn } from "@/lib/utils"
@@ -113,9 +113,9 @@ export function DockIcon({
         <a
           href={href}
           onClick={onClick}
-          className="group/a relative aspect-square w-full rounded-[10px] border border-gray-100 bg-gradient-to-t from-neutral-100 to-white p-1.5 shadow-[rgba(0,_0,_0,_0.05)_0px_1px_0px_inset] after:absolute after:inset-0 after:rounded-[inherit] after:shadow-md after:shadow-zinc-800/10 dark:border-zinc-900 dark:from-zinc-900 dark:to-zinc-800 dark:shadow-[rgba(255,_255,_255,_0.3)_0px_1px_0px_inset]"
+          className="group/a relative aspect-square w-full rounded-[10px] border border-border bg-gradient-to-t from-neutral-100 to-white p-1.5 shadow-[rgba(0,_0,_0,_0.05)_0px_1px_0px_inset] after:absolute after:inset-0 after:rounded-[inherit] after:shadow-md after:shadow-zinc-800/10 dark:border-zinc-900 dark:from-zinc-900 dark:to-zinc-800 dark:shadow-[rgba(255,_255,_255,_0.3)_0px_1px_0px_inset]"
         >
-          <span className="absolute top-[-40px] left-1/2 -translate-x-1/2 rounded-md border border-gray-100 bg-gradient-to-t from-neutral-100 to-white p-1 px-2 text-xs whitespace-nowrap text-black opacity-0 transition-opacity duration-200 group-hover/li:opacity-100 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-800 dark:text-white">
+          <span className="absolute top-[-40px] left-1/2 -translate-x-1/2 rounded-md border border-border bg-gradient-to-t from-neutral-100 to-white p-1 px-2 text-xs whitespace-nowrap text-foreground opacity-0 transition-opacity duration-200 group-hover/li:opacity-100 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-800 dark:text-white">
             {name}
           </span>
           {src ? (
@@ -169,7 +169,7 @@ export function Dock({
     <nav ref={dockRef} role="navigation" aria-label="Main Dock">
       <ul
         className={cn(
-          "flex items-center rounded-xl border border-gray-100 bg-gradient-to-t from-neutral-50 to-white p-1 dark:border-zinc-900 dark:from-zinc-950 dark:to-zinc-900",
+          "flex items-center rounded-xl border border-border bg-gradient-to-t from-neutral-50 to-white p-1 dark:border-zinc-900 dark:from-zinc-950 dark:to-zinc-900",
           className
         )}
       >

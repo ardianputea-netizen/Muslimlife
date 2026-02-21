@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Check, Gift } from 'lucide-react';
 import { useUser } from '../context/UserContext';
 
@@ -22,11 +22,11 @@ export const DailyCheckIn: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
+    <div className="bg-card rounded-2xl p-4 shadow-sm border border-border mb-4">
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h3 className="font-bold text-gray-800">Absen Harian</h3>
-          <p className="text-xs text-gray-500">Kumpulkan streak untuk Jackpot!</p>
+          <h3 className="font-bold text-foreground">Absen Harian</h3>
+          <p className="text-xs text-muted-foreground">Kumpulkan streak untuk Jackpot!</p>
         </div>
         <div className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold">
           Hari ke-{checkInStreak}
@@ -44,7 +44,7 @@ export const DailyCheckIn: React.FC = () => {
               key={day}
               className={`
                 relative aspect-square rounded-xl flex flex-col items-center justify-center border-2
-                ${isCompleted ? 'bg-green-50 border-[#0F9D58] text-[#0F9D58]' : 'bg-gray-50 border-gray-100 text-gray-400'}
+                ${isCompleted ? 'bg-green-50 border-[#0F9D58] text-[#0F9D58]' : 'bg-background border-border text-muted-foreground'}
                 ${isJackpot && !isCompleted ? 'border-yellow-400 bg-yellow-50' : ''}
               `}
             >
@@ -73,7 +73,7 @@ export const DailyCheckIn: React.FC = () => {
         className={`
           w-full py-3 rounded-xl font-bold transition-all shadow-sm
           ${isTodayChecked() 
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+            ? 'bg-muted text-muted-foreground cursor-not-allowed' 
             : 'bg-[#0F9D58] text-white active:scale-95 shadow-green-200'}
         `}
       >

@@ -23,6 +23,16 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  const isRatingEndpoint =
+    url.pathname === '/api/rating' || (url.pathname === '/api/weather' && url.searchParams.get('ml_route') === 'rating');
+
+  if (isRatingEndpoint) {
+    event.respondWith(
+      fetch(request, { cache: 'no-store' }).catch(() => new Response(JSON.stringify({ ok: false, message: 'offline' }), { status: 503 }))
+    );
+    return;
+  }
 
   const isNavigation = request.mode === 'navigate';
   if (isNavigation) {
@@ -96,13 +106,20 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const targetUrl = String(event.notification?.data?.url || '/');
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if ('focus' in client) return client.focus();
+        if ('focus' in client) {
+          client.postMessage({
+            type: 'ml-push-clicked',
+            payload: { url: targetUrl },
+          });
+          return client.focus();
+        }
       }
       if (self.clients.openWindow) {
-        return self.clients.openWindow('/');
+        return self.clients.openWindow(targetUrl);
       }
       return undefined;
     })

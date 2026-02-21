@@ -26,57 +26,57 @@ const toVerseNumber = (value: unknown, fallback: string) => {
 };
 
 export const getEquranSurahs = async () => {
-  const payload = await fetchJson<any>(`${QURAN_GATEWAY_BASE}/list`, {
-    query: { provider: 'equran' },
+  const payload = await fetchJson<any>(`${QURAN_GATEWAY_BASE}/chapters`, {
     timeoutMs: 10_000,
     retries: 2,
     cacheTtlSec: 3600,
   });
 
-  const rows = Array.isArray(payload?.data) ? payload.data : [];
+  const rows = Array.isArray(payload?.chapters) ? payload.chapters : [];
   return rows.map((row: any) => {
-    const id = Number(row?.nomor || row?.id || 0);
+    const id = Number(row?.id || row?.nomor || 0);
     return {
       id,
-      nameSimple: clean(row?.namaLatin || row?.nama_latin || row?.nama || `Surah ${id}`),
-      nameArabic: clean(row?.nama || row?.namaArab || ''),
-      revelationPlace: parseRevelation(row?.tempatTurun || row?.tempat_turun),
-      versesCount: Number(row?.jumlahAyat || row?.jumlah_ayat || 0),
-      audioFullUrl: clean(row?.audioFull?.['05'] || row?.audioFull?.['01'] || row?.audio?.full || ''),
+      nameSimple: clean(row?.nameSimple || row?.name_simple || row?.namaLatin || row?.nama_latin || `Surah ${id}`),
+      nameArabic: clean(row?.nameArabic || row?.name_arabic || row?.nama || ''),
+      revelationPlace: parseRevelation(row?.revelationPlace || row?.revelation_place || row?.tempatTurun),
+      versesCount: Number(row?.versesCount || row?.verses_count || row?.jumlahAyat || 0),
+      audioFullUrl: clean(row?.audioURL || ''),
     } as QuranChapter & { audioFullUrl?: string };
   });
 };
 
 export const getEquranSurahDetail = async (surahID: number): Promise<EquranSurahDetail> => {
-  const payload = await fetchJson<any>(`${QURAN_GATEWAY_BASE}/detail`, {
-    query: { provider: 'equran', id: surahID },
+  const payload = await fetchJson<any>(`${QURAN_GATEWAY_BASE}/surah`, {
+    query: { id: surahID },
     timeoutMs: 10_000,
     retries: 2,
   });
-  const row = payload?.data || {};
-  const verses = Array.isArray(row?.ayat) ? row.ayat : [];
+
+  const chapterRaw = payload?.chapter || {};
+  const verses = Array.isArray(payload?.verses) ? payload.verses : [];
   const chapter: QuranChapter = {
-    id: Number(row?.nomor || surahID),
-    nameSimple: clean(row?.namaLatin || row?.nama_latin || `Surah ${surahID}`),
-    nameArabic: clean(row?.nama || row?.namaArab || ''),
-    revelationPlace: parseRevelation(row?.tempatTurun || row?.tempat_turun),
-    versesCount: Number(row?.jumlahAyat || row?.jumlah_ayat || verses.length),
+    id: Number(chapterRaw?.id || surahID),
+    nameSimple: clean(chapterRaw?.nameSimple || chapterRaw?.name_simple || `Surah ${surahID}`),
+    nameArabic: clean(chapterRaw?.nameArabic || chapterRaw?.name_arabic || ''),
+    revelationPlace: parseRevelation(chapterRaw?.revelationPlace || chapterRaw?.revelation_place),
+    versesCount: Number(chapterRaw?.versesCount || chapterRaw?.verses_count || verses.length),
   };
 
   return {
     chapter,
     verses: verses.map((ayah: any, index: number) => {
-      const verseKey = clean(ayah?.nomorAyat ? `${chapter.id}:${ayah.nomorAyat}` : `${chapter.id}:${index + 1}`);
+      const verseKey = clean(ayah?.verseKey || ayah?.verse_key || `${chapter.id}:${index + 1}`);
       return {
-        id: Number(ayah?.nomorAyat || index + 1),
+        id: Number(ayah?.id || index + 1),
         verseKey,
-        verseNumber: toVerseNumber(ayah?.nomorAyat || ayah?.nomor, verseKey),
-        arabText: clean(ayah?.teksArab || ayah?.ar || ayah?.teks_arab),
-        transliterationLatin: clean(ayah?.teksLatin || ayah?.latin || ''),
-        translationId: clean(ayah?.teksIndonesia || ayah?.idn || ayah?.translation || ''),
+        verseNumber: toVerseNumber(ayah?.verseNumber || ayah?.verse_number, verseKey),
+        arabText: clean(ayah?.arabText || ayah?.arabic || ayah?.text_uthmani),
+        transliterationLatin: clean(ayah?.transliterationLatin || ayah?.latin || ''),
+        translationId: clean(ayah?.translationId || ayah?.translation || ''),
       };
     }),
-    audioFullUrl: clean(row?.audioFull?.['05'] || row?.audioFull?.['01'] || ''),
-    sourceLabel: 'EQuran.id API v2',
+    audioFullUrl: clean(payload?.audioURL || ''),
+    sourceLabel: 'Quran Gateway API',
   };
 };

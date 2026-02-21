@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Clock3 } from 'lucide-react';
 import { addDays, toDateKey } from '@/lib/date';
 import { CountdownPanel } from './CountdownPanel';
@@ -162,9 +162,9 @@ const toImsakTimes = (dateKey: string, timings: PrayerDayTimings): ImsakTimes =>
 });
 
 const TimeRow: React.FC<{ label: string; value: Date | null }> = ({ label, value }) => (
-  <div className="rounded-xl border border-gray-100 bg-white px-3 py-2 flex items-center justify-between">
-    <span className="text-sm font-medium text-gray-700">{label}</span>
-    <span className="text-sm font-semibold text-gray-900">{formatTime(value)}</span>
+  <div className="rounded-xl border border-border bg-card px-3 py-2 flex items-center justify-between">
+    <span className="text-sm font-medium text-foreground">{label}</span>
+    <span className="text-sm font-semibold text-foreground">{formatTime(value)}</span>
   </div>
 );
 
@@ -293,17 +293,17 @@ export const ImsakScheduleTab: React.FC<ImsakScheduleTabProps> = ({ selectedDate
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-        <h2 className="font-bold text-gray-900">Jadwal Imsak & Sholat</h2>
-        <p className="mt-1 text-xs text-gray-500">Tanggal dipilih: {selectedDateLabel}</p>
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <h2 className="font-bold text-foreground">Jadwal Imsak & Sholat</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Tanggal dipilih: {selectedDateLabel}</p>
       </section>
 
       <LocationPicker value={locationPreference} onChange={setLocationPreference} />
 
       <CountdownPanel targetLabel={nextTarget?.label || '-'} countdown={countdown} />
 
-      <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-        <div className="flex items-center gap-1 text-xs text-gray-500 mb-3">
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
           <Clock3 size={12} />
           <span>Jadwal {toDateKey(selectedDate)}</span>
         </div>
@@ -311,9 +311,9 @@ export const ImsakScheduleTab: React.FC<ImsakScheduleTabProps> = ({ selectedDate
         {errorMessage ? <p className="mb-3 text-xs text-rose-600">{errorMessage}</p> : null}
         {isLoading && !selectedTimes ? (
           <div className="space-y-2 animate-pulse">
-            <div className="h-10 rounded-xl bg-gray-100" />
-            <div className="h-10 rounded-xl bg-gray-100" />
-            <div className="h-10 rounded-xl bg-gray-100" />
+            <div className="h-10 rounded-xl bg-muted" />
+            <div className="h-10 rounded-xl bg-muted" />
+            <div className="h-10 rounded-xl bg-muted" />
           </div>
         ) : (
           <div className="space-y-2">

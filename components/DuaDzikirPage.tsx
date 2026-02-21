@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Bookmark, BookmarkCheck, Loader2, Search } from 'lucide-react';
 import {
   DuaItem,
@@ -26,7 +26,7 @@ const DEFAULT_CATEGORIES = [
 const DuaSkeleton = () => (
   <div className="space-y-3 animate-pulse">
     {Array.from({ length: 6 }).map((_, idx) => (
-      <div key={idx} className="h-24 rounded-xl bg-gray-100" />
+      <div key={idx} className="h-24 rounded-xl bg-muted" />
     ))}
   </div>
 );
@@ -170,14 +170,14 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
   const renderItemCard = (item: DuaItem) => {
     const isBookmarked = item.is_bookmarked || bookmarkedIds.has(item.id);
     return (
-      <div key={item.id} className="bg-white rounded-xl border border-gray-100 p-3 shadow-sm">
+      <div key={item.id} className="bg-card rounded-xl border border-border p-3 shadow-sm">
         <button className="w-full text-left" onClick={() => setActiveItem(item)}>
-          <p className="text-xs text-gray-500 capitalize">{item.category} - {item.kind}</p>
-          <p className="text-sm font-semibold text-gray-900 mt-1 line-clamp-2">{item.title}</p>
-          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.meaningId || 'Konten belum tersedia.'}</p>
+          <p className="text-xs text-muted-foreground capitalize">{item.category} - {item.kind}</p>
+          <p className="text-sm font-semibold text-foreground mt-1 line-clamp-2">{item.title}</p>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.meaningId || 'Konten belum tersedia.'}</p>
         </button>
         <div className="mt-3 flex justify-between items-center gap-2">
-          <p className="text-[11px] text-gray-500 line-clamp-1">{item.sourceLabel}</p>
+          <p className="text-[11px] text-muted-foreground line-clamp-1">{item.sourceLabel}</p>
           <button
             className="text-[#0F9D58] p-1.5 rounded-lg hover:bg-green-50"
             onClick={() => void toggleBookmark(item, !isBookmarked)}
@@ -191,14 +191,14 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24">
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100">
+    <div className="fixed inset-0 z-[70] min-h-screen bg-background text-foreground overflow-y-auto pb-24">
+      <div className="sticky top-0 z-20 bg-card border-b border-border px-4 py-3 flex items-center gap-3">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-muted">
           <ArrowLeft size={22} />
         </button>
         <div>
-          <h1 className="text-lg font-bold text-gray-900">Doa & Dzikir</h1>
-          <p className="text-xs text-gray-500">Hisnul Muslim + sourceLabel per item</p>
+          <h1 className="text-lg font-bold text-foreground">DOA PILIHAN</h1>
+          <p className="text-xs text-muted-foreground">Hisnul Muslim + sourceLabel per item</p>
         </div>
       </div>
 
@@ -209,34 +209,34 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
           </div>
         )}
 
-        <section className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <section className="bg-card rounded-2xl border border-border p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="font-bold text-gray-800">Doa Hari Ini</h2>
-            <span className="text-xs text-gray-500">{todayDate || '-'}</span>
+            <h2 className="font-bold text-foreground">Doa Hari Ini</h2>
+            <span className="text-xs text-muted-foreground">{todayDate || '-'}</span>
           </div>
           {isLoadingToday ? (
-            <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />
+            <div className="h-20 rounded-xl bg-muted animate-pulse" />
           ) : todayItem ? (
             <button className="w-full text-left" onClick={() => setActiveItem(todayItem)}>
               <p className="text-sm font-semibold text-[#0F9D58]">{todayItem.title}</p>
-              <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
                 {todayItem.meaningId || 'Konten belum tersedia.'}
               </p>
-              <p className="text-[11px] text-gray-500 mt-2">{todayItem.sourceLabel}</p>
+              <p className="text-[11px] text-muted-foreground mt-2">{todayItem.sourceLabel}</p>
             </button>
           ) : (
-            <p className="text-sm text-gray-500">Konten belum tersedia.</p>
+            <p className="text-sm text-muted-foreground">Konten belum tersedia.</p>
           )}
         </section>
 
-        <section className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
+        <section className="bg-card rounded-2xl border border-border p-3 shadow-sm">
           <div className="relative mb-3">
-            <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+            <Search size={16} className="absolute left-3 top-3 text-muted-foreground" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Cari doa / dzikir..."
-              className="w-full border border-gray-200 rounded-xl py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#0F9D58]"
+              className="w-full border border-border rounded-xl py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#0F9D58]"
             />
           </div>
 
@@ -248,7 +248,7 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
                 className={`text-xs px-3 py-1.5 rounded-full border whitespace-nowrap ${
                   category === item
                     ? 'bg-[#0F9D58] text-white border-[#0F9D58]'
-                    : 'bg-white text-gray-600 border-gray-200'
+                    : 'bg-card text-muted-foreground border-border'
                 }`}
               >
                 {item === 'all' ? 'Semua' : item}
@@ -260,7 +260,7 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
             <button
               onClick={() => setTab('list')}
               className={`px-3 py-1.5 text-xs rounded-lg font-semibold ${
-                tab === 'list' ? 'bg-[#0F9D58] text-white' : 'bg-gray-100 text-gray-600'
+                tab === 'list' ? 'bg-[#0F9D58] text-white' : 'bg-muted text-muted-foreground'
               }`}
             >
               List
@@ -268,7 +268,7 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
             <button
               onClick={() => setTab('bookmarks')}
               className={`px-3 py-1.5 text-xs rounded-lg font-semibold ${
-                tab === 'bookmarks' ? 'bg-[#0F9D58] text-white' : 'bg-gray-100 text-gray-600'
+                tab === 'bookmarks' ? 'bg-[#0F9D58] text-white' : 'bg-muted text-muted-foreground'
               }`}
             >
               Bookmark ({bookmarkItems.length})
@@ -280,7 +280,7 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
           isLoadingList ? (
             <DuaSkeleton />
           ) : listItems.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm text-gray-500">
+            <div className="bg-card rounded-xl border border-border p-4 text-sm text-muted-foreground">
               Konten belum tersedia.
             </div>
           ) : (
@@ -289,7 +289,7 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
         ) : isLoadingBookmarks ? (
           <DuaSkeleton />
         ) : bookmarkItems.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm text-gray-500">
+          <div className="bg-card rounded-xl border border-border p-4 text-sm text-muted-foreground">
             Belum ada bookmark doa.
           </div>
         ) : (
@@ -299,29 +299,29 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
 
       {activeItem && (
         <div className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm p-4 flex items-end sm:items-center justify-center">
-          <div className="bg-white rounded-2xl w-full max-w-xl max-h-[85vh] overflow-y-auto p-4">
+          <div className="bg-card rounded-2xl w-full max-w-xl max-h-[85vh] overflow-y-auto p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-xs text-gray-500 capitalize">{activeItem.category}</p>
-                <p className="text-sm font-bold text-gray-900">{activeItem.title}</p>
+                <p className="text-xs text-muted-foreground capitalize">{activeItem.category}</p>
+                <p className="text-sm font-bold text-foreground">{activeItem.title}</p>
               </div>
               <button
                 onClick={() => setActiveItem(null)}
-                className="px-2 py-1 rounded-lg border border-gray-200 text-xs"
+                className="px-2 py-1 rounded-lg border border-border text-xs"
               >
                 Tutup
               </button>
             </div>
 
-            <p className="font-serif text-2xl leading-loose text-right text-gray-800 mb-4">
+            <p className="font-serif text-2xl leading-loose text-right text-foreground mb-4">
               {activeItem.arabicText}
             </p>
             {activeItem.transliteration ? (
               <p className="text-xs text-[#0F9D58] mb-2">{activeItem.transliteration}</p>
             ) : null}
-            <p className="text-sm text-gray-700 leading-relaxed">{activeItem.meaningId || 'Konten belum tersedia.'}</p>
+            <p className="text-sm text-foreground leading-relaxed">{activeItem.meaningId || 'Konten belum tersedia.'}</p>
 
-            <div className="mt-4 space-y-2 text-xs text-gray-600">
+            <div className="mt-4 space-y-2 text-xs text-muted-foreground">
               <p>
                 <span className="font-semibold">Sumber:</span> {activeItem.sourceLabel}
               </p>
@@ -336,7 +336,7 @@ export const DuaDzikirPage: React.FC<DuaDzikirPageProps> = ({ onBack }) => {
                   )
                 }
                 disabled={isSavingBookmark}
-                className="text-xs px-3 py-2 rounded-lg border border-gray-200 inline-flex items-center gap-1"
+                className="text-xs px-3 py-2 rounded-lg border border-border inline-flex items-center gap-1"
               >
                 {isSavingBookmark ? (
                   <Loader2 size={14} className="animate-spin" />

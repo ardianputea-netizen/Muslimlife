@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { LogIn, ShieldCheck, X } from 'lucide-react';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { getOAuthRedirectTo } from '../lib/oauth';
@@ -30,18 +30,18 @@ export const AuthRequiredModal: React.FC<AuthRequiredModalProps> = ({ open, onCl
   return (
     <div className="fixed inset-0 z-[180] flex items-center justify-center bg-black/60 px-4" role="dialog" aria-modal="true">
       <button type="button" onClick={onClose} className="absolute inset-0" aria-label="Tutup popup login" />
-      <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl">
+      <div className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-4 shadow-2xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 rounded-full border border-slate-200 p-1 text-slate-500"
+          className="absolute right-3 top-3 rounded-full border border-border p-1 text-muted-foreground"
           aria-label="Tutup"
         >
           <X size={14} />
         </button>
 
-        <h3 className="text-base font-bold text-slate-900">Login Dulu Ya</h3>
-        <p className="mt-1 text-xs text-slate-600">Untuk membuka menu ini, kamu perlu login terlebih dahulu.</p>
+        <h3 className="text-base font-bold text-foreground">Login Dulu Ya</h3>
+        <p className="mt-1 text-xs text-muted-foreground">Untuk membuka menu ini, kamu perlu login terlebih dahulu.</p>
 
         <button
           type="button"

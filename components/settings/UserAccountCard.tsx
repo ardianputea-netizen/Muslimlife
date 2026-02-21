@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { LogOut, UserRound } from 'lucide-react';
 
 type ProviderType = 'google' | 'apple' | 'unknown';
@@ -40,14 +40,14 @@ const getProviderMeta = (provider: ProviderType) => {
     return {
       label: 'Apple',
       icon: <AppleBadgeIcon />,
-      className: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-500/15 dark:text-slate-200 dark:border-slate-300/25',
+      className: 'bg-card text-foreground border-border dark:bg-card dark:text-foreground dark:border-border',
     };
   }
 
   return {
     label: 'Guest',
     icon: <UserRound size={12} />,
-    className: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-300 dark:border-slate-500/30',
+    className: 'bg-card text-muted-foreground border-border dark:bg-card dark:text-foreground dark:border-border',
   };
 };
 
@@ -62,20 +62,20 @@ export const UserAccountCard: React.FC<UserAccountCardProps> = ({
   const providerMeta = getProviderMeta(provider);
 
   return (
-    <section className="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm dark:bg-slate-900/90 dark:border-white/10 dark:shadow-[0_18px_45px_-25px_rgba(15,23,42,0.95)]">
+    <section className="rounded-2xl bg-card border border-border p-4 shadow-sm dark:bg-card dark:border-white/10 dark:shadow-[0_18px_45px_-25px_rgba(15,23,42,0.95)]">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           {avatarUrl ? (
-            <img src={avatarUrl} alt={name || 'Pengguna'} className="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-white/20" />
+            <img src={avatarUrl} alt={name || 'Pengguna'} className="w-12 h-12 rounded-full object-cover border border-border dark:border-white/20" />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 dark:bg-slate-800 dark:border-white/10 dark:text-slate-200">
+            <div className="w-12 h-12 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground dark:bg-card dark:border-white/10 dark:text-foreground">
               <UserRound size={18} />
             </div>
           )}
 
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{name?.trim() || 'Pengguna'}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{email?.trim() || '-'}</p>
+            <p className="text-sm font-semibold text-foreground dark:text-white truncate">{name?.trim() || 'Pengguna'}</p>
+            <p className="text-xs text-muted-foreground dark:text-foreground truncate">{email?.trim() || '-'}</p>
             <span
               className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${providerMeta.className}`}
             >
@@ -89,7 +89,7 @@ export const UserAccountCard: React.FC<UserAccountCardProps> = ({
           type="button"
           onClick={onLogout}
           disabled={logoutDisabled}
-          className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed dark:border-white/15 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
+          className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed dark:border-white/15 dark:bg-card/5 dark:text-foreground dark:hover:bg-card/10"
         >
           <LogOut size={13} />
           Logout

@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dock, DockIcon } from '@/components/ui/dock';
+import { Input } from '@/components/ui/input';
 import {
   Map,
   MapControls,
@@ -23,6 +24,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { fetchNearbyMosques, type NearbyMosque } from '@/services/nearbyMosques';
+import { getGeocodeSuggestions } from '@/services/geocodeApi';
 
 interface MosqueMapsPageProps {
   onBack?: () => void;
@@ -34,6 +36,7 @@ interface UserLocation {
 }
 
 type RadiusMeters = 1000 | 3000 | 5000;
+type LocationErrorKind = 'permission' | 'timeout' | 'unavailable' | 'unsupported' | 'unknown';
 
 const DEFAULT_CENTER: [number, number] = [106.8272, -6.1754];
 const RADIUS_OPTIONS: Array<{ label: string; short: string; value: RadiusMeters }> = [
@@ -47,16 +50,28 @@ const formatDistance = (meters: number) => {
   return `${(meters / 1000).toFixed(2)} km`;
 };
 
-const getLocationErrorMessage = (error: GeolocationPositionError) => {
+const toLocationError = (error: GeolocationPositionError): { kind: LocationErrorKind; message: string } => {
   switch (error.code) {
     case error.PERMISSION_DENIED:
-      return 'Izin lokasi ditolak. Aktifkan lokasi lalu klik lagi "Gunakan Lokasi".';
+      return {
+        kind: 'permission',
+        message: 'Izin lokasi ditolak. Aktifkan lokasi untuk menampilkan masjid terdekat.',
+      };
     case error.POSITION_UNAVAILABLE:
-      return 'Lokasi belum tersedia. Pastikan GPS atau jaringan aktif.';
+      return {
+        kind: 'unavailable',
+        message: 'Lokasi belum tersedia. Pastikan GPS atau jaringan aktif.',
+      };
     case error.TIMEOUT:
-      return 'Permintaan lokasi timeout. Coba lagi.';
+      return {
+        kind: 'timeout',
+        message: 'Permintaan lokasi timeout. Coba lagi atau gunakan input kota manual.',
+      };
     default:
-      return 'Gagal mengambil lokasi saat ini.';
+      return {
+        kind: 'unknown',
+        message: 'Gagal mengambil lokasi saat ini.',
+      };
   }
 };
 
@@ -70,12 +85,17 @@ const getFetchErrorMessage = (error: unknown) => {
 export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
   const mapRef = useRef<MapRef | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const IS_DEV = typeof import.meta !== 'undefined' && Boolean(import.meta.env?.DEV);
 
   const [radiusMeters, setRadiusMeters] = useState<RadiusMeters>(3000);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isLoadingMosques, setIsLoadingMosques] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<{ kind: LocationErrorKind; message: string } | null>(null);
+  const [manualCity, setManualCity] = useState('');
+  const [isManualResolving, setIsManualResolving] = useState(false);
+  const [manualCityError, setManualCityError] = useState<string | null>(null);
   const [mosques, setMosques] = useState<NearbyMosque[]>([]);
   const [selectedMosqueId, setSelectedMosqueId] = useState<string | null>(null);
 
@@ -98,7 +118,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
     abortRef.current = controller;
 
     setIsLoadingMosques(true);
-    setErrorMessage(null);
+    setFetchErrorMessage(null);
 
     try {
       const result = await fetchNearbyMosques({
@@ -112,6 +132,9 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
 
       const trimmed = result.slice(0, 60);
       setMosques(trimmed);
+      if (IS_DEV) {
+        console.info('[masjid-nearby] coords', coords);
+      }
       setSelectedMosqueId((previous) => {
         if (previous && trimmed.some((item) => item.id === previous)) {
           return previous;
@@ -122,7 +145,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
       if (controller.signal.aborted) return;
       setMosques([]);
       setSelectedMosqueId(null);
-      setErrorMessage(getFetchErrorMessage(error));
+      setFetchErrorMessage(getFetchErrorMessage(error));
     } finally {
       if (!controller.signal.aborted) {
         setIsLoadingMosques(false);
@@ -143,12 +166,32 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
 
   const handleUseLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setErrorMessage('Browser tidak mendukung Geolocation.');
+      setLocationError({
+        kind: 'unsupported',
+        message: 'Browser tidak mendukung Geolocation.',
+      });
       return;
     }
 
     setIsLocating(true);
-    setErrorMessage(null);
+    setLocationError(null);
+    setManualCityError(null);
+    setFetchErrorMessage(null);
+
+    if (navigator.permissions?.query) {
+      void navigator.permissions
+        .query({ name: 'geolocation' })
+        .then((result) => {
+          if (IS_DEV) {
+            console.info('[masjid-nearby] permission', result.state);
+          }
+        })
+        .catch(() => {
+          if (IS_DEV) {
+            console.info('[masjid-nearby] permission', 'unavailable');
+          }
+        });
+    }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -158,12 +201,13 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
         };
 
         setUserLocation(nextLocation);
+        setLocationError(null);
         focusMap(nextLocation, 14.8);
         setIsLocating(false);
       },
       (error) => {
         setIsLocating(false);
-        setErrorMessage(getLocationErrorMessage(error));
+        setLocationError(toLocationError(error));
       },
       {
         enableHighAccuracy: true,
@@ -171,7 +215,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
         maximumAge: 0,
       }
     );
-  }, [focusMap]);
+  }, [focusMap, IS_DEV]);
 
   const handleSelectMosque = useCallback(
     (mosque: NearbyMosque) => {
@@ -186,15 +230,46 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
     void loadNearbyMosques(userLocation, radiusMeters);
   }, [loadNearbyMosques, radiusMeters, userLocation]);
 
+  const handleManualCitySubmit = useCallback(async () => {
+    const keyword = manualCity.trim();
+    if (keyword.length < 3) {
+      setManualCityError('Isi minimal 3 huruf nama kota.');
+      return;
+    }
+
+    setIsManualResolving(true);
+    setManualCityError(null);
+
+    try {
+      const suggestions = await getGeocodeSuggestions(keyword);
+      const picked = suggestions[0];
+      if (!picked) {
+        setManualCityError('Kota tidak ditemukan. Coba kata kunci lain.');
+        return;
+      }
+      const nextLocation = { lat: picked.lat, lng: picked.lon };
+      setUserLocation(nextLocation);
+      setLocationError(null);
+      focusMap(nextLocation, 12.8);
+      if (IS_DEV) {
+        console.info('[masjid-nearby] manual-city', { query: keyword, coords: nextLocation });
+      }
+    } catch (error) {
+      setManualCityError(getFetchErrorMessage(error));
+    } finally {
+      setIsManualResolving(false);
+    }
+  }, [IS_DEV, focusMap, manualCity]);
+
   return (
-    <div className="min-h-full bg-gray-50">
-      <header className="sticky top-0 z-20 border-b border-emerald-100 bg-gray-50/95 px-4 pb-3 pt-4 backdrop-blur">
+    <div className="min-h-full bg-background">
+      <header className="sticky top-0 z-20 border-b border-emerald-100 bg-background/95 px-4 pb-3 pt-4 backdrop-blur">
         <div className="flex items-center gap-3">
           {onBack ? (
             <button
               type="button"
               onClick={onBack}
-              className="rounded-full p-2 text-slate-700 transition-colors hover:bg-white hover:text-slate-900"
+              className="rounded-full p-2 text-foreground transition-colors hover:bg-card hover:text-foreground"
               aria-label="Kembali"
             >
               <ArrowLeft size={18} />
@@ -202,8 +277,8 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
           ) : null}
 
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Masjid Terdekat</h2>
-            <p className="text-xs text-slate-500">MapLibre + OpenStreetMap (tanpa API key)</p>
+            <h2 className="text-lg font-bold text-foreground">Masjid Terdekat</h2>
+            <p className="text-xs text-muted-foreground">MapLibre + OpenStreetMap (tanpa API key)</p>
           </div>
         </div>
       </header>
@@ -212,7 +287,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
         <Card className="overflow-hidden border border-emerald-100">
           <CardContent className="space-y-3 p-3">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-medium text-slate-600">Radius pencarian masjid</p>
+              <p className="text-xs font-medium text-muted-foreground">Radius pencarian masjid</p>
               {selectedMosque ? (
                 <span className="line-clamp-1 max-w-[65%] text-right text-xs text-emerald-700">
                   Fokus: {selectedMosque.name}
@@ -235,7 +310,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
                       '[&_a]:border-emerald-300 [&_a]:from-emerald-50 [&_a]:to-white [&_a]:shadow-[0_0_0_2px_rgba(16,185,129,0.25)]'
                   )}
                 >
-                  <span className="flex h-full w-full items-center justify-center text-[11px] font-semibold text-slate-700">
+                  <span className="flex h-full w-full items-center justify-center text-[11px] font-semibold text-foreground">
                     {option.short}
                   </span>
                 </DockIcon>
@@ -253,7 +328,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
               ) : (
                 <LocateFixed className="mr-2 h-4 w-4" />
               )}
-              Gunakan Lokasi
+              {isLocating ? 'Mencari lokasi...' : 'Gunakan Lokasi'}
             </Button>
 
             <div className="relative h-[310px] overflow-hidden rounded-2xl border border-emerald-100">
@@ -276,7 +351,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
                         <span className="relative h-3.5 w-3.5 rounded-full border-2 border-white bg-sky-500 shadow-sm" />
                       </div>
                     </MarkerContent>
-                    <MarkerLabel className="rounded-full bg-white/90 px-2 py-1 shadow-sm">
+                    <MarkerLabel className="rounded-full bg-card/90 px-2 py-1 shadow-sm">
                       Lokasi Anda
                     </MarkerLabel>
                   </MapMarker>
@@ -307,7 +382,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
                       </MarkerContent>
 
                       {isSelected ? (
-                        <MarkerLabel className="rounded-full bg-white/95 px-2 py-1 shadow-sm">
+                        <MarkerLabel className="rounded-full bg-card/95 px-2 py-1 shadow-sm">
                           {formatDistance(mosque.distanceMeters)}
                         </MarkerLabel>
                       ) : null}
@@ -317,7 +392,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
               </Map>
 
               {!userLocation ? (
-                <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-xl bg-white/95 px-3 py-2 text-xs text-slate-600 shadow-sm">
+                <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-xl bg-card/95 px-3 py-2 text-xs text-muted-foreground shadow-sm">
                   Klik tombol "Gunakan Lokasi" untuk memuat masjid dalam radius terpilih.
                 </div>
               ) : null}
@@ -328,17 +403,82 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
         <Card className="border border-emerald-100">
           <CardContent className="space-y-3 p-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900">Daftar Masjid</h3>
+              <h3 className="text-sm font-bold text-foreground">Daftar Masjid</h3>
               {userLocation ? (
                 <span className="text-xs font-medium text-emerald-700">{mosques.length} hasil</span>
               ) : null}
             </div>
 
-            {errorMessage ? (
+            {locationError ? (
               <div className="rounded-xl border border-red-200 bg-red-50 p-3">
                 <div className="flex items-start gap-2 text-red-700">
                   <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p className="text-xs leading-relaxed">{errorMessage}</p>
+                  <p className="text-xs leading-relaxed">{locationError.message}</p>
+                </div>
+
+                {locationError.kind === 'permission' ? (
+                  <div className="mt-3 space-y-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUseLocation}
+                      className="border-red-200 bg-card text-red-700 hover:bg-red-100"
+                    >
+                      Aktifkan Lokasi
+                    </Button>
+                    <p className="text-[11px] text-red-700/90">
+                      Buka pengaturan browser, izinkan akses lokasi untuk situs ini, lalu coba lagi.
+                    </p>
+                  </div>
+                ) : null}
+
+                {locationError.kind === 'timeout' ? (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleUseLocation}
+                        className="border-red-200 bg-card text-red-700 hover:bg-red-100"
+                      >
+                        <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                        Retry
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      <Input
+                        value={manualCity}
+                        onChange={(event) => setManualCity(event.target.value)}
+                        placeholder="Contoh: Jakarta, Bandung"
+                        className="h-9"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isManualResolving}
+                        onClick={() => void handleManualCitySubmit()}
+                        className="border-red-200 bg-card text-red-700 hover:bg-red-100"
+                      >
+                        {isManualResolving ? (
+                          <LoaderCircle className="mr-2 h-3.5 w-3.5 animate-spin" />
+                        ) : null}
+                        Gunakan Kota
+                      </Button>
+                      {manualCityError ? <p className="text-[11px] text-red-700/90">{manualCityError}</p> : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {fetchErrorMessage ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+                <div className="flex items-start gap-2 text-red-700">
+                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="text-xs leading-relaxed">{fetchErrorMessage}</p>
                 </div>
 
                 {userLocation ? (
@@ -347,7 +487,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
                     variant="outline"
                     size="sm"
                     onClick={handleRetryFetch}
-                    className="mt-3 border-red-200 bg-white text-red-700 hover:bg-red-100"
+                    className="mt-3 border-red-200 bg-card text-red-700 hover:bg-red-100"
                   >
                     <RefreshCw className="mr-2 h-3.5 w-3.5" />
                     Coba lagi
@@ -361,7 +501,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
                 {Array.from({ length: 4 }).map((_, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-3"
+                    className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-3"
                   >
                     <div className="flex flex-1 items-center gap-3">
                       <Skeleton className="h-9 w-9 rounded-full" />
@@ -376,19 +516,19 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
               </div>
             ) : null}
 
-            {!isLoadingMosques && !errorMessage && !userLocation ? (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs text-slate-500">
+            {!isLoadingMosques && !fetchErrorMessage && !locationError && !userLocation ? (
+              <div className="rounded-xl border border-dashed border-border bg-card px-4 py-6 text-center text-xs text-muted-foreground">
                 Lokasi belum diaktifkan.
               </div>
             ) : null}
 
-            {!isLoadingMosques && !errorMessage && userLocation && mosques.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs text-slate-500">
+            {!isLoadingMosques && !fetchErrorMessage && userLocation && mosques.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border bg-card px-4 py-6 text-center text-xs text-muted-foreground">
                 Tidak ada masjid ditemukan pada radius ini.
               </div>
             ) : null}
 
-            {!isLoadingMosques && !errorMessage && mosques.length > 0 ? (
+            {!isLoadingMosques && !fetchErrorMessage && mosques.length > 0 ? (
               <div className="max-h-[36dvh] space-y-2 overflow-y-auto pr-1">
                 {mosques.map((mosque) => {
                   const isSelected = mosque.id === selectedMosqueId;
@@ -397,10 +537,10 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
                     <div
                       key={mosque.id}
                       className={cn(
-                        'flex items-center justify-between gap-3 rounded-xl border bg-white px-3 py-3 transition-colors',
+                        'flex items-center justify-between gap-3 rounded-xl border bg-card px-3 py-3 transition-colors',
                         isSelected
                           ? 'border-emerald-300 bg-emerald-50/60'
-                          : 'border-slate-100 hover:border-emerald-200'
+                          : 'border-border hover:border-emerald-200'
                       )}
                     >
                       <button
@@ -411,16 +551,16 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
                         <span
                           className={cn(
                             'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-                            isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                            isSelected ? 'bg-emerald-600 text-white' : 'bg-card text-muted-foreground'
                           )}
                         >
                           <Navigation className="h-4 w-4" />
                         </span>
                         <span className="min-w-0">
-                          <span className="block line-clamp-1 text-sm font-semibold text-slate-900">
+                          <span className="block line-clamp-1 text-sm font-semibold text-foreground">
                             {mosque.name}
                           </span>
-                          <span className="block line-clamp-1 text-xs text-slate-500">
+                          <span className="block line-clamp-1 text-xs text-muted-foreground">
                             {mosque.address || 'Alamat belum tersedia'}
                           </span>
                         </span>
@@ -434,7 +574,7 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
                           href={mosque.googleMapsUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+                          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:border-emerald-300 hover:text-emerald-700"
                           aria-label={`Buka ${mosque.name} di Google Maps`}
                         >
                           Maps
@@ -452,4 +592,3 @@ export const MosqueMapsPage: React.FC<MosqueMapsPageProps> = ({ onBack }) => {
     </div>
   );
 };
-

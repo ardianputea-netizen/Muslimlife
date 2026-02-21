@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Clock3, Loader2, LocateFixed, MapPin, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -146,10 +146,10 @@ export const PrayerTimesPage: React.FC = () => {
   }, [times?.dateKey]);
 
   return (
-    <div className="bg-gray-50 min-h-full pb-24">
-      <div className="safe-top sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3">
-        <h1 className="text-lg font-bold text-gray-900">Prayer Times</h1>
-        <p className="text-xs text-gray-500">Hitung otomatis dengan adhan-js (sesuai lokasi)</p>
+    <div className="bg-background min-h-full pb-24">
+      <div className="safe-top sticky top-0 z-10 bg-card border-b border-border px-4 py-3">
+        <h1 className="text-lg font-bold text-foreground">Prayer Times</h1>
+        <p className="text-xs text-muted-foreground">Hitung otomatis dengan adhan-js (sesuai lokasi)</p>
       </div>
 
       <div className="p-4 space-y-4">
@@ -186,7 +186,7 @@ export const PrayerTimesPage: React.FC = () => {
               </Button>
             </div>
 
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Status permission: <span className="font-semibold">{permission}</span>
             </p>
 
@@ -196,14 +196,14 @@ export const PrayerTimesPage: React.FC = () => {
                 value={manualLat}
                 onChange={(event) => setManualLat(event.target.value)}
                 placeholder="Latitude"
-                className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                className="rounded-xl border border-border px-3 py-2 text-sm"
               />
               <input
                 type="number"
                 value={manualLng}
                 onChange={(event) => setManualLng(event.target.value)}
                 placeholder="Longitude"
-                className="rounded-xl border border-gray-200 px-3 py-2 text-sm"
+                className="rounded-xl border border-border px-3 py-2 text-sm"
               />
             </div>
             <Button variant="outline" onClick={handleSaveManual}>
@@ -211,12 +211,12 @@ export const PrayerTimesPage: React.FC = () => {
             </Button>
 
             {location ? (
-              <p className="text-xs text-gray-600 inline-flex items-center gap-1">
+              <p className="text-xs text-muted-foreground inline-flex items-center gap-1">
                 <MapPin size={12} />
                 {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
               </p>
             ) : (
-              <p className="text-xs text-gray-500">Belum ada lokasi tersimpan.</p>
+              <p className="text-xs text-muted-foreground">Belum ada lokasi tersimpan.</p>
             )}
 
             {permission === 'denied' && (
@@ -230,11 +230,11 @@ export const PrayerTimesPage: React.FC = () => {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle>Jadwal Hari Ini</CardTitle>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Metode: <span className="font-semibold">{methodLabel}</span>
             </p>
             {nextPrayer && (
-              <p className="text-xs text-gray-500 inline-flex items-center gap-1">
+              <p className="text-xs text-muted-foreground inline-flex items-center gap-1">
                 <Clock3 size={12} />
                 Next: {nextPrayer.label} ({formatCountdown(nextPrayer.time, new Date(tick))})
               </p>
@@ -251,19 +251,19 @@ export const PrayerTimesPage: React.FC = () => {
               </div>
             ) : times ? (
               <div className="space-y-2">
-                <div className="rounded-xl border border-gray-100 px-3 py-2 flex justify-between items-center">
+                <div className="rounded-xl border border-border px-3 py-2 flex justify-between items-center">
                   <span className="text-sm font-semibold">Imsak</span>
                   <span className="text-sm font-mono">{formatTime(times.imsak)}</span>
                 </div>
                 {prayerRows.map((row) => (
-                  <div key={row.key} className="rounded-xl border border-gray-100 px-3 py-2 flex justify-between items-center">
+                  <div key={row.key} className="rounded-xl border border-border px-3 py-2 flex justify-between items-center">
                     <span className="text-sm font-semibold">{row.label}</span>
                     <span className="text-sm font-mono">{formatTime(times[row.key] as Date)}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">Ambil lokasi atau isi manual lat/lng untuk memuat jadwal.</p>
+              <p className="text-sm text-muted-foreground">Ambil lokasi atau isi manual lat/lng untuk memuat jadwal.</p>
             )}
           </CardContent>
         </Card>

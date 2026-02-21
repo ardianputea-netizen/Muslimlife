@@ -20,20 +20,34 @@ export interface NearbyMosque {
   googleMapsUrl: string;
 }
 
-interface OverpassElement {
-  type: 'node' | 'way' | 'relation';
-  id: number;
+interface NearbyMosqueApiItem {
+  id?: string;
+  osmType?: 'node' | 'way' | 'relation';
+  osmId?: number;
+  name?: string;
   lat?: number;
-  lon?: number;
-  center?: {
-    lat: number;
-    lon: number;
-  };
+  lng?: number;
   tags?: Record<string, string>;
+  address?: string | null;
+  distanceMeters?: number;
+  googleMapsUrl?: string;
 }
 
-interface OverpassResponse {
-  elements?: OverpassElement[];
+interface NearbyMosqueApiMeta {
+  endpoint?: string;
+  status?: number;
+  attempts?: Array<{
+    endpoint?: string;
+    status?: number | null;
+    ok?: boolean;
+  }>;
+}
+
+interface NearbyMosqueApiResponse {
+  success?: boolean;
+  data?: NearbyMosqueApiItem[];
+  message?: string;
+  meta?: NearbyMosqueApiMeta;
 }
 
 interface CachePayload {
@@ -42,29 +56,9 @@ interface CachePayload {
   data: NearbyMosque[];
 }
 
-const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.fr/api/interpreter',
-];
-
 const CACHE_KEY = 'ml_nearby_mosques_cache_v1';
 const CACHE_TTL_MS = 1000 * 60 * 15;
-
-const buildOverpassQuery = (lat: number, lng: number, radiusMeters: number) => {
-  return `
-[out:json][timeout:30];
-(
-  node(around:${radiusMeters},${lat},${lng})["amenity"="place_of_worship"]["religion"="muslim"];
-  way(around:${radiusMeters},${lat},${lng})["amenity"="place_of_worship"]["religion"="muslim"];
-  relation(around:${radiusMeters},${lat},${lng})["amenity"="place_of_worship"]["religion"="muslim"];
-  node(around:${radiusMeters},${lat},${lng})["amenity"="mosque"];
-  way(around:${radiusMeters},${lat},${lng})["amenity"="mosque"];
-  relation(around:${radiusMeters},${lat},${lng})["amenity"="mosque"];
-);
-out center tags qt;
-`.trim();
-};
+const IS_DEV = typeof import.meta !== 'undefined' && Boolean(import.meta.env?.DEV);
 
 const readCached = (key: string): NearbyMosque[] | null => {
   if (typeof window === 'undefined') return null;
@@ -103,83 +97,75 @@ const writeCache = (key: string, data: NearbyMosque[]) => {
   }
 };
 
-const normalizeAddress = (tags: Record<string, string>) => {
-  const parts = [tags['addr:street'], tags['addr:housenumber'], tags['addr:city']]
-    .map((part) => part?.trim())
-    .filter(Boolean) as string[];
-
-  if (parts.length === 0) return null;
-  return parts.join(', ');
-};
-
-const getCoords = (element: OverpassElement) => {
-  if (element.type === 'node' && typeof element.lat === 'number' && typeof element.lon === 'number') {
-    return { lat: element.lat, lng: element.lon };
-  }
-
-  if (
-    (element.type === 'way' || element.type === 'relation') &&
-    typeof element.center?.lat === 'number' &&
-    typeof element.center?.lon === 'number'
-  ) {
-    return { lat: element.center.lat, lng: element.center.lon };
-  }
-
-  return null;
-};
-
-const parseElementName = (tags: Record<string, string>) => {
-  return tags.name || tags['name:id'] || tags['official_name'] || 'Masjid tanpa nama';
-};
-
-const normalizeMosques = (elements: OverpassElement[], origin: { lat: number; lng: number }) => {
+const normalizeMosques = (elements: NearbyMosqueApiItem[], origin: { lat: number; lng: number }) => {
   const unique = new Map<string, NearbyMosque>();
 
-  for (const element of elements) {
-    const coords = getCoords(element);
-    if (!coords) continue;
-
-    const tags = element.tags || {};
-    const id = `${element.type}-${element.id}`;
+  for (const row of elements) {
+    if (
+      !row ||
+      typeof row.id !== 'string' ||
+      typeof row.lat !== 'number' ||
+      typeof row.lng !== 'number' ||
+      !Number.isFinite(row.lat) ||
+      !Number.isFinite(row.lng)
+    ) {
+      continue;
+    }
+    const tags = row.tags || {};
+    const id = row.id;
 
     if (unique.has(id)) continue;
 
-    const distanceMeters = haversineDistanceMeters(origin, coords);
+    const distanceMeters =
+      typeof row.distanceMeters === 'number' && Number.isFinite(row.distanceMeters)
+        ? row.distanceMeters
+        : haversineDistanceMeters(origin, { lat: row.lat, lng: row.lng });
 
     unique.set(id, {
       id,
-      osmType: element.type,
-      osmId: element.id,
-      name: parseElementName(tags),
-      lat: coords.lat,
-      lng: coords.lng,
+      osmType: row.osmType || 'node',
+      osmId: typeof row.osmId === 'number' ? row.osmId : 0,
+      name: row.name || tags.name || tags['name:id'] || tags['official_name'] || 'Masjid tanpa nama',
+      lat: row.lat,
+      lng: row.lng,
       tags,
-      address: normalizeAddress(tags),
+      address: typeof row.address === 'string' ? row.address : null,
       distanceMeters,
-      googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`,
+      googleMapsUrl:
+        row.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${row.lat},${row.lng}`,
     });
   }
 
   return [...unique.values()].sort((a, b) => a.distanceMeters - b.distanceMeters);
 };
 
-const fetchFromOverpass = async (endpoint: string, query: string, signal?: AbortSignal) => {
-  const body = new URLSearchParams({ data: query });
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-    },
-    body,
+const fetchFromApi = async (
+  lat: number,
+  lng: number,
+  radiusMeters: number,
+  signal?: AbortSignal
+): Promise<NearbyMosqueApiResponse> => {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lng: String(lng),
+    radius: String(radiusMeters),
+    limit: '80',
+  });
+  const response = await fetch(`/api/masjid-nearby?${params.toString()}`, {
+    headers: { Accept: 'application/json' },
     signal,
   });
-
-  if (!response.ok) {
-    throw new Error(`Overpass error (${response.status}) dari ${endpoint}`);
+  const text = await response.text();
+  let payload: NearbyMosqueApiResponse = {};
+  try {
+    payload = text ? (JSON.parse(text) as NearbyMosqueApiResponse) : {};
+  } catch {
+    payload = {};
   }
-
-  return (await response.json()) as OverpassResponse;
+  if (!response.ok) {
+    throw new Error(payload.message || `Gagal memuat masjid (${response.status})`);
+  }
+  return payload;
 };
 
 export const fetchNearbyMosques = async ({
@@ -192,22 +178,16 @@ export const fetchNearbyMosques = async ({
   const cached = readCached(cacheKey);
   if (cached) return cached;
 
-  const query = buildOverpassQuery(lat, lng, radiusMeters);
-  let lastError: unknown = null;
-
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    try {
-      const data = await fetchFromOverpass(endpoint, query, signal);
-      const normalized = normalizeMosques(data.elements ?? [], { lat, lng });
-      writeCache(cacheKey, normalized);
-      return normalized;
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        throw error;
-      }
-      lastError = error;
-    }
+  const response = await fetchFromApi(lat, lng, radiusMeters, signal);
+  const normalized = normalizeMosques(response.data ?? [], { lat, lng });
+  writeCache(cacheKey, normalized);
+  if (IS_DEV) {
+    console.info('[masjid-nearby] upstream', {
+      endpoint: response.meta?.endpoint || '-',
+      status: response.meta?.status ?? null,
+      attempts: response.meta?.attempts ?? [],
+      count: normalized.length,
+    });
   }
-
-  throw lastError instanceof Error ? lastError : new Error('Gagal mengambil data masjid terdekat.');
+  return normalized;
 };

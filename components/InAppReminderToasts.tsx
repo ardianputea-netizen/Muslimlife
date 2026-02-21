@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { BellRing } from 'lucide-react';
 import { IN_APP_REMINDER_EVENT, type InAppReminderPayload } from '../lib/reminderNotifications';
 
@@ -43,11 +43,11 @@ export const InAppReminderToasts: React.FC = () => {
 
   return (
     <div className="fixed bottom-24 left-1/2 z-[140] w-[92%] max-w-sm -translate-x-1/2">
-      <div className="rounded-xl border border-emerald-200 bg-white px-3 py-2 shadow-xl">
+      <div className="rounded-xl border border-emerald-200 bg-card px-3 py-2 shadow-xl">
         <p className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700">
           <BellRing size={14} /> {toast.title}
         </p>
-        {toast.body ? <p className="mt-1 text-xs text-gray-600">{toast.body}</p> : null}
+        {toast.body ? <p className="mt-1 text-xs text-muted-foreground">{toast.body}</p> : null}
       </div>
     </div>
   );

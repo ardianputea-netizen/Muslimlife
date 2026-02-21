@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Clock3, LocateFixed, MapPin, Sparkles } from 'lucide-react';
 import { fromDateKey, toDateKey } from '@/lib/date';
 import { getPrayerCalendar, PrayerCalendarDay } from '@/services/prayerTimesApi';
@@ -275,14 +275,14 @@ export const RamadhanPrayerCard: React.FC<RamadhanPrayerCardProps> = ({ selected
           type="button"
           onClick={handleUseLocation}
           disabled={isFetchingLocation}
-          className="text-xs px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-white/80 text-emerald-800 inline-flex items-center gap-1"
+          className="text-xs px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-card/80 text-emerald-800 inline-flex items-center gap-1"
         >
           <LocateFixed size={12} className={isFetchingLocation ? 'animate-spin' : ''} />
           {isFetchingLocation ? 'Memuat...' : 'Gunakan Lokasi'}
         </button>
       </div>
 
-      <div className="rounded-xl border border-emerald-200 bg-white/80 px-3 py-2 mb-3">
+      <div className="rounded-xl border border-emerald-200 bg-card/80 px-3 py-2 mb-3">
         <p className="text-xs text-emerald-800 inline-flex items-center gap-1 font-semibold">
           <Clock3 size={12} />
           Countdown {countdownTarget?.label || '-'}: <span className="font-mono">{countdownText}</span>
@@ -317,7 +317,7 @@ export const RamadhanPrayerCard: React.FC<RamadhanPrayerCardProps> = ({ selected
                 className={`rounded-xl border px-3 py-2 flex items-center justify-between ${
                   isNext
                     ? 'border-emerald-400 bg-emerald-100 text-emerald-900 animate-pulse'
-                    : 'border-emerald-200 bg-white/90 text-emerald-900'
+                    : 'border-emerald-200 bg-card/90 text-emerald-900'
                 }`}
               >
                 <p className="text-sm font-semibold inline-flex items-center gap-1">

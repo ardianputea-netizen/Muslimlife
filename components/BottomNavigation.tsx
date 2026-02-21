@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+﻿import React, { memo } from 'react';
 import { Home, Sparkles, NotebookPen, SlidersHorizontal, MapPin, CheckSquare } from 'lucide-react';
 import { Tab } from '../types';
 import { cn } from '../lib/utils';
@@ -28,7 +28,7 @@ export const BottomNavigation = memo<BottomNavigationProps>(({ activeTab, onTabC
   return (
     <nav
       className={cn(
-        'h-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] border-t border-gray-200/90 bg-white/80 backdrop-blur-xl shadow-[0_-8px_28px_rgba(15,23,42,0.12)]',
+        'h-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom))] border-t border-border/90 bg-card/92 backdrop-blur-xl shadow-[0_-8px_28px_rgba(15,23,42,0.12)] dark:shadow-[0_-8px_28px_rgba(2,6,23,0.45)]',
         className
       )}
     >
@@ -41,11 +41,13 @@ export const BottomNavigation = memo<BottomNavigationProps>(({ activeTab, onTabC
               onClick={() => onTabChange(item.tab)}
               className={cn(
                 'flex w-full flex-col items-center justify-center gap-1.5',
-                isActive ? 'opacity-100' : 'opacity-85 hover:opacity-100'
+                isActive ? 'opacity-100' : 'opacity-75 hover:opacity-100'
               )}
             >
               <AppIcon icon={item.icon} shape="squircle" size="sm" variant={item.variant} active={isActive} />
-              <span className={cn('text-[11px] text-slate-600', isActive ? 'font-semibold text-slate-800' : 'font-medium')}>
+              <span
+                className={cn('text-[11px] text-muted-foreground', isActive ? 'font-semibold text-foreground' : 'font-medium')}
+              >
                 {item.label}
               </span>
             </button>

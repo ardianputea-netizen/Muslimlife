@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Check, Sparkles, TriangleAlert } from 'lucide-react';
 import { fromDateKey } from '../lib/date';
 
@@ -65,8 +65,8 @@ export const MiniCalendarStrip: React.FC<MiniCalendarStripProps> = ({
     }).format(fromDateKey(dateKey));
 
   return (
-    <div className="overflow-x-auto no-scrollbar -mx-1 px-1">
-      <div className="inline-flex gap-2.5 min-w-full pb-2">
+    <div className="overflow-x-auto no-scrollbar -mx-1 px-1 touch-pan-x [overscroll-behavior-x:contain]" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="inline-flex w-max min-w-full gap-2.5 pb-2">
         {items.map((item) => {
           const selected = selectedDate === item.date;
           const parsedBadge = parseBadgeCounts(item.badge);
@@ -98,14 +98,14 @@ export const MiniCalendarStrip: React.FC<MiniCalendarStripProps> = ({
           const BadgeIcon = stateBadge?.icon;
 
           const chipClass = item.disabled
-            ? 'border-gray-100 bg-gray-50 text-gray-400'
+            ? 'border-border bg-background text-muted-foreground'
             : selected
             ? 'border-2 border-teal-400 bg-gradient-to-br from-cyan-100 via-emerald-100 to-amber-100 text-teal-900 shadow-[0_14px_30px_-14px_rgba(13,148,136,0.6)]'
             : isCompleted
             ? 'border-emerald-200 bg-emerald-50/95 text-emerald-900 shadow-[0_10px_22px_-16px_rgba(16,185,129,0.72)]'
             : isMissed
             ? 'border-amber-200 bg-amber-50/95 text-amber-900 shadow-[0_10px_22px_-16px_rgba(245,158,11,0.8)]'
-            : 'border-slate-200 bg-white text-slate-800 shadow-[0_10px_18px_-16px_rgba(15,23,42,0.6)]';
+            : 'border-border bg-card text-foreground shadow-[0_10px_18px_-16px_rgba(15,23,42,0.6)]';
 
           const todayOutline =
             item.isToday && !item.disabled
@@ -138,8 +138,8 @@ export const MiniCalendarStrip: React.FC<MiniCalendarStripProps> = ({
                     background: `conic-gradient(${ringColor} ${Math.round(progress * 360)}deg, rgba(148,163,184,0.22) 0deg)`,
                   }}
                 >
-                  <div className="absolute inset-[3px] rounded-full bg-white/80" />
-                  <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-700">
+                  <div className="absolute inset-[3px] rounded-full bg-card/80" />
+                  <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground">
                     {completedCount}
                   </span>
                 </div>
@@ -167,7 +167,7 @@ export const MiniCalendarStrip: React.FC<MiniCalendarStripProps> = ({
               <p className="mt-1 text-[10px] font-semibold text-current/80">
                 {completedCount}/{totalCount}
               </p>
-              <div className="mt-1 h-1.5 rounded-full bg-white/60 overflow-hidden border border-white/50">
+              <div className="mt-1 h-1.5 rounded-full bg-card/60 overflow-hidden border border-white/50">
                 <div
                   className={`h-full transition-all duration-300 ${
                     selected

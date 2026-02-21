@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -70,7 +70,7 @@ const formatCountdown = (target: Date, now: Date) => {
 const PrayerListSkeleton = () => (
   <div className="space-y-3 animate-pulse">
     {Array.from({ length: 5 }).map((_, index) => (
-      <div key={index} className="h-12 rounded-xl bg-gray-100" />
+      <div key={index} className="h-12 rounded-xl bg-muted" />
     ))}
   </div>
 );
@@ -176,20 +176,20 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
   return (
     <div
       className={`${
-        embedded ? 'bg-gray-50 min-h-full' : 'fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24'
+        embedded ? 'bg-background min-h-full' : 'fixed inset-0 z-[70] bg-background overflow-y-auto pb-24'
       }`}
     >
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+      <div className="sticky top-0 z-20 bg-card border-b border-border px-4 py-3 flex items-center gap-3">
         {!embedded && onBack ? (
-          <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100">
+          <button onClick={onBack} className="p-2 rounded-full hover:bg-muted">
             <ArrowLeft size={22} />
           </button>
         ) : (
           <div className="w-2" />
         )}
         <div>
-          <h1 className="text-lg font-bold text-gray-900">Adzan Otomatis</h1>
-          <p className="text-xs text-gray-500">Notifikasi saat masuk waktu sholat + audio takbir adzan</p>
+          <h1 className="text-lg font-bold text-foreground">Adzan Otomatis</h1>
+          <p className="text-xs text-muted-foreground">Notifikasi saat masuk waktu sholat + audio takbir adzan</p>
         </div>
       </div>
 
@@ -207,31 +207,31 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
           </div>
         )}
 
-        <section className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <section className="bg-card rounded-2xl border border-border p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-bold text-gray-800">Status Adzan</h2>
-              <p className="text-xs text-gray-500 mt-1">{nativeModeText}</p>
+              <h2 className="font-bold text-foreground">Status Adzan</h2>
+              <p className="text-xs text-muted-foreground mt-1">{nativeModeText}</p>
             </div>
             <button
               onClick={() => setSettings((prev) => ({ ...prev, enabled: !prev.enabled }))}
               className={`px-3 py-2 rounded-xl text-xs font-semibold border inline-flex items-center gap-1 ${
                 settings.enabled
                   ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                  : 'bg-gray-100 text-gray-600 border-gray-200'
+                  : 'bg-muted text-muted-foreground border-border'
               }`}
             >
               {settings.enabled ? <Bell size={14} /> : <BellOff size={14} />}
               {settings.enabled ? 'Aktif' : 'Nonaktif'}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-3">
+          <p className="text-xs text-muted-foreground mt-3">
             Permission notifikasi: <span className="font-semibold uppercase">{permissionState}</span>
           </p>
         </section>
 
-        <section className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <h2 className="font-bold text-gray-800 mb-3">Mode Notifikasi</h2>
+        <section className="bg-card rounded-2xl border border-border p-4 shadow-sm">
+          <h2 className="font-bold text-foreground mb-3">Mode Notifikasi</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {MODE_OPTIONS.map((item) => (
               <button
@@ -240,25 +240,25 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
                 className={`text-left rounded-xl border px-3 py-2 ${
                   settings.mode === item.id
                     ? 'border-[#0F9D58] bg-green-50'
-                    : 'border-gray-200 bg-white text-gray-600'
+                    : 'border-border bg-card text-muted-foreground'
                 }`}
               >
                 <p className="text-sm font-semibold">{item.label}</p>
-                <p className="text-xs text-gray-500">{item.subtitle}</p>
+                <p className="text-xs text-muted-foreground">{item.subtitle}</p>
               </button>
             ))}
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <h2 className="font-bold text-gray-800 mb-3">Preset Perhitungan & Timezone</h2>
+        <section className="bg-card rounded-2xl border border-border p-4 shadow-sm">
+          <h2 className="font-bold text-foreground mb-3">Preset Perhitungan & Timezone</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Metode</label>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">Metode</label>
               <select
                 value={settings.method}
                 onChange={(event) => setSettings((prev) => ({ ...prev, method: event.target.value }))}
-                className="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-sm"
+                className="w-full border border-border rounded-xl py-2.5 px-3 text-sm"
               >
                 {METHOD_OPTIONS.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -268,11 +268,11 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">Timezone</label>
+              <label className="text-xs font-semibold text-muted-foreground block mb-1">Timezone</label>
               <select
                 value={settings.timezone}
                 onChange={(event) => setSettings((prev) => ({ ...prev, timezone: event.target.value }))}
-                className="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-sm"
+                className="w-full border border-border rounded-xl py-2.5 px-3 text-sm"
               >
                 {TIMEZONE_OPTIONS.map((item) => (
                   <option key={item} value={item}>
@@ -284,15 +284,15 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-          <h2 className="font-bold text-gray-800 mb-3">Lokasi</h2>
+        <section className="bg-card rounded-2xl border border-border p-4 shadow-sm">
+          <h2 className="font-bold text-foreground mb-3">Lokasi</h2>
           <div className="flex gap-2 mb-3">
             <button
               onClick={() => setSettings((prev) => ({ ...prev, location_mode: 'gps' }))}
               className={`px-3 py-2 rounded-lg text-xs font-semibold border ${
                 settings.location_mode === 'gps'
                   ? 'bg-[#0F9D58] text-white border-[#0F9D58]'
-                  : 'bg-white text-gray-600 border-gray-200'
+                  : 'bg-card text-muted-foreground border-border'
               }`}
             >
               GPS Otomatis
@@ -302,7 +302,7 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
               className={`px-3 py-2 rounded-lg text-xs font-semibold border ${
                 settings.location_mode === 'manual'
                   ? 'bg-[#0F9D58] text-white border-[#0F9D58]'
-                  : 'bg-white text-gray-600 border-gray-200'
+                  : 'bg-card text-muted-foreground border-border'
               }`}
             >
               Manual Lat/Lng
@@ -313,7 +313,7 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
             <button
               onClick={() => void handleRefreshGPS()}
               disabled={isRefreshingGPS}
-              className="text-xs px-3 py-2 rounded-lg border border-gray-200 inline-flex items-center gap-1"
+              className="text-xs px-3 py-2 rounded-lg border border-border inline-flex items-center gap-1"
             >
               {isRefreshingGPS ? <RefreshCw size={13} className="animate-spin" /> : <LocateFixed size={13} />}
               Refresh GPS
@@ -330,7 +330,7 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
                   }))
                 }
                 placeholder="Latitude"
-                className="border border-gray-200 rounded-xl py-2.5 px-3 text-sm"
+                className="border border-border rounded-xl py-2.5 px-3 text-sm"
               />
               <input
                 type="number"
@@ -342,18 +342,18 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
                   }))
                 }
                 placeholder="Longitude"
-                className="border border-gray-200 rounded-xl py-2.5 px-3 text-sm"
+                className="border border-border rounded-xl py-2.5 px-3 text-sm"
               />
             </div>
           )}
 
-          <p className="text-xs text-gray-500 mt-2 inline-flex items-center gap-1">
+          <p className="text-xs text-muted-foreground mt-2 inline-flex items-center gap-1">
             <MapPinned size={13} />
             Privacy: lokasi disimpan minimal untuk scheduling.
           </p>
         </section>
 
-        <section className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <section className="bg-card rounded-2xl border border-border p-4 shadow-sm">
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => void handleApplySettings()}
@@ -370,7 +370,7 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
                   .then(setPermissionState)
                   .catch(() => setErrorMessage('Gagal meminta izin notifikasi.'))
               }
-              className="px-3 py-2 text-xs font-semibold rounded-lg border border-gray-200 inline-flex items-center gap-1"
+              className="px-3 py-2 text-xs font-semibold rounded-lg border border-border inline-flex items-center gap-1"
             >
               <Bell size={13} />
               Minta Izin Notif
@@ -378,43 +378,43 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
 
             <button
               onClick={() => triggerAdzanTest()}
-              className="px-3 py-2 text-xs font-semibold rounded-lg border border-gray-200 inline-flex items-center gap-1"
+              className="px-3 py-2 text-xs font-semibold rounded-lg border border-border inline-flex items-center gap-1"
             >
               <PlayCircle size={13} />
               Test Sound
             </button>
           </div>
 
-          <p className="text-[11px] text-gray-500 mt-3 inline-flex items-center gap-1">
+          <p className="text-[11px] text-muted-foreground mt-3 inline-flex items-center gap-1">
             <Volume2 size={13} />
             Audio dibaca dari: <code>/public/audio/takbir-adzan.mp3</code>
           </p>
         </section>
 
-        <section className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <section className="bg-card rounded-2xl border border-border p-4 shadow-sm">
           <div className="flex items-start justify-between gap-2 mb-3">
             <div>
-              <h2 className="font-bold text-gray-800">Jadwal Sholat Hari Ini</h2>
-              <p className="text-xs text-gray-500">Subuh, Dzuhur, Ashar, Maghrib, Isya</p>
+              <h2 className="font-bold text-foreground">Jadwal Sholat Hari Ini</h2>
+              <p className="text-xs text-muted-foreground">Subuh, Dzuhur, Ashar, Maghrib, Isya</p>
             </div>
             {nextEvent ? (
               <div className="text-right">
-                <p className="text-xs text-gray-500">Next Prayer</p>
+                <p className="text-xs text-muted-foreground">Next Prayer</p>
                 <p className="text-sm font-bold text-[#0F9D58]">{nextEvent.label}</p>
-                <p className="text-xs text-gray-600 flex items-center gap-1 justify-end">
+                <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
                   <Clock3 size={12} />
                   {formatCountdown(nextEvent.fireAt, new Date(nowTick))}
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-gray-500">Semua jadwal hari ini selesai</p>
+              <p className="text-xs text-muted-foreground">Semua jadwal hari ini selesai</p>
             )}
           </div>
 
           {isLoading ? (
             <PrayerListSkeleton />
           ) : todayEvents.length === 0 ? (
-            <div className="text-sm text-gray-500">Jadwal belum tersedia.</div>
+            <div className="text-sm text-muted-foreground">Jadwal belum tersedia.</div>
           ) : (
             <div className="space-y-2">
               {todayEvents.map((item) => {
@@ -423,11 +423,11 @@ export const AdzanPage: React.FC<AdzanPageProps> = ({ onBack, embedded = false }
                   <div
                     key={item.id}
                     className={`rounded-xl border px-3 py-2 flex items-center justify-between ${
-                      isPassed ? 'border-gray-100 bg-gray-50' : 'border-green-100 bg-green-50/50'
+                      isPassed ? 'border-border bg-background' : 'border-green-100 bg-green-50/50'
                     }`}
                   >
-                    <p className="text-sm font-semibold text-gray-800">{item.label}</p>
-                    <p className="text-sm font-mono text-gray-700">{item.time}</p>
+                    <p className="text-sm font-semibold text-foreground">{item.label}</p>
+                    <p className="text-sm font-mono text-foreground">{item.time}</p>
                   </div>
                 );
               })}

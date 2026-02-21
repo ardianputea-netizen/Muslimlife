@@ -1,0 +1,87 @@
+{
+  "success": true,
+  "source": "local:src/data/doa_dzikir.json#collections.wirid_tahlil",
+  "updatedAt": "2026-02-19T22:44:47.417Z",
+  "data": [
+    {
+      "id": "wirid-tahlil-1",
+      "title": "Tahlil 1",
+      "arab": "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+      "latin": "Hasbunallahu wa ni'mal wakil",
+      "translation": "Cukuplah Allah bagi kami dan Dia sebaik-baik pelindung.",
+      "sourceLabel": "Wirid & Tahlil"
+    },
+    {
+      "id": "wirid-tahlil-2",
+      "title": "Tahlil 2",
+      "arab": "رَبِّ زِدْنِي عِلْمًا",
+      "latin": "Rabbi zidni ilma",
+      "translation": "Ya Tuhanku, tambahkanlah ilmuku.",
+      "sourceLabel": "Wirid & Tahlil"
+    },
+    {
+      "id": "wirid-tahlil-3",
+      "title": "Tahlil 3",
+      "arab": "اللَّهُمَّ بَارِكْ لَنَا فِيمَا رَزَقْتَنَا وَقِنَا عَذَابَ النَّارِ",
+      "latin": "Allahumma barik lana fima razaqtana wa qina adzaban nar",
+      "translation": "Ya Allah, berkahilah rezeki kami dan lindungi kami dari azab neraka.",
+      "sourceLabel": "Wirid & Tahlil"
+    },
+    {
+      "id": "wirid-tahlil-4",
+      "title": "Tahlil 4",
+      "arab": "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+      "latin": "Bismillahi tawakkaltu 'alallah la haula wa la quwwata illa billah",
+      "translation": "Dengan nama Allah, aku bertawakal kepada Allah.",
+      "sourceLabel": "Wirid & Tahlil"
+    },
+    {
+      "id": "wirid-tahlil-5",
+      "title": "Tahlil 5",
+      "arab": "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+      "latin": "Allahummaftah li abwaba rahmatik",
+      "translation": "Ya Allah, bukakan bagiku pintu-pintu rahmat-Mu.",
+      "sourceLabel": "Wirid & Tahlil"
+    },
+    {
+      "id": "wirid-tahlil-6",
+      "title": "Tahlil 6",
+      "arab": "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",
+      "latin": "Allahumma inni as'aluka min fadhlik",
+      "translation": "Ya Allah, aku memohon karunia-Mu.",
+      "sourceLabel": "Wirid & Tahlil"
+    },
+    {
+      "id": "wirid-tahlil-7",
+      "title": "Tahlil 7",
+      "arab": "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
+      "latin": "Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni",
+      "translation": "Ya Allah, Engkau Maha Pemaaf dan menyukai maaf, maka maafkanlah aku.",
+      "sourceLabel": "Wirid & Tahlil"
+    },
+    {
+      "id": "wirid-tahlil-8",
+      "title": "Tahlil 8",
+      "arab": "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ",
+      "latin": "Subhanalladzi sakhkhara lana hadza wa ma kunna lahu muqrinin",
+      "translation": "Maha Suci Allah yang menundukkan kendaraan ini untuk kami.",
+      "sourceLabel": "Wirid & Tahlil"
+    },
+    {
+      "id": "wirid-tahlil-9",
+      "title": "Tahlil 9",
+      "arab": "اللَّهُمَّ صَيِّبًا نَافِعًا",
+      "latin": "Allahumma shayyiban nafi'an",
+      "translation": "Ya Allah, jadikan hujan ini hujan yang bermanfaat.",
+      "sourceLabel": "Wirid & Tahlil"
+    },
+    {
+      "id": "wirid-tahlil-10",
+      "title": "Tahlil 10",
+      "arab": "مُطِرْنَا بِفَضْلِ اللَّهِ وَرَحْمَتِهِ",
+      "latin": "Muthirna bifadhlillahi wa rahmatih",
+      "translation": "Kami diberi hujan karena karunia dan rahmat Allah.",
+      "sourceLabel": "Wirid & Tahlil"
+    }
+  ]
+}

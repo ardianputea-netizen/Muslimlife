@@ -1,4 +1,4 @@
-import { HttpError, fetchJson } from '../../lib/http';
+import { HttpError, fetchJson } from '../http';
 
 export const RETRYABLE_STATUSES = [429, 500, 502, 503, 504];
 

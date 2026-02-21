@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import { getDueAdzanForNow, sendWebPush, type PushSubscriptionRecord } from '../../lib/server/push';
 
 interface ServerlessRequestLike {
   method?: string;
   headers?: Record<string, string | string[] | undefined>;
-  query?: Record<string, string | string[] | undefined>;
 }
 
 interface ServerlessResponseLike {
@@ -12,22 +12,24 @@ interface ServerlessResponseLike {
   setHeader: (name: string, value: string) => void;
 }
 
-interface DueNoteReminder {
-  id: string;
-  user_id: string;
-  title: string;
-  fire_at: string;
-}
-
 const noStore = (res: ServerlessResponseLike) => {
   res.setHeader('Cache-Control', 'no-store');
 };
 
+const pickHeader = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+
 const isAuthorizedCron = (req: ServerlessRequestLike) => {
-  const expected = process.env.CRON_SECRET;
+  const expected = String(process.env.CRON_SECRET || '').trim();
   if (!expected) return true;
-  const provided = String(req.headers?.['x-cron-secret'] || '');
-  return provided === expected;
+
+  const fromCustomHeader = String(pickHeader(req.headers?.['x-cron-secret']) || '').trim();
+  if (fromCustomHeader === expected) return true;
+
+  const auth = String(pickHeader(req.headers?.authorization) || '').trim();
+  if (auth.toLowerCase().startsWith('bearer ') && auth.slice(7).trim() === expected) return true;
+
+  const fromVercel = String(pickHeader(req.headers?.['x-vercel-cron']) || '').trim();
+  return fromVercel === '1' && !expected;
 };
 
 const getSupabaseAdmin = () => {
@@ -42,35 +44,21 @@ const getSupabaseAdmin = () => {
   });
 };
 
-const buildPushPayload = (title: string, body: string, tag: string) => ({
-  title,
-  body,
-  icon: '/icons/icon-192.png',
-  badge: '/icons/icon-192.png',
-  tag,
-  renotify: false,
-});
-
-const sendWebPushStub = async (_endpoint: string, _payload: ReturnType<typeof buildPushPayload>) => {
-  // TODO(phase-2): implement real Web Push send with VAPID signing.
-  // This scaffold intentionally no-op to keep deployment safe before VAPID keys are configured.
-  return { ok: false, reason: 'TODO_VAPID_NOT_IMPLEMENTED' as const };
-};
-
-const collectDueNoteReminders = async (supabase: ReturnType<typeof getSupabaseAdmin>) => {
-  if (!supabase) return [] as DueNoteReminder[];
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('reminders')
-    .select('id,user_id,title,fire_at')
-    .eq('status', 'scheduled')
-    .lte('fire_at', nowIso)
-    .limit(200);
-  if (error) {
-    throw error;
-  }
-  return (data || []) as DueNoteReminder[];
-};
+const normalizeRows = (rows: Array<Record<string, unknown>>): PushSubscriptionRecord[] =>
+  rows.map((row) => ({
+    id: String(row.id || ''),
+    endpoint: String(row.endpoint || ''),
+    p256dh: String(row.p256dh || ''),
+    auth: String(row.auth || ''),
+    timezone: typeof row.timezone === 'string' ? row.timezone : null,
+    prayer_calc_method: typeof row.prayer_calc_method === 'string' ? row.prayer_calc_method : null,
+    notification_settings:
+      row.notification_settings && typeof row.notification_settings === 'object'
+        ? (row.notification_settings as Record<string, unknown>)
+        : null,
+    last_known_lat: typeof row.last_known_lat === 'number' ? row.last_known_lat : null,
+    last_known_lng: typeof row.last_known_lng === 'number' ? row.last_known_lng : null,
+  }));
 
 export default async function handler(req: ServerlessRequestLike, res: ServerlessResponseLike) {
   noStore(res);
@@ -90,33 +78,91 @@ export default async function handler(req: ServerlessRequestLike, res: Serverles
   }
 
   try {
-    const dueNotes = await collectDueNoteReminders(supabase);
+    const now = new Date();
+    const { data, error } = await supabase
+      .from('push_subscriptions')
+      .select('id,endpoint,p256dh,auth,timezone,prayer_calc_method,notification_settings,last_known_lat,last_known_lng')
+      .eq('is_active', true)
+      .limit(500);
+    if (error) throw error;
 
-    // TODO(phase-2):
-    // 1) Hitung jadwal adzan per user berdasarkan lokasi + metode kalkulasi dari profiles/settings.
-    // 2) Query push_subscriptions per user.
-    // 3) Kirim payload push real via VAPID (web-push library / endpoint POST with JWT).
-    // 4) Tandai reminder notes sebagai "done" setelah push sukses.
+    const subscriptions = normalizeRows((data || []) as Array<Record<string, unknown>>);
+    let dueCount = 0;
+    let sentCount = 0;
+    let duplicateSkipped = 0;
+    let inactiveMarked = 0;
+    const failures: string[] = [];
 
-    const debugPreview = dueNotes.slice(0, 5).map((item) =>
-      buildPushPayload('Reminder Catatan', item.title, `note-reminder-${item.id}`)
-    );
+    for (const subscription of subscriptions) {
+      const due = getDueAdzanForNow(subscription, now);
+      if (!due) continue;
+      dueCount += 1;
 
-    if (dueNotes.length > 0) {
-      const { data: subscriptions } = await supabase.from('push_subscriptions').select('endpoint').limit(1);
-      const endpoint = subscriptions?.[0]?.endpoint;
-      if (endpoint) {
-        await sendWebPushStub(endpoint, debugPreview[0]);
+      const { data: deliveryRow, error: deliveryError } = await supabase
+        .from('push_deliveries')
+        .upsert(
+          {
+            subscription_id: subscription.id,
+            prayer_name: due.prayer,
+            delivery_date: due.dateKey,
+            minute_slot: due.minuteSlot,
+            title: due.title,
+            body: due.body,
+          },
+          {
+            onConflict: 'subscription_id,prayer_name,delivery_date,minute_slot',
+            ignoreDuplicates: true,
+          }
+        )
+        .select('id')
+        .maybeSingle();
+
+      if (deliveryError) {
+        failures.push(`delivery-log:${subscription.id}:${deliveryError.message}`);
+        continue;
+      }
+      if (!deliveryRow?.id) {
+        duplicateSkipped += 1;
+        continue;
+      }
+
+      const pushResult = await sendWebPush(subscription, {
+        title: due.title,
+        body: due.body,
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag: `adzan-${due.prayer}-${due.dateKey}`,
+        renotify: false,
+        data: {
+          url: '/',
+          prayer: due.prayer,
+          date: due.dateKey,
+        },
+      });
+
+      if (pushResult.ok) {
+        sentCount += 1;
+        continue;
+      }
+
+      failures.push(`send:${subscription.id}:${pushResult.statusCode}:${pushResult.reason || 'failed'}`);
+      if (pushResult.statusCode === 404 || pushResult.statusCode === 410) {
+        const { error: inactiveError } = await supabase
+          .from('push_subscriptions')
+          .update({ is_active: false })
+          .eq('id', subscription.id);
+        if (!inactiveError) inactiveMarked += 1;
       }
     }
 
     return res.status(200).json({
       ok: true,
-      mode: 'scaffold',
-      due_note_count: dueNotes.length,
-      sample_payloads: debugPreview,
-      todo:
-        'Implement real Web Push VAPID send + adzan schedule computation + status update reminder di cron job ini.',
+      scanned: subscriptions.length,
+      due: dueCount,
+      sent: sentCount,
+      duplicateSkipped,
+      inactiveMarked,
+      failures: failures.slice(0, 30),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unhandled error';

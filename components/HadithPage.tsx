@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Bookmark, BookmarkCheck, Loader2, Search, WifiOff } from 'lucide-react';
 import {
   HADITH_API_KEY_MISSING_MESSAGE,
@@ -33,7 +33,7 @@ interface HadithPageProps {
 const HadithListSkeleton = () => (
   <div className="space-y-3 animate-pulse">
     {Array.from({ length: 6 }).map((_, idx) => (
-      <div key={idx} className="h-24 rounded-xl bg-gray-100" />
+      <div key={idx} className="h-24 rounded-xl bg-muted" />
     ))}
   </div>
 );
@@ -259,18 +259,18 @@ export const HadithPage: React.FC<HadithPageProps> = ({
     const isBookmarked = hadith.is_bookmarked || bookmarkedIds.has(hadith.id);
 
     return (
-      <div key={hadith.id} className="bg-white rounded-xl border border-gray-100 p-3 shadow-sm">
+      <div key={hadith.id} className="bg-card rounded-xl border border-border p-3 shadow-sm">
         <button className="w-full text-left" onClick={() => void openDetail(hadith.id)}>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             {collectionLabel(hadith.collection, collections)} - Kitab {hadith.referenceBook} - No.{' '}
             {hadith.referenceHadith}
           </p>
-          <p className="text-sm font-semibold text-gray-900 mt-1 line-clamp-2">{hadith.title}</p>
-          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{hadith.sourceLabel}</p>
+          <p className="text-sm font-semibold text-foreground mt-1 line-clamp-2">{hadith.title}</p>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{hadith.sourceLabel}</p>
         </button>
 
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-[11px] text-gray-500 line-clamp-1">Sumber: API Hadis Malaysia</p>
+          <p className="text-[11px] text-muted-foreground line-clamp-1">Sumber: API Hadis Malaysia</p>
           <button
             onClick={() => void toggleBookmark(hadith, !isBookmarked)}
             className="text-[#0F9D58] p-1.5 rounded-lg hover:bg-green-50"
@@ -285,14 +285,14 @@ export const HadithPage: React.FC<HadithPageProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24">
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100">
+    <div className="fixed inset-0 z-[70] bg-background overflow-y-auto pb-24">
+      <div className="sticky top-0 z-20 bg-card border-b border-border px-4 py-3 flex items-center gap-3">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-muted">
           <ArrowLeft size={22} />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-bold text-gray-900">{title}</h1>
-          <p className="text-xs text-gray-500">{subtitle}</p>
+          <h1 className="text-lg font-bold text-foreground">{title}</h1>
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>
         {offlineMode && (
           <span className="text-[10px] px-2 py-1 rounded-full bg-amber-50 text-amber-700 inline-flex items-center gap-1">
@@ -315,15 +315,15 @@ export const HadithPage: React.FC<HadithPageProps> = ({
           </div>
         )}
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-3 shadow-sm">
+        <div className="bg-card rounded-2xl border border-border p-3 shadow-sm">
           <div className="flex gap-2">
             <div className="flex-1 relative">
-              <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+              <Search size={16} className="absolute left-3 top-3 text-muted-foreground" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Cari topik hadits / kata kunci..."
-                className="w-full border border-gray-200 rounded-xl py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#0F9D58]"
+                className="w-full border border-border rounded-xl py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#0F9D58]"
               />
             </div>
             <select
@@ -333,7 +333,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
                 setPage(1);
               }}
               disabled={lockCollection}
-              className="border border-gray-200 rounded-xl px-2 text-sm bg-white disabled:bg-gray-100 disabled:text-gray-500"
+              className="border border-border rounded-xl px-2 text-sm bg-card disabled:bg-muted disabled:text-muted-foreground"
             >
               <option value="all">Semua Koleksi</option>
               {collections.map((option) => (
@@ -348,7 +348,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
             <button
               onClick={() => setTab('search')}
               className={`px-3 py-1.5 text-xs rounded-lg font-semibold ${
-                tab === 'search' ? 'bg-[#0F9D58] text-white' : 'bg-gray-100 text-gray-600'
+                tab === 'search' ? 'bg-[#0F9D58] text-white' : 'bg-muted text-muted-foreground'
               }`}
             >
               Search
@@ -356,7 +356,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
             <button
               onClick={() => setTab('bookmarks')}
               className={`px-3 py-1.5 text-xs rounded-lg font-semibold ${
-                tab === 'bookmarks' ? 'bg-[#0F9D58] text-white' : 'bg-gray-100 text-gray-600'
+                tab === 'bookmarks' ? 'bg-[#0F9D58] text-white' : 'bg-muted text-muted-foreground'
               }`}
             >
               Bookmark ({bookmarks.length})
@@ -369,7 +369,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
             {isLoadingList ? (
               <HadithListSkeleton />
             ) : listData.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm text-gray-500">
+              <div className="bg-card rounded-xl border border-border p-4 text-sm text-muted-foreground">
                 Tidak ada hasil untuk filter ini.
               </div>
             ) : (
@@ -380,32 +380,32 @@ export const HadithPage: React.FC<HadithPageProps> = ({
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                className="px-3 py-2 text-xs rounded-lg border border-gray-200 disabled:opacity-40"
+                className="px-3 py-2 text-xs rounded-lg border border-border disabled:opacity-40"
               >
                 Prev
               </button>
-              <span className="text-xs text-gray-500">Page {page}</span>
+              <span className="text-xs text-muted-foreground">Page {page}</span>
               <button
                 disabled={!hasNextPage}
                 onClick={() => setPage((prev) => prev + 1)}
-                className="px-3 py-2 text-xs rounded-lg border border-gray-200 disabled:opacity-40"
+                className="px-3 py-2 text-xs rounded-lg border border-border disabled:opacity-40"
               >
                 Next
               </button>
             </div>
 
             {lastViewed.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 p-3">
-                <h3 className="text-sm font-bold text-gray-800 mb-2">Terakhir Dibuka</h3>
+              <div className="bg-card rounded-2xl border border-border p-3">
+                <h3 className="text-sm font-bold text-foreground mb-2">Terakhir Dibuka</h3>
                 <div className="space-y-2">
                   {lastViewed.slice(0, 5).map((item) => (
                     <button
                       key={item.id}
                       onClick={() => void openDetail(item.id)}
-                      className="w-full text-left text-xs p-2 rounded-lg hover:bg-gray-50 border border-gray-100"
+                      className="w-full text-left text-xs p-2 rounded-lg hover:bg-background border border-border"
                     >
                       <p className="font-semibold">{item.title}</p>
-                      <p className="text-gray-500 line-clamp-1">{item.sourceLabel}</p>
+                      <p className="text-muted-foreground line-clamp-1">{item.sourceLabel}</p>
                     </button>
                   ))}
                 </div>
@@ -419,7 +419,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
             {isLoadingBookmarks ? (
               <HadithListSkeleton />
             ) : bookmarks.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-100 p-4 text-sm text-gray-500">
+              <div className="bg-card rounded-xl border border-border p-4 text-sm text-muted-foreground">
                 Bookmark kosong.
               </div>
             ) : (
@@ -431,31 +431,31 @@ export const HadithPage: React.FC<HadithPageProps> = ({
 
       {activeHadith && (
         <div className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm p-4 flex items-end sm:items-center justify-center">
-          <div className="bg-white rounded-2xl w-full max-w-xl max-h-[85vh] overflow-y-auto p-4">
+          <div className="bg-card rounded-2xl w-full max-w-xl max-h-[85vh] overflow-y-auto p-4">
             <div className="flex items-center justify-between mb-3 gap-3">
               <div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {collectionLabel(activeHadith.collection, collections)} - Kitab {activeHadith.referenceBook} - No.{' '}
                   {activeHadith.referenceHadith}
                 </p>
-                <p className="text-sm font-bold text-gray-900">{activeHadith.title}</p>
+                <p className="text-sm font-bold text-foreground">{activeHadith.title}</p>
               </div>
               <button
                 onClick={() => setActiveHadith(null)}
-                className="px-2 py-1 rounded-lg border border-gray-200 text-xs"
+                className="px-2 py-1 rounded-lg border border-border text-xs"
               >
                 Tutup
               </button>
             </div>
 
             {isLoadingDetail ? (
-              <div className="py-8 text-center text-gray-500 text-sm inline-flex items-center gap-2">
+              <div className="py-8 text-center text-muted-foreground text-sm inline-flex items-center gap-2">
                 <Loader2 size={16} className="animate-spin" />
                 Memuat detail...
               </div>
             ) : (
               <>
-                <p className="font-serif text-2xl leading-loose text-right text-gray-800 mb-4">
+                <p className="font-serif text-2xl leading-loose text-right text-foreground mb-4">
                   {activeHadith.arabicText}
                 </p>
 
@@ -463,13 +463,13 @@ export const HadithPage: React.FC<HadithPageProps> = ({
                   <p className="text-xs text-[#0F9D58] mb-3">{activeHadith.transliteration}</p>
                 ) : null}
 
-                <p className="text-sm text-gray-700 leading-relaxed mb-4">
+                <p className="text-sm text-foreground leading-relaxed mb-4">
                   {activeHadith.summaryId || 'Terjemahan Indonesia tidak tersedia.'}
                 </p>
 
-                <div className="text-xs rounded-lg border border-gray-100 bg-gray-50 p-3 mb-3">
-                  <p className="font-semibold text-gray-700 mb-1">Sumber</p>
-                  <p className="text-gray-600">{activeHadith.sourceLabel}</p>
+                <div className="text-xs rounded-lg border border-border bg-background p-3 mb-3">
+                  <p className="font-semibold text-foreground mb-1">Sumber</p>
+                  <p className="text-muted-foreground">{activeHadith.sourceLabel}</p>
                 </div>
 
                 <div className="flex justify-end">
@@ -480,7 +480,7 @@ export const HadithPage: React.FC<HadithPageProps> = ({
                         !(activeHadith.is_bookmarked || bookmarkedIds.has(activeHadith.id))
                       )
                     }
-                    className="text-xs px-3 py-2 rounded-lg border border-gray-200 inline-flex items-center gap-1"
+                    className="text-xs px-3 py-2 rounded-lg border border-border inline-flex items-center gap-1"
                     disabled={isSavingBookmark}
                   >
                     {activeHadith.is_bookmarked || bookmarkedIds.has(activeHadith.id) ? (

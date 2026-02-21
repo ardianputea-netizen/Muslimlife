@@ -4,22 +4,8 @@ import type { QuranChapter, QuranVerse } from '@/lib/quran/provider';
 const API_BASE = '/api/quran';
 const DEFAULT_TRANSLATION_ID = 33;
 
-export interface VerseSegment {
-  wordIndex: number;
-  startMs: number;
-  endMs: number;
-}
-
-export interface VerseTiming {
-  verseKey: string;
-  fromMs: number;
-  toMs: number;
-  segments?: VerseSegment[];
-}
-
 export interface QuranFoundationAudioTrack {
   audioUrl: string;
-  timestamps: VerseTiming[];
   reciterId: number;
 }
 
@@ -41,14 +27,6 @@ const toPlayableAudioURL = (raw: string) => {
   return `https://audio.qurancdn.com/${url}`;
 };
 
-const toVerseAudioURL = (raw: string) => {
-  const url = clean(raw);
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('//')) return `https:${url}`;
-  return `https://verses.quran.com/${url.replace(/^\/+/, '')}`;
-};
-
 const parseRevelation = (value: unknown) => {
   const text = clean(value).toLowerCase();
   if (text.includes('mad')) return 'Madaniyah';
@@ -62,20 +40,6 @@ const toInt = (value: unknown, fallback = 0) => {
 
 const toArray = (value: unknown) => (Array.isArray(value) ? value : []);
 
-const parseSegments = (raw: unknown): VerseSegment[] => {
-  if (!Array.isArray(raw)) return [];
-  const segments: VerseSegment[] = [];
-  raw.forEach((entry) => {
-    if (!Array.isArray(entry) || entry.length < 3) return;
-    segments.push({
-      wordIndex: toInt(entry[0], 0),
-      startMs: toInt(entry[1], 0),
-      endMs: toInt(entry[2], 0),
-    });
-  });
-  return segments.filter((row) => row.endMs > row.startMs);
-};
-
 const AUDIO_TRACK_CACHE_TTL_MS = 60 * 60 * 1000;
 const audioTrackCache = new Map<string, { expiresAt: number; value: QuranFoundationAudioTrack }>();
 
@@ -88,10 +52,10 @@ export const getQuranFoundationChapters = async () => {
   const rows = toArray(payload?.chapters);
   return rows.map((row: any) => ({
     id: toInt(row?.id, 0),
-    nameSimple: clean(row?.name_simple),
-    nameArabic: clean(row?.name_arabic),
-    revelationPlace: parseRevelation(row?.revelation_place),
-    versesCount: toInt(row?.verses_count, 0),
+    nameSimple: clean(row?.nameSimple || row?.name_simple),
+    nameArabic: clean(row?.nameArabic || row?.name_arabic),
+    revelationPlace: parseRevelation(row?.revelationPlace || row?.revelation_place),
+    versesCount: toInt(row?.versesCount ?? row?.verses_count, 0),
   })) as QuranChapter[];
 };
 
@@ -122,30 +86,18 @@ export const getQuranFoundationChapterAudioTrack = async (
   chapterID: number,
   reciterID = 7
 ): Promise<QuranFoundationAudioTrack> => {
-  const payload = await fetchJson<any>(`${API_BASE}/audio-timing`, {
-    query: { chapterId: chapterID, reciterId: reciterID },
+  const payload = await fetchJson<any>(`https://api.quran.com/api/v4/chapter_recitations/${reciterID}/${chapterID}`, {
     timeoutMs: 10_000,
     retries: 2,
     cacheTtlSec: 3600,
   });
-
-  const chapterRecitation = payload?.chapterRecitation || {};
-  const byChapter = payload?.byChapter || {};
-  const audioUrl = toPlayableAudioURL(chapterRecitation?.audio_file?.audio_url || '');
-  const files = toArray(byChapter?.audio_files);
-  const timestamps = files
-    .map((row: any) => ({
-      verseKey: clean(row?.verse_key),
-      fromMs: toInt(row?.timestamp_from, 0),
-      toMs: toInt(row?.timestamp_to, 0),
-      segments: parseSegments(row?.segments),
-    }))
-    .filter((row) => row.verseKey && row.toMs > row.fromMs)
-    .sort((a, b) => a.fromMs - b.fromMs);
+  const audioUrl = toPlayableAudioURL(payload?.audio_file?.audio_url || '');
+  if (!audioUrl) {
+    throw new Error('Audio Qur\'an tidak tersedia untuk qari ini.');
+  }
 
   return {
     audioUrl,
-    timestamps,
     reciterId: reciterID,
   };
 };
@@ -193,26 +145,5 @@ export const getJuzAmmaSurahDetail = async (chapterID: number, reciterID = 7): P
     verses,
     audio,
     sourceLabel: 'QuranFoundation / Quran.com API v4 (via /api/quran/*)',
-  };
-};
-
-export const getQuranFoundationVerseAudio = async (reciterID: number, verseKey: string) => {
-  const chapterID = Number(String(verseKey || '').split(':')[0] || 0);
-  if (!Number.isFinite(chapterID) || chapterID <= 0) {
-    return { audioUrl: '', segments: [] as VerseSegment[] };
-  }
-
-  const payload = await fetchJson<any>(`${API_BASE}/audio-timing`, {
-    query: { chapterId: chapterID, reciterId: reciterID },
-    timeoutMs: 10_000,
-    retries: 2,
-    cacheTtlSec: 3600,
-  });
-  const byChapter = payload?.byChapter || {};
-  const files = toArray(byChapter?.audio_files);
-  const first = files.find((row: any) => clean(row?.verse_key) === clean(verseKey));
-  return {
-    audioUrl: toVerseAudioURL(first?.audio_url || ''),
-    segments: parseSegments(first?.segments),
   };
 };

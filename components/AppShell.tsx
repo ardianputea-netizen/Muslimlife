@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { cn } from '../lib/utils';
 
 interface AppShellProps {
@@ -9,7 +9,7 @@ interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children, hasBottomNav, bottomNav }) => {
   return (
-    <div className="relative mx-auto w-full max-w-md min-h-dvh bg-gray-50 shadow-2xl">
+    <div className="relative mx-auto w-full max-w-md min-h-dvh bg-background text-foreground shadow-2xl">
       <main
         className={cn(
           'min-h-dvh w-full overflow-y-auto no-scrollbar scroll-smooth overscroll-contain',

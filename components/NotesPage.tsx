@@ -42,10 +42,26 @@ const REMINDERS_KEY = 'ml_reminders';
 const NOTE_DRAFT_KEY = 'ml_note_draft_v2';
 
 const NOTE_COLORS = [
-  { id: 'emerald', className: 'border-emerald-200 bg-emerald-50' },
-  { id: 'blue', className: 'border-blue-200 bg-blue-50' },
-  { id: 'amber', className: 'border-amber-200 bg-amber-50' },
-  { id: 'slate', className: 'border-slate-200 bg-slate-50' },
+  {
+    id: 'emerald',
+    className:
+      'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-[#0f1f1a]',
+  },
+  {
+    id: 'blue',
+    className:
+      'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-[#0e1a2a]',
+  },
+  {
+    id: 'amber',
+    className:
+      'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-[#2a1f0e]',
+  },
+  {
+    id: 'slate',
+    className:
+      'border-border bg-card dark:border-slate-800 dark:bg-[#111827]',
+  },
 ];
 
 const loadJSON = <T,>(key: string, fallback: T): T => {
@@ -260,18 +276,18 @@ export const NotesPage: React.FC = () => {
 
   if (isEditorOpen) {
     return (
-      <div className="bg-gray-50 min-h-full">
-        <div className="safe-top sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+      <div className="bg-background min-h-full">
+        <div className="safe-top sticky top-0 z-10 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => {
               setIsEditorOpen(false);
               resetEditor();
             }}
-            className="inline-flex items-center gap-1 text-sm text-gray-600"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground"
           >
             <ChevronLeft size={16} /> Kembali
           </button>
-          <h1 className="text-sm font-bold text-gray-900">{editingID ? 'Edit Note' : 'Note Baru'}</h1>
+          <h1 className="text-sm font-bold text-foreground">{editingID ? 'Edit Note' : 'Note Baru'}</h1>
           {editingID ? (
             <button
               onClick={() => deleteNote(editingID)}
@@ -303,7 +319,7 @@ export const NotesPage: React.FC = () => {
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Judul note"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                className="w-full border border-border rounded-xl px-3 py-2 text-sm"
               />
 
               <textarea
@@ -311,7 +327,7 @@ export const NotesPage: React.FC = () => {
                 onChange={(event) => setBody(event.target.value)}
                 placeholder="Isi note"
                 rows={7}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none"
+                className="w-full border border-border rounded-xl px-3 py-2 text-sm resize-none"
               />
 
               <div className="grid grid-cols-2 gap-2">
@@ -319,12 +335,12 @@ export const NotesPage: React.FC = () => {
                   value={tag}
                   onChange={(event) => setTag(event.target.value)}
                   placeholder="Tag (opsional)"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm"
                 />
                 <select
                   value={color}
                   onChange={(event) => setColor(event.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm"
                 >
                   {NOTE_COLORS.map((item) => (
                     <option key={item.id} value={item.id}>
@@ -338,7 +354,7 @@ export const NotesPage: React.FC = () => {
                 <Button onClick={saveNote} size="sm">
                   <Save size={14} className="mr-1" /> Simpan
                 </Button>
-                <span className="text-xs text-gray-500 inline-flex items-center gap-1">
+                <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                   <Clock3 size={12} /> Autosave aktif
                 </span>
               </div>
@@ -356,7 +372,7 @@ export const NotesPage: React.FC = () => {
                 value={quickReminder}
                 onChange={(event) => setQuickReminder(event.target.value)}
                 placeholder='Contoh: "ingatkan saya tgl 17 bukber jam 19:00"'
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                className="w-full border border-border rounded-xl px-3 py-2 text-sm"
               />
 
               <div className="grid grid-cols-2 gap-2">
@@ -364,13 +380,13 @@ export const NotesPage: React.FC = () => {
                   type="date"
                   value={fallbackDate}
                   onChange={(event) => setFallbackDate(event.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm"
                 />
                 <input
                   type="time"
                   value={fallbackTime}
                   onChange={(event) => setFallbackTime(event.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                  className="w-full border border-border rounded-xl px-3 py-2 text-sm"
                 />
               </div>
 
@@ -378,7 +394,7 @@ export const NotesPage: React.FC = () => {
                 <Button size="sm" onClick={createReminder}>
                   <CalendarClock size={14} className="mr-1" /> Buat Reminder
                 </Button>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   Notification permission: <b>{reminderPermission}</b>
                 </span>
               </div>
@@ -390,11 +406,11 @@ export const NotesPage: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-full">
-      <div className="safe-top sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+    <div className="bg-background min-h-full">
+      <div className="safe-top sticky top-0 z-10 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-gray-900">Notes</h1>
-          <p className="text-xs text-gray-500">Catatan + reminder natural language Indonesia</p>
+          <h1 className="text-lg font-bold text-foreground">Notes</h1>
+          <p className="text-xs text-muted-foreground">Catatan + reminder natural language Indonesia</p>
         </div>
         <Button size="sm" onClick={openNewEditor}>
           <Plus size={14} className="mr-1" /> Tambah
@@ -408,31 +424,31 @@ export const NotesPage: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-2">
             {sortedNotes.length === 0 && (
-              <div className="rounded-xl border border-dashed border-gray-300 p-4 text-center text-sm text-gray-500">
+              <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
                 Belum ada note. Tekan tombol Tambah untuk mulai menulis.
               </div>
             )}
 
             {sortedNotes.map((item) => {
-              const colorClass = NOTE_COLORS.find((c) => c.id === item.color)?.className || 'border-gray-100 bg-white';
+              const colorClass = NOTE_COLORS.find((c) => c.id === item.color)?.className || 'border-border bg-card';
               return (
                 <button
                   key={item.id}
                   onClick={() => openEditEditor(item)}
-                  className={`w-full rounded-xl border p-3 text-left transition-colors hover:bg-white ${colorClass}`}
+                  className={`w-full rounded-xl border p-3 text-left transition-colors hover:bg-card dark:hover:brightness-110 ${colorClass}`}
                 >
                   <div className="flex justify-between items-start gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{item.title}</p>
-                      <p className="text-xs text-gray-500 line-clamp-2 mt-1">{item.body || '-'}</p>
+                      <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{item.body || '-'}</p>
                     </div>
                     {item.tag ? (
-                      <span className="text-[10px] rounded-full px-2 py-1 bg-white border border-gray-200 inline-flex items-center gap-1">
+                      <span className="text-[10px] rounded-full px-2 py-1 bg-card border border-border inline-flex items-center gap-1">
                         <Tag size={10} /> {item.tag}
                       </span>
                     ) : null}
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-2">Update: {formatReminderDate(item.updated_at)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-2">Update: {formatReminderDate(item.updated_at)}</p>
                 </button>
               );
             })}
@@ -444,11 +460,11 @@ export const NotesPage: React.FC = () => {
             <CardTitle>List Reminder</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {sortedReminders.length === 0 && <p className="text-sm text-gray-500">Belum ada reminder.</p>}
+            {sortedReminders.length === 0 && <p className="text-sm text-muted-foreground">Belum ada reminder.</p>}
             {sortedReminders.map((item) => (
-              <div key={item.id} className="rounded-xl border border-gray-100 p-3 text-sm bg-white">
-                <p className="font-semibold text-gray-900">{item.title}</p>
-                <p className="text-xs text-gray-500 mt-1">{formatReminderDate(item.fire_at)}</p>
+              <div key={item.id} className="rounded-xl border border-border p-3 text-sm bg-card">
+                <p className="font-semibold text-foreground">{item.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">{formatReminderDate(item.fire_at)}</p>
               </div>
             ))}
           </CardContent>

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
 
 interface SettingsRowProps {
@@ -23,18 +23,18 @@ export const SettingsRow: React.FC<SettingsRowProps> = ({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="w-full px-4 py-3 flex items-center gap-3 text-left transition-colors active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-white/5"
+      className="w-full px-4 py-3 flex items-center gap-3 text-left transition-colors active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted dark:hover:bg-card/5"
     >
-      <div className={`w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 dark:bg-white/5 dark:border-white/10 flex items-center justify-center ${iconClassName || ''}`}>
+      <div className={`w-10 h-10 rounded-xl bg-card border border-border dark:bg-card/5 dark:border-white/10 flex items-center justify-center ${iconClassName || ''}`}>
         <Icon size={18} />
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{title}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{subtitle}</p>
+        <p className="text-sm font-semibold text-foreground dark:text-white truncate">{title}</p>
+        <p className="text-xs text-muted-foreground dark:text-foreground truncate">{subtitle}</p>
       </div>
 
-      <ChevronRight size={16} className="text-slate-400 dark:text-slate-500" />
+      <ChevronRight size={16} className="text-muted-foreground dark:text-foreground" />
     </button>
   );
 };

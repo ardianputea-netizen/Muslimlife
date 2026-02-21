@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { cn } from '@/lib/utils';
 
 export type QuranTab = 'all' | 'juz_amma';
@@ -18,7 +18,7 @@ export const QuranTabs: React.FC<QuranTabsProps> = ({ value, onChange }) => {
           'rounded-xl py-2 text-sm border transition-all',
           value === 'all'
             ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold'
-            : 'bg-white border-gray-200 text-gray-600 font-medium'
+            : 'bg-card border-border text-muted-foreground font-medium'
         )}
       >
         Semua Surah
@@ -30,7 +30,7 @@ export const QuranTabs: React.FC<QuranTabsProps> = ({ value, onChange }) => {
           'rounded-xl py-2 text-sm border transition-all',
           value === 'juz_amma'
             ? 'bg-emerald-50 border-emerald-200 text-emerald-700 font-semibold'
-            : 'bg-white border-gray-200 text-gray-600 font-medium'
+            : 'bg-card border-border text-muted-foreground font-medium'
         )}
       >
         Juz Amma

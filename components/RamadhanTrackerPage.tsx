@@ -19,7 +19,8 @@ import { MiniCalendarItem, MiniCalendarStrip } from './MiniCalendarStrip';
 import { DailyAbsen } from './ramadhan/DailyAbsen';
 import { RamadhanTabs, RamadhanTabValue } from './ramadhan/RamadhanTabs';
 import { ImsakScheduleTab } from './ramadhan/ImsakScheduleTab';
-import { addDays, daysInMonth, fromDateKey, isSameDay, startOfMonth, toDateKey } from '../lib/date';
+import { daysInMonth, fromDateKey, isSameDay, startOfMonth, toDateKey } from '../lib/date';
+import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 
 interface RamadhanTrackerPageProps {
   onBack: () => void;
@@ -36,17 +37,13 @@ const RAMADHAN_ITEMS: Array<{ key: RamadhanItemKey; label: string; short: string
 ];
 
 const toMonthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const formatMonthLabel = (monthKey: string) => {
   const [year, month] = monthKey.split('-').map(Number);
   return new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(
     new Date(year, (month || 1) - 1, 1)
   );
-};
-
-const formatWeekday = (date: string) => {
-  const d = fromDateKey(date);
-  return new Intl.DateTimeFormat('id-ID', { weekday: 'short' }).format(d);
 };
 
 const formatSelectedDateLabel = (date: Date) => {
@@ -139,11 +136,57 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const todayDateKey = useMemo(() => toDateKey(today), [today]);
+  const [ramadhanStartDateKey, setRamadhanStartDateKey] = useState(todayDateKey);
   const selectedDateKey = useMemo(() => toDateKey(selectedDate), [selectedDate]);
   const selectedDateLabel = useMemo(() => formatSelectedDateLabel(selectedDate), [selectedDate]);
   const monthKey = useMemo(() => toMonthKey(viewMonth), [viewMonth]);
   const monthDayCount = useMemo(() => daysInMonth(viewMonth), [viewMonth]);
   const selectedDay = useMemo(() => findDay(monthData, selectedDateKey), [monthData, selectedDateKey]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const resolveStartDateForScope = (scope: string) => {
+      const storageKey = `ml_ramadhan_day_start_v1:${scope}`;
+      const todayKey = toDateKey(new Date());
+      const saved = localStorage.getItem(storageKey);
+      const validSaved = saved && /^\d{4}-\d{2}-\d{2}$/.test(saved);
+      const startKey = validSaved ? saved : todayKey;
+      if (!validSaved) {
+        localStorage.setItem(storageKey, startKey);
+      }
+      setRamadhanStartDateKey(startKey);
+    };
+
+    const supabaseConfigured = isSupabaseConfigured();
+    const supabaseClient = getSupabaseClient();
+
+    if (!supabaseConfigured || !supabaseClient) {
+      resolveStartDateForScope('guest');
+      return;
+    }
+
+    let mounted = true;
+    let unsubscribeAuth: (() => void) | null = null;
+
+    const hydrate = async () => {
+      const { data } = await supabaseClient.auth.getSession();
+      if (!mounted) return;
+      resolveStartDateForScope(data.session?.user?.id || 'guest');
+
+      const { data: subscription } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+        resolveStartDateForScope(session?.user?.id || 'guest');
+      });
+      unsubscribeAuth = () => subscription.subscription.unsubscribe();
+    };
+
+    void hydrate();
+
+    return () => {
+      mounted = false;
+      unsubscribeAuth?.();
+    };
+  }, []);
 
   const loadMonth = useCallback(async () => {
     setIsLoadingMonth(true);
@@ -263,14 +306,31 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
     return (monthData?.weeks.flat() || []).filter((day) => day.in_month);
   }, [monthData]);
 
+  const getRamadhanDayNumber = useCallback(
+    (dateKey: string) => {
+      const diff = Math.floor((fromDateKey(dateKey).getTime() - fromDateKey(ramadhanStartDateKey).getTime()) / DAY_MS);
+      return diff + 1;
+    },
+    [ramadhanStartDateKey]
+  );
+
+  const ramadhanDays = useMemo(
+    () =>
+      inMonthDays.filter((day) => {
+        const n = getRamadhanDayNumber(day.date);
+        return n >= 1 && n <= 30;
+      }),
+    [getRamadhanDayNumber, inMonthDays]
+  );
+  const ramadhanDateKeys = useMemo(() => ramadhanDays.map((day) => day.date), [ramadhanDays]);
+
   const selectedIndex = useMemo(() => {
-    const index = inMonthDays.findIndex((day) => day.date === selectedDateKey);
-    return index >= 0 ? index + 1 : 0;
-  }, [inMonthDays, selectedDateKey]);
+    const dayNumber = getRamadhanDayNumber(selectedDateKey);
+    return dayNumber >= 1 && dayNumber <= 30 ? dayNumber : 0;
+  }, [getRamadhanDayNumber, selectedDateKey]);
 
   const miniCalendarItems = useMemo<MiniCalendarItem[]>(() => {
-    return inMonthDays.map((day) => {
-      const dayNumber = Number(day.date.split('-')[2]);
+    return ramadhanDays.map((day) => {
       const dayStatus =
         day.active_items >= 4
           ? 'completed'
@@ -280,15 +340,24 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
 
       return {
         date: day.date,
-        dayLabel: String(dayNumber),
-        weekdayLabel: formatWeekday(day.date),
+        dayLabel: String(getRamadhanDayNumber(day.date)),
+        weekdayLabel: '',
         completedCount: day.active_items,
         totalCount: 4,
         status: dayStatus,
         isToday: isSameDay(fromDateKey(day.date), today),
       };
     });
-  }, [inMonthDays, today]);
+  }, [getRamadhanDayNumber, ramadhanDays, today, todayDateKey]);
+
+  useEffect(() => {
+    if (ramadhanDateKeys.length === 0) return;
+    if (ramadhanDateKeys.includes(selectedDateKey)) return;
+    const firstDateKey = ramadhanDateKeys[0];
+    const nextDate = fromDateKey(firstDateKey);
+    setSelectedDate(nextDate);
+    setViewMonth(startOfMonth(nextDate));
+  }, [ramadhanDateKeys, selectedDateKey]);
 
   const handleSelectDate = useCallback((dateKey: string) => {
     const nextDate = fromDateKey(dateKey);
@@ -298,41 +367,45 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
 
   const onPrevDay = useCallback((e?: React.MouseEvent<HTMLButtonElement>) => {
     e?.preventDefault?.();
-    setSelectedDate((prev) => {
-      const d = addDays(prev, -1);
-      setViewMonth(startOfMonth(d));
-      return d;
-    });
-  }, []);
+    const currentIndex = ramadhanDateKeys.findIndex((date) => date === selectedDateKey);
+    if (currentIndex <= 0) return;
+    const prevDateKey = ramadhanDateKeys[currentIndex - 1];
+    if (!prevDateKey) return;
+    const prevDate = fromDateKey(prevDateKey);
+    setSelectedDate(prevDate);
+    setViewMonth(startOfMonth(prevDate));
+  }, [ramadhanDateKeys, selectedDateKey]);
 
   const onNextDay = useCallback((e?: React.MouseEvent<HTMLButtonElement>) => {
     e?.preventDefault?.();
-    setSelectedDate((prev) => {
-      const d = addDays(prev, 1);
-      setViewMonth(startOfMonth(d));
-      return d;
-    });
-  }, []);
+    const currentIndex = ramadhanDateKeys.findIndex((date) => date === selectedDateKey);
+    if (currentIndex < 0 || currentIndex >= ramadhanDateKeys.length - 1) return;
+    const nextDateKey = ramadhanDateKeys[currentIndex + 1];
+    if (!nextDateKey) return;
+    const nextDate = fromDateKey(nextDateKey);
+    setSelectedDate(nextDate);
+    setViewMonth(startOfMonth(nextDate));
+  }, [ramadhanDateKeys, selectedDateKey]);
 
   return (
-    <div className={`${embedded ? 'bg-gray-50 min-h-full' : 'fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24'}`}>
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+    <div className={`${embedded ? 'bg-background min-h-full' : 'fixed inset-0 z-[70] bg-background overflow-y-auto pb-24'}`}>
+      <div className="sticky top-0 z-20 bg-card border-b border-border px-4 py-3 flex items-center gap-3">
         {!embedded ? (
-          <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100">
+          <button onClick={onBack} className="p-2 rounded-full hover:bg-muted">
             <ArrowLeft size={22} />
           </button>
         ) : (
           <div className="w-2" />
         )}
         <div>
-          <h1 className="text-lg font-bold text-gray-900">Ramadhan Tracker</h1>
-          <p className="text-xs text-gray-500">Checklist harian + target line + mini kalender</p>
+          <h1 className="text-lg font-bold text-foreground">Ramadhan Tracker</h1>
+          <p className="text-xs text-muted-foreground">Checklist harian + target line + mini kalender</p>
         </div>
       </div>
 
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
         {errorMessage && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 flex items-start gap-2">
+          <div className="rounded-xl border border-rose-300/60 bg-rose-500/10 text-rose-500 dark:text-rose-200 flex items-start gap-2">
             <AlertTriangle size={16} className="mt-0.5 shrink-0" />
             <span>{errorMessage}</span>
           </div>
@@ -342,56 +415,102 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
 
         {activeTab === 'tracker' ? (
           <>
-            <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+            <section className="bg-card rounded-2xl p-4 border border-border shadow-sm">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {formatMonthLabel(monthKey)} - {monthDayCount} hari
                   </p>
-                  <h2 className="font-bold text-gray-800">Hari ke-{selectedIndex || '-'} Ramadhan</h2>
+                  <h2 className="font-bold text-foreground">Hari ke-{selectedIndex || '-'} Ramadhan</h2>
                 </div>
-                <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
+                <span className="text-xs bg-emerald-200/70 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200 px-2 py-1 rounded-full">
                   {monthData?.summary.completion_rate || '0.0'}%
                 </span>
               </div>
 
-              <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3">
-                <div className="flex items-center justify-between mb-2 text-xs text-gray-600">
-                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+              <div className="rounded-xl border border-emerald-300/50 bg-emerald-500/10 dark:border-emerald-400/30 dark:bg-emerald-500/15 p-3">
+                <div className="flex items-center justify-between mb-2 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-200">
                     <Target size={13} /> Target Line
                   </span>
                   <span>
                     Hari aktif {monthData?.summary.active_days || 0}/{monthData?.summary.total_days || 0}
                   </span>
                 </div>
-                <div className="w-full h-3 bg-emerald-100 rounded-full overflow-hidden">
+                <div className="w-full h-3 bg-emerald-200/70 dark:bg-emerald-500/20 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-green-600 transition-all"
+                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-700 dark:from-emerald-400 dark:to-emerald-500 transition-all"
                     style={{ width: `${activeRatio}%` }}
                   />
                 </div>
               </div>
 
-              <div className="mt-3 text-xs text-gray-500 flex justify-between">
+              <div className="mt-3 text-xs text-muted-foreground flex justify-between">
                 <span>
                   Checked item: {monthData?.summary.total_checked_items || 0}/{monthData?.summary.total_item_target || 0}
                 </span>
-                <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-200 font-semibold">
                   <Flame size={12} />
                   Streak {isLoadingStats || !stats ? '...' : `${stats.streak_days} hari`}
                 </span>
               </div>
             </section>
 
-            <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+            <section className="bg-card rounded-2xl p-4 border border-border shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-bold text-gray-800">Mini Kalender {formatMonthLabel(monthKey)}</h2>
+                <h3 className="font-bold text-foreground text-sm">Statistik 30 Hari</h3>
+                <button
+                  onClick={() => {
+                    void loadMonth();
+                    void loadStats();
+                  }}
+                  className="text-xs px-2 py-1 border border-border rounded-lg text-muted-foreground inline-flex items-center gap-1"
+                >
+                  <RefreshCw size={12} /> Refresh
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-card rounded-2xl border border-border p-3 shadow-sm min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Streak 30 Hari</p>
+                  {isLoadingStats || !stats ? (
+                    <div className="h-6 w-16 rounded bg-muted animate-pulse" />
+                  ) : (
+                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-300 flex items-center gap-1.5">
+                      <Flame size={16} /> {stats.streak_days} hari
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-card rounded-2xl border border-border p-3 shadow-sm min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Bolong Terbanyak</p>
+                  {isLoadingStats || !stats ? (
+                    <div className="h-6 w-16 rounded bg-muted animate-pulse" />
+                  ) : (
+                    <p className="text-lg font-bold text-rose-600 dark:text-rose-300 leading-tight">{mostMissedItemLabel}</p>
+                  )}
+                </div>
+
+                <div className="bg-card rounded-2xl border border-border p-3 shadow-sm min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Completion Rate</p>
+                  {isLoadingStats || !stats ? (
+                    <div className="h-6 w-16 rounded bg-muted animate-pulse" />
+                  ) : (
+                    <p className="text-xl font-bold text-foreground leading-tight">{stats.completion_rate}%</p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <section className="bg-card rounded-2xl p-4 border border-border shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-bold text-foreground">HARI BERPUASA</h2>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={onPrevDay}
                     aria-label="Pilih tanggal sebelumnya"
-                    className="px-2 py-1 rounded border text-xs border-gray-200 inline-flex items-center gap-1"
+                    className="px-2 py-1 rounded border text-xs border-border inline-flex items-center gap-1"
                   >
                     <ChevronLeft size={12} /> Prev
                   </button>
@@ -399,18 +518,18 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
                     type="button"
                     onClick={onNextDay}
                     aria-label="Pilih tanggal selanjutnya"
-                    className="px-2 py-1 rounded border text-xs border-gray-200 inline-flex items-center gap-1"
+                    className="px-2 py-1 rounded border text-xs border-border inline-flex items-center gap-1"
                   >
                     Next <ChevronRight size={12} />
                   </button>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mb-3">Tanggal dipilih: {selectedDateLabel}</p>
+              <p className="text-xs text-muted-foreground mb-3">Hari dipilih: {selectedIndex || '-'}</p>
 
               {isLoadingMonth ? (
-                <div className="h-20 rounded-xl bg-gray-100 animate-pulse" />
+                <div className="h-20 rounded-xl bg-muted animate-pulse" />
               ) : miniCalendarItems.length === 0 ? (
-                <p className="text-sm text-gray-500">Konten belum tersedia.</p>
+                <p className="text-sm text-muted-foreground">Konten belum tersedia.</p>
               ) : (
                 <MiniCalendarStrip
                   items={miniCalendarItems}
@@ -439,52 +558,6 @@ export const RamadhanTrackerPage: React.FC<RamadhanTrackerPageProps> = ({ onBack
                 void handleToggle(item);
               }}
             />
-
-            <section className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-gray-800 text-sm">Statistik 30 Hari</h3>
-                <button
-                  onClick={() => {
-                    void loadMonth();
-                    void loadStats();
-                  }}
-                  className="text-xs px-2 py-1 border border-gray-200 rounded-lg text-gray-600 inline-flex items-center gap-1"
-                >
-                  <RefreshCw size={12} /> Refresh
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                  <p className="text-xs text-gray-500 mb-1">Streak 30 Hari</p>
-                  {isLoadingStats || !stats ? (
-                    <div className="h-7 w-20 rounded bg-gray-100 animate-pulse" />
-                  ) : (
-                    <p className="text-2xl font-bold text-[#0F9D58] flex items-center gap-2">
-                      <Flame size={20} /> {stats.streak_days} hari
-                    </p>
-                  )}
-                </div>
-
-                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                  <p className="text-xs text-gray-500 mb-1">Bolong Terbanyak</p>
-                  {isLoadingStats || !stats ? (
-                    <div className="h-7 w-24 rounded bg-gray-100 animate-pulse" />
-                  ) : (
-                    <p className="text-lg font-bold text-red-600">{mostMissedItemLabel}</p>
-                  )}
-                </div>
-
-                <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                  <p className="text-xs text-gray-500 mb-1">Completion Rate</p>
-                  {isLoadingStats || !stats ? (
-                    <div className="h-7 w-24 rounded bg-gray-100 animate-pulse" />
-                  ) : (
-                    <p className="text-xl font-bold text-gray-800">{stats.completion_rate}%</p>
-                  )}
-                </div>
-              </div>
-            </section>
           </>
         ) : (
           <ImsakScheduleTab selectedDate={selectedDate} selectedDateLabel={selectedDateLabel} />

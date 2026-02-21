@@ -1,9 +1,8 @@
 import React from 'react';
 import { BookOpen, ChevronRight } from 'lucide-react';
-import type { QuranLastRead } from '@/lib/quran/storage/lastRead';
 
 interface LastReadCardProps {
-  lastRead: QuranLastRead | null;
+  lastRead: { surahName: string; ayah: number } | null;
   onContinue: () => void;
 }
 
@@ -32,4 +31,3 @@ export const LastReadCard: React.FC<LastReadCardProps> = ({ lastRead, onContinue
     </button>
   );
 };
-

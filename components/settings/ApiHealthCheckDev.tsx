@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { navigateTo } from '@/lib/appRouter';
+import { useReaderSettings } from '@/context/ReaderSettingsContext';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 type HealthState = 'idle' | 'loading' | 'ok' | 'fail';
 
@@ -14,18 +18,19 @@ interface ApiHealthItem {
 const INITIAL_ITEMS: ApiHealthItem[] = [
   { id: 'asma', label: '/api/asmaul-husna', state: 'idle', note: '-' },
   { id: 'dua', label: '/api/dua-dhikr/categories', state: 'idle', note: '-' },
-  { id: 'quran-list', label: '/api/quran/list', state: 'idle', note: '-' },
-  { id: 'quran-detail', label: '/api/quran/detail', state: 'idle', note: '-' },
-  { id: 'quran-audio', label: '/api/quran/audio-timing', state: 'idle', note: '-' },
+  { id: 'quran-list', label: '/api/quran/chapters', state: 'idle', note: '-' },
+  { id: 'quran-detail', label: '/api/quran/surah', state: 'idle', note: '-' },
+  { id: 'yasin', label: '/api/yasin', state: 'idle', note: '-' },
   { id: 'weather', label: '/api/weather', state: 'idle', note: '-' },
   { id: 'hadith', label: '/api/hadith?action=collections', state: 'idle', note: '-' },
+  { id: 'masjid-nearby', label: '/api/masjid-nearby', state: 'idle', note: '-' },
 ];
 
 const renderState = (state: HealthState) => {
-  if (state === 'loading') return <Loader2 size={14} className="animate-spin text-slate-500" />;
+  if (state === 'loading') return <Loader2 size={14} className="animate-spin text-muted-foreground" />;
   if (state === 'ok') return <CheckCircle2 size={14} className="text-emerald-600" />;
   if (state === 'fail') return <XCircle size={14} className="text-rose-600" />;
-  return <span className="text-xs text-slate-400">-</span>;
+  return <span className="text-xs text-muted-foreground">-</span>;
 };
 
 const toNoteError = (error: unknown) => {
@@ -59,8 +64,11 @@ const fetchApiHealth = async (url: string) => {
 };
 
 export const ApiHealthCheckDev: React.FC = () => {
+  const { settings, setTheme, resolvedTheme } = useReaderSettings();
   const [items, setItems] = useState<ApiHealthItem[]>(INITIAL_ITEMS);
   const [isRunning, setIsRunning] = useState(false);
+  const [demoValue, setDemoValue] = useState('');
+  const [demoTab, setDemoTab] = useState<'a' | 'b'>('a');
 
   const patchItem = (id: string, patch: Partial<ApiHealthItem>) => {
     setItems((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
@@ -100,11 +108,11 @@ export const ApiHealthCheckDev: React.FC = () => {
         })(),
         (async () => {
           try {
-            const { result, latency } = await withTiming(() => fetchApiHealth('/api/quran/list?provider=wanrabbae'));
-            const count = Array.isArray(result.payload?.data)
-              ? result.payload.data.length
-              : Array.isArray(result.payload)
-                ? result.payload.length
+            const { result, latency } = await withTiming(() => fetchApiHealth('/api/quran/chapters'));
+            const count = Array.isArray(result.payload?.chapters)
+              ? result.payload.chapters.length
+              : Array.isArray(result.payload?.data)
+                ? result.payload.data.length
                 : 0;
             patchItem('quran-list', { state: 'ok', note: `OK (${count} rows) ${latency}ms, cache=${result.cache}` });
           } catch (error) {
@@ -113,7 +121,7 @@ export const ApiHealthCheckDev: React.FC = () => {
         })(),
         (async () => {
           try {
-            const { result, latency } = await withTiming(() => fetchApiHealth('/api/quran/detail?provider=equran&id=1'));
+            const { result, latency } = await withTiming(() => fetchApiHealth('/api/quran/surah?id=1'));
             patchItem('quran-detail', {
               state: 'ok',
               note: `OK (${Boolean(result.payload)} payload) ${latency}ms, cache=${result.cache}`,
@@ -124,13 +132,18 @@ export const ApiHealthCheckDev: React.FC = () => {
         })(),
         (async () => {
           try {
-            const { result, latency } = await withTiming(() => fetchApiHealth('/api/quran/audio-timing?chapterId=1&reciterId=7'));
-            patchItem('quran-audio', {
-              state: 'ok',
-              note: `OK (${Boolean(result.payload)} payload) ${latency}ms, cache=${result.cache}`,
+            const { result, latency } = await withTiming(() => fetchApiHealth('/api/yasin'));
+            const verses = Array.isArray(result.payload?.data?.verses)
+              ? result.payload.data.verses.length
+              : Array.isArray(result.payload?.verses)
+                ? result.payload.verses.length
+                : 0;
+            patchItem('yasin', {
+              state: verses > 0 ? 'ok' : 'fail',
+              note: `${verses > 0 ? 'OK' : 'Fail'} (${verses} ayat) ${latency}ms, cache=${result.cache}`,
             });
           } catch (error) {
-            patchItem('quran-audio', { state: 'fail', note: toNoteError(error) });
+            patchItem('yasin', { state: 'fail', note: toNoteError(error) });
           }
         })(),
         (async () => {
@@ -155,6 +168,21 @@ export const ApiHealthCheckDev: React.FC = () => {
             patchItem('hadith', { state: 'fail', note: toNoteError(error) });
           }
         })(),
+        (async () => {
+          try {
+            const { result, latency } = await withTiming(() =>
+              fetchApiHealth('/api/masjid-nearby?lat=-6.2088&lng=106.8456&radius=2500&limit=20')
+            );
+            const count = Array.isArray(result.payload?.data) ? result.payload.data.length : 0;
+            const status = result.payload?.meta?.status;
+            patchItem('masjid-nearby', {
+              state: count > 0 ? 'ok' : 'fail',
+              note: `${count > 0 ? 'OK' : 'Fail'} (${count} masjid) ${latency}ms, upstream=${status ?? '-'}, cache=${result.cache}`,
+            });
+          } catch (error) {
+            patchItem('masjid-nearby', { state: 'fail', note: toNoteError(error) });
+          }
+        })(),
       ]);
     } finally {
       setIsRunning(false);
@@ -162,19 +190,62 @@ export const ApiHealthCheckDev: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[80] bg-slate-50 overflow-y-auto pb-24">
-      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-3">
+    <div className="fixed inset-0 z-[80] overflow-y-auto bg-background pb-24">
+      <div className="sticky top-0 z-10 border-b border-border bg-card px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigateTo('/')} className="rounded-full p-1 hover:bg-slate-100">
+          <button onClick={() => navigateTo('/')} className="rounded-full p-1 hover:bg-muted">
             <ArrowLeft size={22} />
           </button>
           <div>
-            <h1 className="text-base font-bold text-slate-900">Dev Settings - API Health</h1>
-            <p className="text-xs text-slate-500">Test endpoint konten & provider cuaca</p>
+            <h1 className="text-base font-bold text-foreground">Dev Settings - API Health</h1>
+            <p className="text-xs text-muted-foreground">Test endpoint konten + smoke test tema</p>
           </div>
         </div>
       </div>
       <div className="mx-auto max-w-xl space-y-3 p-4">
+        <Card className="app-card">
+          <CardContent className="space-y-3 p-4">
+            <h2 className="text-sm font-semibold text-foreground">Theme Smoke Test</h2>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setTheme('system')} className={`app-chip ${settings.theme === 'system' ? '!bg-emerald-100 !text-emerald-700 dark:!bg-emerald-500/20 dark:!text-emerald-200' : ''}`}>
+                Sistem
+              </button>
+              <button type="button" onClick={() => setTheme('light')} className={`app-chip ${settings.theme === 'light' ? '!bg-emerald-100 !text-emerald-700 dark:!bg-emerald-500/20 dark:!text-emerald-200' : ''}`}>
+                Terang
+              </button>
+              <button type="button" onClick={() => setTheme('dark')} className={`app-chip ${settings.theme === 'dark' ? '!bg-emerald-100 !text-emerald-700 dark:!bg-emerald-500/20 dark:!text-emerald-200' : ''}`}>
+                Gelap
+              </button>
+            </div>
+            <Input value={demoValue} onChange={(event) => setDemoValue(event.target.value)} className="app-input" placeholder="Cek input/placeholder" />
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setDemoTab('a')} className={`rounded-lg border px-3 py-1.5 text-xs ${demoTab === 'a' ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-400/50 dark:bg-emerald-500/20 dark:text-emerald-200' : 'border-border bg-card text-muted-foreground'}`}>
+                Tab A
+              </button>
+              <button type="button" onClick={() => setDemoTab('b')} className={`rounded-lg border px-3 py-1.5 text-xs ${demoTab === 'b' ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-400/50 dark:bg-emerald-500/20 dark:text-emerald-200' : 'border-border bg-card text-muted-foreground'}`}>
+                Tab B
+              </button>
+            </div>
+            <div className="h-28 rounded-xl border border-border bg-card px-2 py-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={[{ d: 'S', v: 24 }, { d: 'S', v: 26 }, { d: 'R', v: 25 }, { d: 'K', v: 27 }]}> 
+                  <CartesianGrid stroke={resolvedTheme === 'dark' ? '#334155' : '#e2e8f0'} strokeDasharray="3 3" />
+                  <XAxis dataKey="d" tick={{ fill: resolvedTheme === 'dark' ? '#94a3b8' : '#64748b', fontSize: 10 }} />
+                  <YAxis tick={{ fill: resolvedTheme === 'dark' ? '#94a3b8' : '#64748b', fontSize: 10 }} width={24} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff',
+                      borderColor: resolvedTheme === 'dark' ? '#334155' : '#e2e8f0',
+                      color: resolvedTheme === 'dark' ? '#e2e8f0' : '#0f172a',
+                    }}
+                  />
+                  <Area type="monotone" dataKey="v" stroke="#10b981" fillOpacity={0.2} fill="#10b981" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
         <button
           onClick={() => void runCheck()}
           disabled={isRunning}
@@ -183,12 +254,12 @@ export const ApiHealthCheckDev: React.FC = () => {
           {isRunning ? 'Testing...' : 'Test API'}
         </button>
         {items.map((item) => (
-          <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-3">
+          <div key={item.id} className="rounded-xl border border-border bg-card p-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900">{item.label}</p>
+              <p className="text-sm font-semibold text-foreground">{item.label}</p>
               {renderState(item.state)}
             </div>
-            <p className="mt-1 text-xs text-slate-500">{item.note}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>
           </div>
         ))}
       </div>

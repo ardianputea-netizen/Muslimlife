@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, ChevronRight, Loader2 } from 'lucide-react';
 import {
   HADITH_API_KEY_MISSING_MESSAGE,
@@ -16,6 +16,13 @@ interface HadithLandingPageProps {
 }
 
 const formatCount = (value: number) => `${new Intl.NumberFormat('id-ID').format(value)} hadits`;
+const HADITH_ROW_STYLES = [
+  'from-emerald-950 via-emerald-900 to-teal-900',
+  'from-amber-700 via-amber-600 to-orange-700',
+  'from-teal-700 via-emerald-700 to-green-700',
+  'from-sky-800 via-blue-700 to-indigo-700',
+  'from-fuchsia-700 via-rose-700 to-pink-700',
+];
 
 export const HadithLandingPage: React.FC<HadithLandingPageProps> = ({
   onBack,
@@ -54,14 +61,14 @@ export const HadithLandingPage: React.FC<HadithLandingPageProps> = ({
   }, [loadLandingData]);
 
   return (
-    <div className="fixed inset-0 z-[70] bg-gray-50 overflow-y-auto pb-24">
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-        <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100">
+    <div className="fixed inset-0 z-[70] bg-background overflow-y-auto pb-24">
+      <div className="sticky top-0 z-20 bg-card border-b border-border px-4 py-3 flex items-center gap-3">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-muted">
           <ArrowLeft size={22} />
         </button>
         <div>
-          <h1 className="text-lg font-bold text-gray-900">Hadits</h1>
-          <p className="text-xs text-gray-500">Katalog koleksi + topik populer personal</p>
+          <h1 className="text-lg font-bold text-foreground">Hadits</h1>
+          <p className="text-xs text-muted-foreground">Katalog koleksi + topik populer personal</p>
         </div>
       </div>
 
@@ -72,13 +79,13 @@ export const HadithLandingPage: React.FC<HadithLandingPageProps> = ({
           </div>
         ) : null}
 
-        <section className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+        <section className="bg-card rounded-2xl border border-border p-4 shadow-sm">
           <div className="flex items-center justify-between gap-2 mb-3">
-            <h2 className="text-sm font-bold text-gray-800">Topik Populer</h2>
+            <h2 className="text-sm font-bold text-foreground">Topik Populer</h2>
             <button
               type="button"
               onClick={() => setTopics(getPopularHadithTopics(10))}
-              className="text-[11px] text-gray-500 hover:text-gray-700"
+              className="text-[11px] text-muted-foreground hover:text-foreground"
             >
               Refresh
             </button>
@@ -89,7 +96,7 @@ export const HadithLandingPage: React.FC<HadithLandingPageProps> = ({
               <button
                 key={topic.id}
                 onClick={() => onOpenTopic(topic.id)}
-                className="px-3 py-2 rounded-full border border-gray-200 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50"
+                className="px-3 py-2 rounded-full border border-border text-xs font-semibold text-foreground bg-card hover:bg-background"
               >
                 {topic.label}
                 {topic.score > 0 ? (
@@ -102,34 +109,38 @@ export const HadithLandingPage: React.FC<HadithLandingPageProps> = ({
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl border border-gray-100 p-2 shadow-sm">
+        <section className="bg-card rounded-2xl border border-border p-3 shadow-sm">
           {isLoading ? (
-            <div className="p-6 text-xs text-gray-500 inline-flex items-center gap-2">
+            <div className="p-6 text-xs text-muted-foreground inline-flex items-center gap-2">
               <Loader2 size={14} className="animate-spin" />
               Memuat koleksi...
             </div>
           ) : collections.length === 0 ? (
-            <div className="p-4 text-xs text-gray-500">Katalog koleksi tidak tersedia.</div>
+            <div className="p-4 text-xs text-muted-foreground">Katalog koleksi tidak tersedia.</div>
           ) : (
-            collections.map((collection) => (
-              <button
-                key={collection.id}
-                onClick={() => onOpenCollection(collection.id)}
-                className="w-full px-3 py-3 rounded-xl flex items-center gap-3 hover:bg-gray-50 text-left"
-              >
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 font-bold text-sm flex items-center justify-center shrink-0">
-                  H
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-gray-900 truncate">{collection.label}</p>
-                  <p className="text-xs text-gray-500">
-                    {formatCount(collection.count)}
-                    {collection.author ? ` • ${collection.author}` : ''}
-                  </p>
-                </div>
-                <ChevronRight size={16} className="text-gray-400 shrink-0" />
-              </button>
-            ))
+            <div className="space-y-2">
+              {collections.map((collection, index) => (
+                <button
+                  key={collection.id}
+                  onClick={() => onOpenCollection(collection.id)}
+                  className={`w-full rounded-2xl bg-gradient-to-r px-3 py-3.5 flex items-center gap-3 text-left text-white shadow-sm transition-transform hover:-translate-y-0.5 ${
+                    HADITH_ROW_STYLES[index % HADITH_ROW_STYLES.length]
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-card/20 text-white font-bold text-sm flex items-center justify-center shrink-0">
+                    H
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold truncate">{collection.label}</p>
+                    <p className="text-xs text-white/85">
+                      {formatCount(collection.count)}
+                      {collection.author ? ` - ${collection.author}` : ''}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className="text-white/80 shrink-0" />
+                </button>
+              ))}
+            </div>
           )}
         </section>
       </div>

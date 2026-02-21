@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { cn } from '@/lib/utils';
 
 export type RamadhanTabValue = 'tracker' | 'imsak';
@@ -27,8 +27,8 @@ export const RamadhanTabs: React.FC<RamadhanTabsProps> = ({ value, onChange }) =
               className={cn(
                 'rounded-xl px-3 py-2 text-sm transition-all',
                 active
-                  ? 'bg-white text-emerald-800 font-semibold shadow-sm border border-emerald-100'
-                  : 'bg-transparent text-emerald-700/80 font-medium hover:bg-white/50'
+                  ? 'bg-card text-emerald-800 font-semibold shadow-sm border border-emerald-100'
+                  : 'bg-transparent text-emerald-700/80 font-medium hover:bg-card/50'
               )}
             >
               {item.label}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Cloud,
@@ -16,8 +16,10 @@ import {
 import { Area, AreaChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import { AppIcon, AppIconVariant } from './ui/AppIcon';
 import { WeatherForecastNormalized, getForecast, getLastCity, saveLastCity } from '@/lib/api/weatherId';
+import { useReaderSettings } from '@/context/ReaderSettingsContext';
 
 interface CuacaPageProps {
   onBack: () => void;
@@ -74,9 +76,10 @@ const toErrorMessage = (error: unknown) => {
   return 'Gagal memuat cuaca. Periksa koneksi lalu coba lagi.';
 };
 
-const formatTemp = (value: number | null) => (value === null ? '-' : `${Math.round(value)}°C`);
+const formatTemp = (value: number | null) => (value === null ? '-' : `${Math.round(value)}Â°C`);
 
 export const CuacaPage: React.FC<CuacaPageProps> = ({ onBack }) => {
+  const { resolvedTheme } = useReaderSettings();
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [forecast, setForecast] = useState<WeatherForecastNormalized | null>(null);
@@ -140,28 +143,31 @@ export const CuacaPage: React.FC<CuacaPageProps> = ({ onBack }) => {
         hourLabel: item.hourLabel,
         tempC: item.tempC,
         condition: item.condition,
-        tempLabel: item.tempC === null ? '-' : `${Math.round(item.tempC)}°`,
+        tempLabel: item.tempC === null ? '-' : `${Math.round(item.tempC)}Â°`,
       })),
     [forecast?.hourly]
   );
+  const chartTickColor = resolvedTheme === 'dark' ? '#94a3b8' : '#64748b';
+  const chartGridColor = resolvedTheme === 'dark' ? '#334155' : '#d1fae5';
+  const chartLabelColor = resolvedTheme === 'dark' ? '#5eead4' : '#0f766e';
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-gradient-to-b from-emerald-50 via-sky-50 to-white">
-      <div className="sticky top-0 z-10 border-b border-emerald-100/80 bg-white/85 backdrop-blur">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-gradient-to-b from-emerald-50 via-sky-50 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-900">
+      <div className="sticky top-0 z-10 border-b border-emerald-100/80 bg-card/85 backdrop-blur dark:border-white/10 dark:bg-card">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-2 px-4 py-3">
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+            className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-sm font-semibold text-foreground dark:border-white/15 dark:bg-card dark:text-foreground"
           >
             <ArrowLeft size={16} />
             Kembali
           </button>
-          <h2 className="text-base font-bold text-slate-900">Cuaca</h2>
+          <h2 className="text-base font-bold text-foreground dark:text-foreground">Cuaca</h2>
           <button
             type="button"
             onClick={() => void fetchWeather(activeCity, true)}
-            className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700"
+            className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-300/30 dark:bg-emerald-500/10 dark:text-emerald-200"
           >
             <RefreshCcw size={14} />
             Refresh
@@ -170,32 +176,32 @@ export const CuacaPage: React.FC<CuacaPageProps> = ({ onBack }) => {
       </div>
 
       <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 py-5">
-        <Card className="rounded-3xl border-emerald-100 bg-white/95 shadow-sm">
+        <Card className="rounded-3xl border-emerald-100 bg-card/95 shadow-sm dark:border-white/10 dark:bg-card">
           <CardContent className="space-y-3 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700/90">Lokasi Cuaca</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700/90 dark:text-emerald-300">Lokasi Cuaca</p>
             <div className="flex gap-2">
-              <input
+              <Input
                 value={cityInput}
                 onChange={(event) => setCityInput(event.target.value)}
                 placeholder="Contoh: Jakarta, Bandung, Surabaya"
-                className="h-10 flex-1 rounded-xl border border-slate-200 px-3 text-sm text-slate-700 outline-none focus:border-emerald-300"
+                className="h-10 flex-1 rounded-xl border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-white/15 dark:bg-card dark:text-foreground dark:placeholder:text-muted-foreground"
               />
               <button
                 type="button"
                 onClick={onSaveCity}
-                className="inline-flex h-10 items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-700"
+                className="inline-flex h-10 items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-700 dark:border-emerald-300/30 dark:bg-emerald-500/10 dark:text-emerald-200"
               >
                 <Save size={14} />
                 Simpan
               </button>
             </div>
-            <p className="text-xs text-slate-500">Lokasi aktif: {activeCity || '-'}</p>
+            <p className="text-xs text-muted-foreground dark:text-foreground">Lokasi aktif: {activeCity || '-'}</p>
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden rounded-3xl border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50 shadow-sm">
+        <Card className="overflow-hidden rounded-3xl border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50 shadow-sm dark:border-white/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
           <CardContent className="space-y-4 p-5">
-            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700/90">Kondisi Saat Ini</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700/90 dark:text-emerald-300">Kondisi Saat Ini</p>
             {isLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-8 w-24" />
@@ -203,11 +209,11 @@ export const CuacaPage: React.FC<CuacaPageProps> = ({ onBack }) => {
                 <Skeleton className="h-4 w-56" />
               </div>
             ) : errorMessage ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 dark:border-rose-300/30 dark:bg-rose-500/10 dark:text-rose-100">
                 <p>{errorMessage}</p>
                 <button
                   onClick={() => void fetchWeather(activeCity, true)}
-                  className="mt-2 rounded-lg border border-rose-300 bg-white px-2 py-1 text-xs font-semibold"
+                  className="mt-2 rounded-lg border border-rose-300 bg-card px-2 py-1 text-xs font-semibold"
                 >
                   Retry
                 </button>
@@ -216,47 +222,47 @@ export const CuacaPage: React.FC<CuacaPageProps> = ({ onBack }) => {
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-4xl font-bold tracking-tight text-slate-900">
+                    <p className="text-4xl font-bold tracking-tight text-foreground dark:text-foreground">
                       {weather.tempC === null ? '-' : Math.round(weather.tempC)}
                       <span className="text-2xl">{'\u00B0'}C</span>
                     </p>
-                    <p className="mt-1 text-sm font-medium text-slate-600">{weatherVisual.label}</p>
-                    <p className="mt-2 text-xs text-slate-500">{weatherVisual.description}</p>
+                    <p className="mt-1 text-sm font-medium text-muted-foreground dark:text-foreground">{weatherVisual.label}</p>
+                    <p className="mt-2 text-xs text-muted-foreground dark:text-foreground">{weatherVisual.description}</p>
                   </div>
                   <AppIcon icon={WeatherIcon} variant={weatherVisual.variant} shape="squircle" size="md" />
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-xl border border-slate-200 bg-white px-2 py-2 text-center">
-                    <p className="text-[11px] text-slate-500">Provider</p>
-                    <p className="text-sm font-semibold text-slate-800">pace11</p>
+                  <div className="rounded-xl border border-border bg-card px-2 py-2 text-center dark:border-white/10 dark:bg-card">
+                    <p className="text-[11px] text-muted-foreground dark:text-foreground">Provider</p>
+                    <p className="text-sm font-semibold text-foreground dark:text-foreground">pace11</p>
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-white px-2 py-2 text-center">
-                    <p className="text-[11px] text-slate-500">Kelembapan</p>
-                    <p className="text-sm font-semibold text-slate-800">
+                  <div className="rounded-xl border border-border bg-card px-2 py-2 text-center dark:border-white/10 dark:bg-card">
+                    <p className="text-[11px] text-muted-foreground dark:text-foreground">Kelembapan</p>
+                    <p className="text-sm font-semibold text-foreground dark:text-foreground">
                       {weather.humidity === null ? '-' : `${Math.round(weather.humidity)}%`}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-slate-200 bg-white px-2 py-2 text-center">
-                    <p className="text-[11px] text-slate-500">Angin</p>
-                    <p className="text-sm font-semibold text-slate-800">
+                  <div className="rounded-xl border border-border bg-card px-2 py-2 text-center dark:border-white/10 dark:bg-card">
+                    <p className="text-[11px] text-muted-foreground dark:text-foreground">Angin</p>
+                    <p className="text-sm font-semibold text-foreground dark:text-foreground">
                       {weather.windKph === null ? '-' : `${Math.round(weather.windKph)} km/j`}
                     </p>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-slate-600">Data cuaca belum tersedia.</p>
+              <p className="text-sm text-muted-foreground dark:text-foreground">Data cuaca belum tersedia.</p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-sky-100 bg-white/95 shadow-sm">
+        <Card className="rounded-3xl border-sky-100 bg-card/95 shadow-sm dark:border-white/10 dark:bg-card">
           <CardContent className="space-y-3 p-5">
-            <h3 className="text-sm font-semibold text-slate-800">Grafik Suhu per Jam</h3>
+            <h3 className="text-sm font-semibold text-foreground dark:text-foreground">Grafik Suhu per Jam</h3>
             {isLoading ? (
               <Skeleton className="h-56 w-full" />
             ) : chartData.length > 0 ? (
-              <div className="h-60 w-full rounded-2xl border border-slate-200 bg-gradient-to-b from-emerald-50 to-white p-2">
+              <div className="h-60 w-full rounded-2xl border border-border bg-gradient-to-b from-emerald-50 to-white p-2 dark:border-white/10 dark:from-slate-800 dark:to-slate-900">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 22, right: 8, left: -20, bottom: 4 }}>
                     <defs>
@@ -265,16 +271,22 @@ export const CuacaPage: React.FC<CuacaPageProps> = ({ onBack }) => {
                         <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#d1fae5" />
-                    <XAxis dataKey="hourLabel" tick={{ fontSize: 11, fill: '#64748b' }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
+                    <XAxis dataKey="hourLabel" tick={{ fontSize: 11, fill: chartTickColor }} />
                     <YAxis
-                      tick={{ fontSize: 11, fill: '#64748b' }}
+                      tick={{ fontSize: 11, fill: chartTickColor }}
                       width={34}
-                      tickFormatter={(value: number) => `${Math.round(value)}°`}
+                      tickFormatter={(value: number) => `${Math.round(value)}Â°`}
                     />
                     <Tooltip
                       formatter={(value: number | null, _name, item) => [formatTemp(value), item.payload.condition]}
                       labelFormatter={(label) => `Jam ${label}`}
+                      contentStyle={{
+                        backgroundColor: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff',
+                        borderColor: resolvedTheme === 'dark' ? '#334155' : '#e2e8f0',
+                        borderRadius: 12,
+                        color: resolvedTheme === 'dark' ? '#e2e8f0' : '#0f172a',
+                      }}
                     />
                     <Area
                       type="monotone"
@@ -285,22 +297,22 @@ export const CuacaPage: React.FC<CuacaPageProps> = ({ onBack }) => {
                       dot={{ r: 3.2, fill: '#10b981', stroke: '#ffffff', strokeWidth: 1.4 }}
                       connectNulls
                     >
-                      <LabelList dataKey="tempLabel" position="top" offset={8} fontSize={10} fill="#0f766e" />
+                      <LabelList dataKey="tempLabel" position="top" offset={8} fontSize={10} fill={chartLabelColor} />
                     </Area>
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <p className="text-xs text-slate-500">Data grafik belum tersedia.</p>
+              <p className="text-xs text-muted-foreground dark:text-foreground">Data grafik belum tersedia.</p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-sky-100 bg-white/90 shadow-sm">
+        <Card className="rounded-3xl border-sky-100 bg-card/90 shadow-sm dark:border-white/10 dark:bg-card">
           <CardContent className="space-y-2 p-5">
-            <h3 className="text-sm font-semibold text-slate-800">Detail Lokasi</h3>
-            <p className="text-sm text-slate-600">{forecast?.locationName || '-'}</p>
-            <p className="text-xs text-slate-500 inline-flex items-center gap-1">
+            <h3 className="text-sm font-semibold text-foreground dark:text-foreground">Detail Lokasi</h3>
+            <p className="text-sm text-muted-foreground dark:text-foreground">{forecast?.locationName || '-'}</p>
+            <p className="text-xs text-muted-foreground inline-flex items-center gap-1 dark:text-foreground">
               <Wind size={12} />
               Update terakhir:{' '}
               {lastUpdated
