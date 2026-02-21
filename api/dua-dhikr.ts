@@ -160,7 +160,8 @@ const mapRowsByCategory = (rows: EquranDoaRow[], category: string) => {
     return rows.filter((row) => slugify(normalizeText(row.grup) || 'umum') === expectedGroupSlug);
   }
 
-  return [] as EquranDoaRow[];
+  // Keep backward-compatibility for legacy category slugs still cached on CDN.
+  return rows;
 };
 
 const sendOk = (res: ServerlessResponseLike, payload: unknown, cacheStatus: 'hit' | 'miss', ttlSec: number) => {
