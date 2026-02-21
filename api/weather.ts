@@ -80,8 +80,29 @@ interface EquranShalatPayload {
   };
 }
 
+interface EquranImsakiyahRow {
+  tanggal?: number;
+  imsak?: string;
+  subuh?: string;
+  dzuhur?: string;
+  ashar?: string;
+  maghrib?: string;
+  isya?: string;
+}
+
+interface EquranImsakiyahPayload {
+  data?: {
+    provinsi?: string;
+    kabkota?: string;
+    hijriah?: string;
+    masehi?: string;
+    imsakiyah?: EquranImsakiyahRow[];
+  };
+}
+
 const TTL_SEC = 10 * 60;
 const PRAYER_TTL_SEC = 12 * 60 * 60;
+const IMSAKIYAH_TTL_SEC = 24 * 60 * 60;
 const DEFAULT_CITY = 'Jakarta';
 const cache = new Map<string, { expiresAt: number; data: unknown }>();
 const RATING_TABLE = 'app_ratings';
@@ -400,6 +421,50 @@ const fetchEquranKabkota = async (provinsi: string) => {
   return rows;
 };
 
+const fetchEquranImsakProvinces = async () => {
+  const cacheKey = toPrayerCacheKey('imsakiyah-provinsi', ['all']);
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() < hit.expiresAt) {
+    return hit.data as string[];
+  }
+
+  const payload = await fetchJsonWithRetry<{ data?: string[] }>('https://equran.id/api/v2/imsakiyah/provinsi');
+  const rows = (Array.isArray(payload?.data) ? payload.data : []).map((row) => toText(row)).filter(Boolean);
+  if (rows.length === 0) {
+    throw new Error('Daftar provinsi imsakiyah tidak tersedia.');
+  }
+
+  cache.set(cacheKey, {
+    data: rows,
+    expiresAt: Date.now() + IMSAKIYAH_TTL_SEC * 1000,
+  });
+  return rows;
+};
+
+const fetchEquranImsakKabkota = async (provinsi: string) => {
+  const cacheKey = toPrayerCacheKey('imsakiyah-kabkota', [provinsi]);
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() < hit.expiresAt) {
+    return hit.data as string[];
+  }
+
+  const payload = await fetchJsonWithRetry<{ data?: string[] }>('https://equran.id/api/v2/imsakiyah/kabkota', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provinsi }),
+  });
+  const rows = (Array.isArray(payload?.data) ? payload.data : []).map((row) => toText(row)).filter(Boolean);
+  if (rows.length === 0) {
+    throw new Error(`Daftar kab/kota imsakiyah untuk provinsi ${provinsi} tidak tersedia.`);
+  }
+
+  cache.set(cacheKey, {
+    data: rows,
+    expiresAt: Date.now() + IMSAKIYAH_TTL_SEC * 1000,
+  });
+  return rows;
+};
+
 const fetchReverseGeoByCoords = async (lat: number, lng: number) => {
   const cacheKey = toPrayerCacheKey('reverse', [lat.toFixed(3), lng.toFixed(3)]);
   const hit = cache.get(cacheKey);
@@ -513,6 +578,32 @@ const resolveEquranRegion = async (input: {
   };
 };
 
+const resolveEquranImsakRegion = async (input: {
+  lat: number;
+  lng: number;
+  provinsi?: string;
+  kabkota?: string;
+}) => {
+  const provinces = await fetchEquranImsakProvinces();
+  const reverse = await fetchReverseGeoByCoords(input.lat, input.lng);
+
+  const requestedProvince = toText(input.provinsi) || reverse.province;
+  const cityHints = [toText(input.kabkota), ...reverse.cityCandidates].map((row) => row.toLowerCase());
+  const hasJakartaHint =
+    requestedProvince.toLowerCase().includes('jakarta') ||
+    cityHints.some((row) => row.includes('jakarta'));
+  const bestProvince = hasJakartaHint ? 'DKI Jakarta' : pickBestProvince(requestedProvince, provinces);
+  const kabkotaRows = await fetchEquranImsakKabkota(bestProvince);
+
+  const requestedCityCandidates = [toText(input.kabkota), ...reverse.cityCandidates].filter(Boolean);
+  const bestKabkota = pickBestKabkota(requestedCityCandidates, kabkotaRows);
+
+  return {
+    provinsi: bestProvince,
+    kabkota: bestKabkota,
+  };
+};
+
 const fetchEquranPrayerMonth = async (params: {
   provinsi: string;
   kabkota: string;
@@ -554,6 +645,34 @@ const fetchEquranPrayerMonth = async (params: {
   return data;
 };
 
+const fetchEquranImsakiyahMonth = async (params: { provinsi: string; kabkota: string }) => {
+  const cacheKey = toPrayerCacheKey('imsakiyah', [params.provinsi, params.kabkota]);
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() < hit.expiresAt) {
+    return hit.data as EquranImsakiyahPayload['data'];
+  }
+
+  const payload = await fetchJsonWithRetry<EquranImsakiyahPayload>('https://equran.id/api/v2/imsakiyah', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      provinsi: params.provinsi,
+      kabkota: params.kabkota,
+    }),
+  });
+  const data = payload?.data;
+  const rows = Array.isArray(data?.imsakiyah) ? data.imsakiyah : [];
+  if (!data || rows.length === 0) {
+    throw new Error('Jadwal imsakiyah tidak tersedia.');
+  }
+
+  cache.set(cacheKey, {
+    data,
+    expiresAt: Date.now() + IMSAKIYAH_TTL_SEC * 1000,
+  });
+  return data;
+};
+
 const toDateFromKey = (dateKey: string) => {
   const matched = dateKey.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!matched) return null;
@@ -575,6 +694,34 @@ const mapEquranTimings = (row: EquranShalatCalendarRow) => ({
   isya: normalizePrayerTime(row.isya),
 });
 
+const mapEquranImsakTimings = (row: EquranImsakiyahRow) => ({
+  imsak: normalizePrayerTime(row.imsak),
+  subuh: normalizePrayerTime(row.subuh),
+  dzuhur: normalizePrayerTime(row.dzuhur),
+  ashar: normalizePrayerTime(row.ashar),
+  maghrib: normalizePrayerTime(row.maghrib),
+  isya: normalizePrayerTime(row.isya),
+});
+
+const getHijriPartsByDateKey = (dateKey: string) => {
+  const parsed = toDateFromKey(dateKey);
+  if (!parsed) return null;
+
+  const date = new Date(parsed.year, parsed.month - 1, parsed.day);
+  const parts = new Intl.DateTimeFormat('en-u-ca-islamic', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+  }).formatToParts(date);
+  const month = Number(parts.find((part) => part.type === 'month')?.value || '');
+  const day = Number(parts.find((part) => part.type === 'day')?.value || '');
+  const year = Number(parts.find((part) => part.type === 'year')?.value || '');
+  if (!Number.isInteger(month) || !Number.isInteger(day) || !Number.isInteger(year)) {
+    return null;
+  }
+  return { month, day, year };
+};
+
 const handlePrayerTimes = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
   if ((req.method || 'GET').toUpperCase() !== 'GET') {
     res.status(405).json({ success: false, message: 'Method not allowed' });
@@ -591,31 +738,69 @@ const handlePrayerTimes = async (req: ServerlessRequestLike, res: ServerlessResp
   }
 
   try {
-    const region = await resolveEquranRegion({
+    const shalatRegion = await resolveEquranRegion({
       lat,
       lng,
       provinsi: readQuery(req, 'provinsi'),
       kabkota: readQuery(req, 'kabkota'),
     });
-    const monthData = await fetchEquranPrayerMonth({
-      provinsi: region.provinsi,
-      kabkota: region.kabkota,
-      bulan: parsedDate.month,
-      tahun: parsedDate.year,
+    const imsakRegion = await resolveEquranImsakRegion({
+      lat,
+      lng,
+      provinsi: readQuery(req, 'provinsi') || shalatRegion.provinsi,
+      kabkota: readQuery(req, 'kabkota') || shalatRegion.kabkota,
     });
-    const rows = Array.isArray(monthData?.jadwal) ? monthData.jadwal : [];
-    const target =
-      rows.find((row) => toText(row.tanggal_lengkap) === date) ||
-      rows.find((row) => Number(row.tanggal) === parsedDate.day);
 
-    if (!target) {
-      res.status(502).json({ success: false, message: 'Jadwal harian tidak ditemukan dari upstream.' });
-      return;
+    let provider = 'equran.id/api/v2/shalat';
+    let timings: ReturnType<typeof mapEquranTimings> | null = null;
+    let hijriInfo: { year: string; day: number } | null = null;
+    const hijriParts = getHijriPartsByDateKey(date);
+    if (hijriParts && hijriParts.month === 9) {
+      try {
+        const imsakData = await fetchEquranImsakiyahMonth({
+          provinsi: imsakRegion.provinsi,
+          kabkota: imsakRegion.kabkota,
+        });
+        const rows = Array.isArray(imsakData?.imsakiyah) ? imsakData.imsakiyah : [];
+        const target = rows.find((row) => Number(row.tanggal) === hijriParts.day);
+        if (target) {
+          provider = 'equran.id/api/v2/imsakiyah';
+          timings = mapEquranImsakTimings(target);
+          hijriInfo = {
+            year: toText(imsakData?.hijriah),
+            day: hijriParts.day,
+          };
+        }
+      } catch {
+        // Fall through to shalat provider.
+      }
     }
+
+    if (!timings) {
+      const monthData = await fetchEquranPrayerMonth({
+        provinsi: shalatRegion.provinsi,
+        kabkota: shalatRegion.kabkota,
+        bulan: parsedDate.month,
+        tahun: parsedDate.year,
+      });
+      const rows = Array.isArray(monthData?.jadwal) ? monthData.jadwal : [];
+      const target =
+        rows.find((row) => toText(row.tanggal_lengkap) === date) ||
+        rows.find((row) => Number(row.tanggal) === parsedDate.day);
+
+      if (!target) {
+        res.status(502).json({ success: false, message: 'Jadwal harian tidak ditemukan dari upstream.' });
+        return;
+      }
+      timings = mapEquranTimings(target);
+    }
+
+    const routeCacheSec = provider.includes('imsakiyah') ? IMSAKIYAH_TTL_SEC : PRAYER_TTL_SEC;
+    const finalLocation = provider.includes('imsakiyah') ? imsakRegion : shalatRegion;
 
     res.setHeader(
       'Cache-Control',
-      `public, max-age=0, s-maxage=${PRAYER_TTL_SEC}, stale-while-revalidate=${PRAYER_TTL_SEC}`
+      `public, max-age=0, s-maxage=${routeCacheSec}, stale-while-revalidate=${routeCacheSec}`
     );
     res.status(200).json({
       success: true,
@@ -624,12 +809,13 @@ const handlePrayerTimes = async (req: ServerlessRequestLike, res: ServerlessResp
         location: {
           lat,
           lng,
-          provinsi: region.provinsi,
-          kabkota: region.kabkota,
+          provinsi: finalLocation.provinsi,
+          kabkota: finalLocation.kabkota,
         },
-        prayer_times: mapEquranTimings(target),
+        prayer_times: timings,
+        ...(hijriInfo ? { hijriyah: hijriInfo } : {}),
         meta: {
-          provider: 'equran.id/api/v2/shalat',
+          provider,
           method: 'equran',
           timezone: 'Asia/Jakarta',
         },
@@ -665,15 +851,21 @@ const handlePrayerCalendar = async (req: ServerlessRequestLike, res: ServerlessR
   }
 
   try {
-    const region = await resolveEquranRegion({
+    const shalatRegion = await resolveEquranRegion({
       lat,
       lng,
       provinsi: readQuery(req, 'provinsi'),
       kabkota: readQuery(req, 'kabkota'),
     });
+    const imsakRegion = await resolveEquranImsakRegion({
+      lat,
+      lng,
+      provinsi: readQuery(req, 'provinsi') || shalatRegion.provinsi,
+      kabkota: readQuery(req, 'kabkota') || shalatRegion.kabkota,
+    });
     const monthData = await fetchEquranPrayerMonth({
-      provinsi: region.provinsi,
-      kabkota: region.kabkota,
+      provinsi: shalatRegion.provinsi,
+      kabkota: shalatRegion.kabkota,
       bulan: month,
       tahun: year,
     });
@@ -684,21 +876,56 @@ const handlePrayerCalendar = async (req: ServerlessRequestLike, res: ServerlessR
       }))
       .filter((row) => row.dateKey);
 
+    let provider = 'equran.id/api/v2/shalat';
+    let hijriahYear = '';
+    try {
+      const imsakData = await fetchEquranImsakiyahMonth({
+        provinsi: imsakRegion.provinsi,
+        kabkota: imsakRegion.kabkota,
+      });
+      const imsakRows = Array.isArray(imsakData?.imsakiyah) ? imsakData.imsakiyah : [];
+      const byDay = new Map<number, EquranImsakiyahRow>();
+      for (const row of imsakRows) {
+        const day = Number(row.tanggal);
+        if (Number.isInteger(day) && day > 0) byDay.set(day, row);
+      }
+      const targetHijriYear = Number(toText(imsakData?.hijriah));
+      if (targetHijriYear > 0) {
+        for (const row of rows) {
+          const hijri = getHijriPartsByDateKey(row.dateKey);
+          if (!hijri || hijri.month !== 9 || hijri.year !== targetHijriYear) continue;
+          const imsakRow = byDay.get(hijri.day);
+          if (!imsakRow) continue;
+          row.timings = mapEquranImsakTimings(imsakRow);
+          provider = 'equran.id/api/v2/imsakiyah';
+          hijriahYear = toText(imsakData?.hijriah);
+          (row as { hijriyah?: { year: string; day: number } }).hijriyah = {
+            year: hijriahYear,
+            day: hijri.day,
+          };
+        }
+      }
+    } catch {
+      // Keep shalat rows if imsakiyah unavailable.
+    }
+
+    const routeCacheSec = provider.includes('imsakiyah') ? IMSAKIYAH_TTL_SEC : PRAYER_TTL_SEC;
     res.setHeader(
       'Cache-Control',
-      `public, max-age=0, s-maxage=${PRAYER_TTL_SEC}, stale-while-revalidate=${PRAYER_TTL_SEC}`
+      `public, max-age=0, s-maxage=${routeCacheSec}, stale-while-revalidate=${routeCacheSec}`
     );
     res.status(200).json({
       success: true,
       data: rows,
       meta: {
-        provider: 'equran.id/api/v2/shalat',
+        provider,
         location: {
           lat,
           lng,
-          provinsi: region.provinsi,
-          kabkota: region.kabkota,
+          provinsi: provider.includes('imsakiyah') ? imsakRegion.provinsi : shalatRegion.provinsi,
+          kabkota: provider.includes('imsakiyah') ? imsakRegion.kabkota : shalatRegion.kabkota,
         },
+        ...(hijriahYear ? { hijriah: hijriahYear } : {}),
       },
     });
   } catch (error) {
