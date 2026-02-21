@@ -13,10 +13,72 @@ interface ServerlessResponseLike {
 
 const pickQuery = (value: QueryValue) => (Array.isArray(value) ? value[0] : value);
 const clean = (value: unknown) => String(value || '').replace(/<[^>]+>/g, '').trim();
-const parseRevelation = (value: unknown) => (clean(value).toLowerCase().includes('madin') ? 'Madaniyah' : 'Makkiyah');
+const parseRevelation = (value: unknown) => {
+  const text = clean(value).toLowerCase();
+  if (text.includes('mad')) return 'Madaniyah';
+  return 'Makkiyah';
+};
 const CHAPTERS_CACHE_CONTROL = 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400';
 const SURAH_CACHE_CONTROL = 'public, max-age=0, s-maxage=1800, stale-while-revalidate=86400';
-const TRANSLATION_ID = 33;
+const EQURAN_BASE = 'https://equran.id/api/v2';
+
+interface EquranAudioMap {
+  [key: string]: unknown;
+}
+
+interface EquranSuratListRow {
+  nomor?: number;
+  nama?: string;
+  namaLatin?: string;
+  jumlahAyat?: number;
+  tempatTurun?: string;
+  audioFull?: EquranAudioMap;
+}
+
+interface EquranAyatRow {
+  nomorAyat?: number;
+  teksArab?: string;
+  teksLatin?: string;
+  teksIndonesia?: string;
+  audio?: EquranAudioMap;
+}
+
+interface EquranSurahDetailRow extends EquranSuratListRow {
+  ayat?: EquranAyatRow[];
+}
+
+const toInt = (value: unknown, fallback = 0) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? Math.floor(num) : fallback;
+};
+
+const reciterToEquranAudioKey = (reciter: string) => {
+  const normalized = clean(reciter);
+  if (!normalized) return '05';
+  if (normalized === '7') return '05';
+  if (normalized === '2') return '03';
+  if (normalized === '5') return '02';
+  if (/^0?[1-6]$/.test(normalized)) return normalized.padStart(2, '0');
+  return '05';
+};
+
+const pickEquranAudio = (audioMap: unknown, reciter: string) => {
+  const map = (audioMap && typeof audioMap === 'object' ? (audioMap as EquranAudioMap) : {}) || {};
+  const preferred = reciterToEquranAudioKey(reciter);
+  const direct = clean(map[preferred]);
+  if (direct) return direct;
+  for (const key of ['05', '03', '02', '01', '04', '06']) {
+    const value = clean(map[key]);
+    if (value) return value;
+  }
+  const first = Object.values(map).map((value) => clean(value)).find(Boolean);
+  return first || '';
+};
+
+const toVerseKey = (surahID: number, ayatNumber: unknown, fallbackNumber: number) => {
+  const verseNumber = toInt(ayatNumber, fallbackNumber);
+  return `${surahID}:${verseNumber}`;
+};
 
 const handleQuranChapters = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
   if ((req.method || 'GET').toUpperCase() !== 'GET') {
@@ -26,24 +88,29 @@ const handleQuranChapters = async (req: ServerlessRequestLike, res: ServerlessRe
   }
 
   try {
-    const response = await fetch('https://api.quran.com/api/v4/chapters?language=id');
+    const response = await fetch(`${EQURAN_BASE}/surat`);
     if (!response.ok) {
-      throw new Error(`Quran API error (${response.status})`);
+      throw new Error(`EQuran API error (${response.status})`);
     }
-    const payload = (await response.json()) as { chapters?: Array<Record<string, unknown>> };
-    const chapters = (Array.isArray(payload?.chapters) ? payload.chapters : []).map((row) => ({
-      id: Number(row?.id || 0),
-      nameSimple: clean(row?.name_simple),
-      nameArabic: clean(row?.name_arabic),
-      revelationPlace: parseRevelation(row?.revelation_place),
-      versesCount: Number(row?.verses_count || 0),
-    }));
+    const payload = (await response.json()) as { data?: EquranSuratListRow[] };
+    const reciter = String(pickQuery(req.query?.reciter) || '');
+    const chapters = (Array.isArray(payload?.data) ? payload.data : []).map((row) => {
+      const id = toInt(row?.nomor, 0);
+      return {
+        id,
+        nameSimple: clean(row?.namaLatin || `Surah ${id}`),
+        nameArabic: clean(row?.nama),
+        revelationPlace: parseRevelation(row?.tempatTurun),
+        versesCount: toInt(row?.jumlahAyat, 0),
+        audioURL: pickEquranAudio(row?.audioFull, reciter),
+      };
+    });
 
     res.setHeader('Cache-Control', CHAPTERS_CACHE_CONTROL);
     const normalized = {
       success: true,
       ok: true,
-      sourceLabel: 'QuranFoundation',
+      sourceLabel: 'EQuran.id API v2',
       chapters,
     };
     res.status(200).json({
@@ -74,63 +141,45 @@ const handleQuranSurah = async (req: ServerlessRequestLike, res: ServerlessRespo
   }
 
   try {
-    const [chapterResponse, arabResponse, detailResponse] = await Promise.all([
-      fetch(`https://api.quran.com/api/v4/chapters/${surahID}?language=id`),
-      fetch(`https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${surahID}`),
-      fetch(
-        `https://api.quran.com/api/v4/verses/by_chapter/${surahID}?language=id&words=true&per_page=300&translations=${TRANSLATION_ID}&fields=text_uthmani,verse_key,verse_number`
-      ),
-    ]);
-
-    if (!chapterResponse.ok || !arabResponse.ok || !detailResponse.ok) {
-      throw new Error('Quran API detail gagal dimuat.');
+    const detailResponse = await fetch(`${EQURAN_BASE}/surat/${surahID}`);
+    if (!detailResponse.ok) {
+      throw new Error(`EQuran detail error (${detailResponse.status})`);
     }
 
-    const chapterPayload = (await chapterResponse.json()) as { chapter?: Record<string, unknown> };
-    const arabPayload = (await arabResponse.json()) as { verses?: Array<Record<string, unknown>> };
-    const detailPayload = (await detailResponse.json()) as { verses?: Array<Record<string, unknown>> };
-
-    const chapterRaw = chapterPayload?.chapter || {};
+    const detailPayload = (await detailResponse.json()) as { data?: EquranSurahDetailRow };
+    const chapterRaw = detailPayload?.data || {};
+    const reciter = String(pickQuery(req.query?.reciter) || '');
     const chapter = {
-      id: Number(chapterRaw?.id || surahID),
-      nameSimple: clean(chapterRaw?.name_simple),
-      nameArabic: clean(chapterRaw?.name_arabic),
-      revelationPlace: parseRevelation(chapterRaw?.revelation_place),
-      versesCount: Number(chapterRaw?.verses_count || 0),
+      id: toInt(chapterRaw?.nomor, surahID),
+      nameSimple: clean(chapterRaw?.namaLatin || `Surah ${surahID}`),
+      nameArabic: clean(chapterRaw?.nama),
+      revelationPlace: parseRevelation(chapterRaw?.tempatTurun),
+      versesCount: toInt(chapterRaw?.jumlahAyat, 0),
     };
 
-    const detailByVerse = new Map<string, Record<string, unknown>>();
-    (Array.isArray(detailPayload?.verses) ? detailPayload.verses : []).forEach((row) => {
-      detailByVerse.set(clean(row?.verse_key), row);
-    });
-
-    const verses = (Array.isArray(arabPayload?.verses) ? arabPayload.verses : []).map((row, index) => {
-      const verseKey = clean(row?.verse_key || `${surahID}:${index + 1}`);
-      const detail = detailByVerse.get(verseKey) || {};
-      const verseNumber = Number(detail?.verse_number || row?.verse_number || index + 1);
-      const words = Array.isArray(detail?.words) ? detail.words : [];
-      const transliterationLatin = words
-        .map((word: any) => clean(word?.transliteration?.text))
-        .filter(Boolean)
-        .join(' ');
-      const translations = Array.isArray(detail?.translations) ? detail.translations : [];
+    const verses = (Array.isArray(chapterRaw?.ayat) ? chapterRaw.ayat : []).map((row, index) => {
+      const verseKey = toVerseKey(surahID, row?.nomorAyat, index + 1);
+      const verseNumber = toInt(row?.nomorAyat, index + 1);
       return {
-        id: Number(row?.id || index + 1),
+        id: verseNumber,
         verseKey,
-        verseNumber: Number.isFinite(verseNumber) ? verseNumber : index + 1,
-        arabText: clean(row?.text_uthmani),
-        transliterationLatin,
-        translationId: clean(translations[0]?.text),
+        verseNumber,
+        arabText: clean(row?.teksArab),
+        transliterationLatin: clean(row?.teksLatin),
+        translationId: clean(row?.teksIndonesia),
+        audioUrl: pickEquranAudio(row?.audio, reciter),
       };
     });
 
+    const audioURL = pickEquranAudio(chapterRaw?.audioFull, reciter);
     res.setHeader('Cache-Control', SURAH_CACHE_CONTROL);
     const normalized = {
       success: true,
       ok: true,
-      sourceLabel: 'QuranFoundation',
+      sourceLabel: 'EQuran.id API v2',
       chapter,
       verses,
+      audioURL,
     };
     res.status(200).json({
       ...normalized,

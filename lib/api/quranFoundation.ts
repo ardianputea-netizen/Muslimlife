@@ -86,12 +86,13 @@ export const getQuranFoundationChapterAudioTrack = async (
   chapterID: number,
   reciterID = 7
 ): Promise<QuranFoundationAudioTrack> => {
-  const payload = await fetchJson<any>(`https://api.quran.com/api/v4/chapter_recitations/${reciterID}/${chapterID}`, {
+  const payload = await fetchJson<any>(`${API_BASE}/surah`, {
+    query: { id: chapterID, reciter: reciterID },
     timeoutMs: 10_000,
     retries: 2,
     cacheTtlSec: 3600,
   });
-  const audioUrl = toPlayableAudioURL(payload?.audio_file?.audio_url || '');
+  const audioUrl = toPlayableAudioURL(payload?.audioURL || payload?.data?.audioURL || payload?.payload?.audioURL || '');
   if (!audioUrl) {
     throw new Error('Audio Qur\'an tidak tersedia untuk qari ini.');
   }
@@ -144,6 +145,6 @@ export const getJuzAmmaSurahDetail = async (chapterID: number, reciterID = 7): P
     chapter,
     verses,
     audio,
-    sourceLabel: 'QuranFoundation / Quran.com API v4 (via /api/quran/*)',
+    sourceLabel: 'EQuran.id API v2 (via /api/quran/*)',
   };
 };
