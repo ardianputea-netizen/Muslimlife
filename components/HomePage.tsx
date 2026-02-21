@@ -423,6 +423,12 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
       time: formatTime(todayTimes[prayer]),
     }));
   }, [todayTimes]);
+  const activeLocationName = useMemo(() => {
+    if (!location) return '';
+    const label = String(location.label || '').trim();
+    if (label && label.toLowerCase() !== 'lokasi perangkat') return label;
+    return `${location.lat.toFixed(3)}, ${location.lng.toFixed(3)}`;
+  }, [location]);
 
   const refreshProfile = useCallback(async () => {
     if (!supabaseConfigured || !supabaseClient) {
@@ -954,7 +960,11 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
                       : 'bg-background/20 text-white/90'
                   }`}
                 >
-                  {locationStatus === 'error' ? 'Lokasi gagal' : hasLocation ? 'Lokasi aktif' : 'Lokasi default'}
+                  {locationStatus === 'error'
+                    ? 'Lokasi gagal'
+                    : hasLocation
+                    ? `Lokasi aktif: ${activeLocationName}`
+                    : 'Lokasi default'}
                 </span>
                 <button
                   type="button"
@@ -962,7 +972,15 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
                     void refreshFromDevice();
                   }}
                   disabled={locationStatus === 'loading'}
-                  className="inline-flex items-center gap-1 rounded-full border border-white/40 px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-background/20 disabled:opacity-70"
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors disabled:opacity-70 ${
+                    locationStatus === 'loading'
+                      ? 'border-emerald-200/70 bg-emerald-500/25 text-white'
+                      : hasLocation
+                      ? 'border-emerald-200/70 bg-emerald-500/25 text-white'
+                      : locationStatus === 'error'
+                      ? 'border-rose-200/70 bg-rose-500/20 text-rose-100'
+                      : 'border-white/40 text-white hover:bg-background/20'
+                  }`}
                 >
                   {locationStatus === 'loading' ? <Loader2 size={10} className="animate-spin" /> : <MapPin size={10} />}
                   Ambil Lokasi

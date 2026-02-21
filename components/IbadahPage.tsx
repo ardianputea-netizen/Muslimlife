@@ -31,6 +31,10 @@ interface IbadahPageProps {
   embedded?: boolean;
 }
 
+type PrayerMissedNotes = Record<string, string>;
+
+const MISSED_NOTES_KEY = 'ml_prayer_missed_notes_v1';
+
 const toMonthKey = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -73,6 +77,26 @@ const cloneValue = <T,>(value: T): T => {
   }
   return JSON.parse(JSON.stringify(value)) as T;
 };
+
+const readMissedNotes = (): PrayerMissedNotes => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(MISSED_NOTES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as PrayerMissedNotes;
+    if (!parsed || typeof parsed !== 'object') return {};
+    return parsed;
+  } catch {
+    return {};
+  }
+};
+
+const writeMissedNotes = (payload: PrayerMissedNotes) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(MISSED_NOTES_KEY, JSON.stringify(payload));
+};
+
+const buildMissedNoteKey = (date: string, prayer: PrayerName) => `${date}:${prayer}`;
 
 const recomputeMonthSummary = (data: PrayerMonthResponse) => {
   let done = 0;
@@ -117,6 +141,11 @@ const applyStatusLocally = (
 };
 
 const labelPrayer = (value: PrayerName) => value.charAt(0).toUpperCase() + value.slice(1);
+const labelPrayerStatus = (value: 'done' | 'missed' | 'pending') => {
+  if (value === 'done') return 'SELESAI';
+  if (value === 'missed') return 'TIDAK SHOLAT';
+  return 'BELUM';
+};
 
 export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false }) => {
   const today = useMemo(() => new Date(), []);
@@ -133,6 +162,7 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
   const [savingPrayer, setSavingPrayer] = useState<PrayerName | null>(null);
+  const [missedNotes, setMissedNotes] = useState<PrayerMissedNotes>(() => readMissedNotes());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { location, hasLocation, status: locationStatus, error: locationError, refreshFromDevice, clear } = useLocationPrefs();
 
@@ -197,6 +227,12 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
     () => (hasLocation && location ? { lat: location.lat, lng: location.lng } : defaultCoords),
     [defaultCoords, hasLocation, location]
   );
+  const activeLocationName = useMemo(() => {
+    if (!location) return '';
+    const label = String(location.label || '').trim();
+    if (label && label.toLowerCase() !== 'lokasi perangkat') return label;
+    return `${location.lat.toFixed(3)}, ${location.lng.toFixed(3)}`;
+  }, [location]);
 
   const loadLocationPrayerTimes = useCallback(async () => {
     if (!selectedDate) return;
@@ -224,6 +260,32 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
 
   const selectedDay = useMemo(() => findDayByDate(monthData, selectedDate), [monthData, selectedDate]);
 
+  const setPrayerMissedNote = useCallback((date: string, prayer: PrayerName, noteText: string) => {
+    const key = buildMissedNoteKey(date, prayer);
+    const trimmed = noteText.trim().slice(0, 180);
+    setMissedNotes((prev) => {
+      const next = { ...prev };
+      if (trimmed) {
+        next[key] = trimmed;
+      } else {
+        delete next[key];
+      }
+      writeMissedNotes(next);
+      return next;
+    });
+  }, []);
+
+  const clearPrayerMissedNote = useCallback((date: string, prayer: PrayerName) => {
+    const key = buildMissedNoteKey(date, prayer);
+    setMissedNotes((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      writeMissedNotes(next);
+      return next;
+    });
+  }, []);
+
   const handleStatusUpdate = async (prayer: PrayerName, status: 'done' | 'missed') => {
     if (!monthData || !selectedDate || savingPrayer) return;
 
@@ -240,6 +302,9 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
         prayer_name: prayer,
         status,
       });
+      if (status === 'done') {
+        clearPrayerMissedNote(selectedDate, prayer);
+      }
       void loadStats();
     } catch (error) {
       console.error(error);
@@ -337,7 +402,9 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
               <h2 className="font-bold text-foreground">Checklist Sholat</h2>
               <p className="text-xs text-muted-foreground">Tanggal: {selectedDate}</p>
             </div>
-            <span className="text-xs bg-emerald-200/70 dark:bg-emerald-500/20/80 text-emerald-700 dark:text-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-200 px-2 py-1 rounded-full">{doneToday}/5 done</span>
+            <span className="text-xs bg-emerald-200/70 px-2 py-1 rounded-full text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200">
+              {doneToday}/5 SELESAI
+            </span>
           </div>
 
           {isLoadingMonth || !selectedDay ? (
@@ -350,47 +417,85 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
             <div className="space-y-3">
               {PRAYER_NAMES.map((prayer) => {
                 const currentStatus = selectedDay.statuses[prayer] || 'pending';
+                const noteKey = buildMissedNoteKey(selectedDate, prayer);
+                const missedNoteValue = missedNotes[noteKey] || '';
 
                 return (
                   <div
                     key={prayer}
-                    className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5"
+                    className={`rounded-xl border px-3 py-2.5 ${
+                      currentStatus === 'done'
+                        ? 'border-emerald-300/70 bg-emerald-500/5 dark:border-emerald-500/30 dark:bg-emerald-500/10'
+                        : currentStatus === 'missed'
+                        ? 'border-rose-300/70 bg-rose-500/5 dark:border-rose-500/30 dark:bg-rose-500/10'
+                        : 'border-border'
+                    }`}
                   >
-                    <div>
-                      <p className="text-sm font-semibold text-foreground capitalize">{labelPrayer(prayer)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {currentStatus === 'done' ? 'Sudah' : currentStatus === 'missed' ? 'Bolong' : 'Belum'}
-                      </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground capitalize">{labelPrayer(prayer)}</p>
+                        <p
+                          className={`text-xs ${
+                            currentStatus === 'done'
+                              ? 'text-emerald-700 dark:text-emerald-200'
+                              : currentStatus === 'missed'
+                              ? 'text-rose-700 dark:text-rose-200'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          {labelPrayerStatus(currentStatus)}
+                        </p>
+                        {currentStatus === 'missed' && missedNoteValue ? (
+                          <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-200 line-clamp-2">
+                            Alasan: {missedNoteValue}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => void handleStatusUpdate(prayer, 'done')}
+                          disabled={savingPrayer === prayer}
+                          className={`px-3 py-1.5 text-xs rounded-lg font-semibold border transition-colors ${
+                            currentStatus === 'done'
+                              ? 'border-emerald-500 bg-emerald-500 text-white dark:border-emerald-400 dark:bg-emerald-500 dark:text-emerald-50'
+                              : 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-500/20 dark:text-emerald-200'
+                          } disabled:opacity-60`}
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            {savingPrayer === prayer ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                            SELESAI
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => void handleStatusUpdate(prayer, 'missed')}
+                          disabled={savingPrayer === prayer}
+                          className={`px-3 py-1.5 text-xs rounded-lg font-semibold border transition-colors ${
+                            currentStatus === 'missed'
+                              ? 'border-rose-500 bg-rose-500 text-white dark:border-rose-400 dark:bg-rose-500 dark:text-rose-50'
+                              : 'border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-400/40 dark:bg-rose-500/20 dark:text-rose-200'
+                          } disabled:opacity-60`}
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            <XCircle size={12} /> TIDAK SHOLAT
+                          </span>
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => void handleStatusUpdate(prayer, 'done')}
-                        disabled={savingPrayer === prayer}
-                        className={`px-3 py-1.5 text-xs rounded-lg font-semibold border transition-colors ${
-                          currentStatus === 'done'
-                            ? 'bg-emerald-100/80 border-emerald-300 text-emerald-700 dark:bg-emerald-500/20 dark:border-emerald-400/40 dark:text-emerald-200'
-                            : 'bg-card border-border text-muted-foreground'
-                        } disabled:opacity-60`}
-                      >
-                        <span className="inline-flex items-center gap-1">
-                          {savingPrayer === prayer ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                          Done
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => void handleStatusUpdate(prayer, 'missed')}
-                        disabled={savingPrayer === prayer}
-                        className={`px-3 py-1.5 text-xs rounded-lg font-semibold border transition-colors ${
-                          currentStatus === 'missed'
-                            ? 'bg-rose-100/80 border-rose-300 text-rose-700 dark:bg-rose-500/20 dark:border-rose-400/40 dark:text-rose-200'
-                            : 'bg-card border-border text-muted-foreground'
-                        } disabled:opacity-60`}
-                      >
-                        <span className="inline-flex items-center gap-1">
-                          <XCircle size={12} /> Missed
-                        </span>
-                      </button>
-                    </div>
+
+                    {currentStatus === 'missed' ? (
+                      <div className="mt-2 rounded-lg border border-rose-300/60 bg-rose-500/10 p-2">
+                        <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-200">
+                          Alasan tidak sholat (opsional)
+                        </p>
+                        <textarea
+                          value={missedNoteValue}
+                          onChange={(event) => setPrayerMissedNote(selectedDate, prayer, event.target.value)}
+                          placeholder="Contoh: sedang perjalanan, sakit, atau kondisi darurat."
+                          rows={2}
+                          className="mt-1 w-full resize-none rounded-md border border-rose-300/70 bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-rose-400"
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
@@ -475,7 +580,15 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
                   void refreshFromDevice();
                 }}
                 disabled={locationStatus === 'loading'}
-                className="text-xs px-2 py-1 border border-border rounded-lg text-muted-foreground inline-flex items-center gap-1"
+                className={`text-xs px-2 py-1 border rounded-lg inline-flex items-center gap-1 transition-colors ${
+                  locationStatus === 'loading'
+                    ? 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-500/20 dark:text-emerald-200'
+                    : hasLocation
+                    ? 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-400/40 dark:bg-emerald-500/20 dark:text-emerald-200'
+                    : locationStatus === 'error'
+                    ? 'border-rose-300/50 bg-rose-500/10 text-rose-500 dark:text-rose-200'
+                    : 'border-border text-muted-foreground'
+                }`}
               >
                 {locationStatus === 'loading' ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
                 Ambil Lokasi
@@ -508,7 +621,7 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
                   : 'bg-muted text-muted-foreground'
               }`}
             >
-              {hasLocation ? 'Lokasi aktif: Lokasi perangkat' : 'Lokasi default'}
+              {hasLocation ? `Lokasi aktif: ${activeLocationName}` : 'Lokasi default'}
             </span>
             {locationStatus === 'error' ? (
               <button
@@ -561,7 +674,7 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
-                  {selectedDay?.statuses[prayer] || 'pending'}
+                  {labelPrayerStatus((selectedDay?.statuses[prayer] || 'pending') as 'done' | 'missed' | 'pending')}
                 </span>
               </div>
             ))}
@@ -570,7 +683,7 @@ export const IbadahPage: React.FC<IbadahPageProps> = ({ onBack, embedded = false
           <div className="mt-3 text-xs text-muted-foreground flex items-center gap-2">
             <MapPin size={14} />
             {hasLocation
-              ? `${location?.label || 'Lokasi perangkat'} aktif (${location?.lat.toFixed(5)}, ${location?.lng.toFixed(5)})`
+              ? `${activeLocationName} aktif (${location?.lat.toFixed(5)}, ${location?.lng.toFixed(5)})`
               : `Lokasi default (${defaultCoords.lat.toFixed(5)}, ${defaultCoords.lng.toFixed(5)})`}
           </div>
         </section>

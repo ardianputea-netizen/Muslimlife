@@ -17,7 +17,51 @@ export type LocationPrefsStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 const DEFAULT_LAT = DEFAULT_PRAYER_SETTINGS.lat ?? -6.2088;
 const DEFAULT_LNG = DEFAULT_PRAYER_SETTINGS.lng ?? 106.8456;
+const FALLBACK_LOCATION_LABEL = 'Lokasi perangkat';
 const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const isFallbackLabel = (value: string | undefined) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  return !normalized || normalized === FALLBACK_LOCATION_LABEL.toLowerCase();
+};
+
+const toDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+type PrayerTimesLabelResponse = {
+  data?: {
+    location?: {
+      kabkota?: unknown;
+      provinsi?: unknown;
+    };
+  };
+};
+
+const resolveDeviceLocationLabel = async (lat: number, lng: number) => {
+  try {
+    const params = new URLSearchParams({
+      ml_route: 'prayer-times',
+      lat: String(lat),
+      lng: String(lng),
+      date: toDateKey(new Date()),
+    });
+    const response = await fetch(`/api/weather?${params.toString()}`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) return FALLBACK_LOCATION_LABEL;
+
+    const payload = (await response.json()) as PrayerTimesLabelResponse;
+    const city = String(payload?.data?.location?.kabkota || '').trim();
+    const province = String(payload?.data?.location?.provinsi || '').trim();
+    const label = city || province;
+    return label || FALLBACK_LOCATION_LABEL;
+  } catch {
+    return FALLBACK_LOCATION_LABEL;
+  }
+};
 
 const getGeolocationErrorMessage = (error: GeolocationPositionError | Error) => {
   if ('code' in error) {
@@ -44,7 +88,7 @@ const readInitialLocation = () => {
     return {
       lat: settings.lat,
       lng: settings.lng,
-      label: 'Lokasi perangkat',
+      label: FALLBACK_LOCATION_LABEL,
       source: 'device',
       updatedAt: Date.now(),
     } as LocationPrefs;
@@ -72,7 +116,7 @@ export const useLocationPrefs = () => {
         const migrated: LocationPrefs = {
           lat: settings.lat,
           lng: settings.lng,
-          label: 'Lokasi perangkat',
+          label: FALLBACK_LOCATION_LABEL,
           source: 'device',
           updatedAt: Date.now(),
         };
@@ -95,6 +139,28 @@ export const useLocationPrefs = () => {
       window.removeEventListener(PRAYER_SETTINGS_UPDATED_EVENT, sync);
     };
   }, []);
+
+  useEffect(() => {
+    if (!location || location.source !== 'device' || !isFallbackLabel(location.label)) return;
+    let canceled = false;
+
+    const enrichLabel = async () => {
+      const label = await resolveDeviceLocationLabel(location.lat, location.lng);
+      if (canceled || !label || label === location.label) return;
+      const next: LocationPrefs = {
+        ...location,
+        label,
+        updatedAt: Date.now(),
+      };
+      saveLocation(next);
+      setLocation(next);
+    };
+
+    void enrichLabel();
+    return () => {
+      canceled = true;
+    };
+  }, [location]);
 
   const refreshFromDevice = useCallback(async () => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) {
@@ -120,10 +186,12 @@ export const useLocationPrefs = () => {
         });
       });
 
+      const label = await resolveDeviceLocationLabel(position.coords.latitude, position.coords.longitude);
+
       const next: LocationPrefs = {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
-        label: 'Lokasi perangkat',
+        label,
         source: 'device',
         updatedAt: Date.now(),
       };

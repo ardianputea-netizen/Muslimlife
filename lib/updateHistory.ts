@@ -5,6 +5,14 @@ export interface UpdateHistoryEntry {
 
 export const UPDATE_HISTORY: UpdateHistoryEntry[] = [
   {
+    date: '2026-02-22',
+    items: [
+      'Lokasi aktif sekarang menampilkan nama kota agar lebih jelas.',
+      'Perbaikan tombol Ambil Lokasi dengan warna status aktif, memuat, dan gagal.',
+      'Checklist ibadah diperbarui: tombol SELESAI dan TIDAK SHOLAT dengan catatan alasan singkat.',
+    ],
+  },
+  {
     date: '2026-02-21',
     items: [
       'Perbaikan Rating Aplikasi agar lebih stabil saat kirim ulasan.',
@@ -29,4 +37,3 @@ export const UPDATE_HISTORY: UpdateHistoryEntry[] = [
     ],
   },
 ];
-
