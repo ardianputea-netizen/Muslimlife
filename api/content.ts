@@ -1,5 +1,5 @@
-import type { ServerlessRequestLike, ServerlessResponseLike } from '../lib/server/api/content';
-import { handleAsmaulHusna, handleTahlil } from '../lib/server/api/content';
+import type { ServerlessRequestLike, ServerlessResponseLike } from '../lib/server/api/content.js';
+import { handleAsmaulHusna, handleTahlil } from '../lib/server/api/content.js';
 
 type QueryValue = string | string[] | undefined;
 
