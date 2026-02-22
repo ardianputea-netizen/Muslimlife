@@ -44,10 +44,10 @@ const parseRows = (payload: unknown): AsmaulHusnaItem[] => {
     .map((row, index) => {
       const item = row as Record<string, unknown>;
       return {
-        number: Number(item?.urutan ?? index + 1),
+        number: Number(item?.urutan ?? item?.number ?? item?.order ?? index + 1),
         arab: toText(item?.arab),
         latin: toText(item?.latin),
-        meaningId: toText(item?.arti),
+        meaningId: toText(item?.arti ?? item?.idn ?? item?.meaningId),
       };
     })
     .filter((row) => Number.isFinite(row.number) && row.number > 0 && row.arab && row.latin && row.meaningId)

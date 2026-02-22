@@ -13,7 +13,21 @@ export interface ServerlessResponseLike {
 
 const ASMAUL_TTL_SEC = 30 * 24 * 60 * 60;
 const ASMAUL_UPSTREAM_URL = 'https://asmaul-husna-api.vercel.app/api/all';
-const asmaulCache = new Map<string, { expiresAt: number; data: unknown }>();
+const ASMAUL_LOCAL_DATASET_PATH = path.join(process.cwd(), 'src', 'data', 'doa_dzikir.json');
+
+interface AsmaulHusnaRow {
+  urutan: number;
+  arab: string;
+  latin: string;
+  arti: string;
+}
+
+interface AsmaulHusnaPayload {
+  data: AsmaulHusnaRow[];
+  source: 'upstream' | 'local';
+}
+
+const asmaulCache = new Map<string, { expiresAt: number; data: AsmaulHusnaPayload }>();
 
 const TAHLIL_TTL_SEC = 30 * 24 * 60 * 60;
 const tahlilCache = new Map<string, { expiresAt: number; data: unknown }>();
@@ -52,6 +66,41 @@ const fetchWithRetry = async (url: string) => {
   throw new Error('Request failed');
 };
 
+const toText = (value: unknown) => String(value ?? '').trim();
+
+const normalizeAsmaulRows = (payload: unknown): AsmaulHusnaRow[] => {
+  const objectPayload = payload as { data?: unknown };
+  const inputRows = Array.isArray(objectPayload?.data)
+    ? objectPayload.data
+    : Array.isArray(payload)
+      ? payload
+      : [];
+
+  return inputRows
+    .map((row, index) => {
+      const item = (row || {}) as Record<string, unknown>;
+      const urutan = Number(item.urutan ?? item.number ?? item.order ?? index + 1);
+      return {
+        urutan,
+        arab: toText(item.arab),
+        latin: toText(item.latin),
+        arti: toText(item.arti ?? item.idn ?? item.meaningId),
+      };
+    })
+    .filter((row) => Number.isFinite(row.urutan) && row.urutan > 0 && row.arab && row.latin && row.arti)
+    .sort((a, b) => a.urutan - b.urutan);
+};
+
+const readLocalAsmaulRows = async () => {
+  const raw = await readFile(ASMAUL_LOCAL_DATASET_PATH, 'utf8');
+  const parsed = JSON.parse(raw) as {
+    collections?: {
+      asmaul_husna?: unknown;
+    };
+  };
+  return normalizeAsmaulRows(parsed?.collections?.asmaul_husna);
+};
+
 export const handleAsmaulHusna = async (req: ServerlessRequestLike, res: ServerlessResponseLike) => {
   if ((req.method || 'GET').toUpperCase() !== 'GET') {
     applyCacheHeaders(res, ASMAUL_TTL_SEC, 'miss');
@@ -64,16 +113,33 @@ export const handleAsmaulHusna = async (req: ServerlessRequestLike, res: Serverl
     const hit = asmaulCache.get(key);
     if (hit && Date.now() < hit.expiresAt) {
       applyCacheHeaders(res, ASMAUL_TTL_SEC, 'hit');
+      res.setHeader('x-asma-source', hit.data.source);
       res.status(200).json(hit.data);
       return;
     }
 
-    const data = await fetchWithRetry(ASMAUL_UPSTREAM_URL);
+    let data: AsmaulHusnaPayload;
+    try {
+      const upstreamPayload = await fetchWithRetry(ASMAUL_UPSTREAM_URL);
+      const rows = normalizeAsmaulRows(upstreamPayload);
+      if (rows.length === 0) {
+        throw new Error('Data upstream Asmaul Husna kosong.');
+      }
+      data = { data: rows, source: 'upstream' };
+    } catch {
+      const localRows = await readLocalAsmaulRows();
+      if (localRows.length === 0) {
+        throw new Error('Data Asmaul Husna lokal kosong.');
+      }
+      data = { data: localRows, source: 'local' };
+    }
+
     asmaulCache.set(key, {
       data,
       expiresAt: Date.now() + ASMAUL_TTL_SEC * 1000,
     });
     applyCacheHeaders(res, ASMAUL_TTL_SEC, 'miss');
+    res.setHeader('x-asma-source', data.source);
     res.status(200).json(data);
   } catch (error) {
     applyCacheHeaders(res, ASMAUL_TTL_SEC, 'miss');
