@@ -75,6 +75,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const PRIVACY_POLICY_UPDATED_AT = '27 Oktober 2025';
+const SHARE_MENU_URL = 'https://bagibagi.co/BALSSSKY';
 
 const PRIVACY_POLICY_SECTIONS: Array<{ title: string; body: string }> = [
   {
@@ -107,7 +108,14 @@ const PRIVACY_POLICY_SECTIONS: Array<{ title: string; body: string }> = [
   },
 ];
 
-const OTHER_APP_CARDS = ['NEXT UPDATE', 'NEXT UPDATE'];
+const OTHER_APP_CARDS: Array<{
+  label: string;
+  type: 'static' | 'share-link';
+}> = [
+  { label: 'SCAN FLOW', type: 'static' },
+  { label: 'CATATAN KEUANGAN', type: 'static' },
+  { label: 'BERBAGI', type: 'share-link' },
+];
 
 const resolveProvider = (user: SupabaseUser | null): ProviderType => {
   if (!user) return 'unknown';
@@ -563,6 +571,24 @@ export const SettingsPage: React.FC = () => {
     setInstallPromptEvent(null);
   }, [installPromptEvent, showToast]);
 
+  const handleOpenShareLink = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    window.open(SHARE_MENU_URL, '_blank', 'noopener,noreferrer');
+
+    if (!isStandalonePwa) return;
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(SHARE_MENU_URL).catch(() => {});
+    }
+
+    if (isIosDevice) {
+      showToast('Mode PWA aktif. Keluar ke Safari lalu buka link dari browser (link sudah disalin).', 'error');
+      return;
+    }
+    showToast('Mode PWA aktif. Jika masih di app, keluar PWA dan buka link di browser utama (link sudah disalin).', 'error');
+  }, [isIosDevice, isStandalonePwa, showToast]);
+
   const clearAppLocalData = useCallback(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -951,13 +977,23 @@ export const SettingsPage: React.FC = () => {
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {OTHER_APP_CARDS.map((label, index) => (
+              {OTHER_APP_CARDS.map((item, index) => (
                 <div
-                  key={`${label}-${index}`}
+                  key={`${item.label}-${index}`}
                   className="rounded-2xl border border-emerald-200/80 bg-[linear-gradient(160deg,#effcf4_0%,#d8f6ea_55%,#c8efe0_100%)] p-4 shadow-sm dark:border-emerald-400/30 dark:bg-[linear-gradient(160deg,#0d2e24_0%,#0f3d2f_55%,#144f3d_100%)]"
                 >
-                  <p className="text-[10px] font-semibold tracking-[0.2em] text-emerald-700 dark:text-emerald-200">MUSLIMLIFE FLOW</p>
-                  <p className="mt-2 text-sm font-bold text-emerald-900 dark:text-emerald-50">{label}</p>
+                  {item.type === 'share-link' ? (
+                    <button
+                      type="button"
+                      onClick={handleOpenShareLink}
+                      className="inline-flex items-center gap-2 text-left text-sm font-bold text-emerald-900 dark:text-emerald-50"
+                    >
+                      <Share2 size={14} />
+                      {item.label}
+                    </button>
+                  ) : (
+                    <p className="text-sm font-bold text-emerald-900 dark:text-emerald-50">{item.label}</p>
+                  )}
                 </div>
               ))}
             </div>

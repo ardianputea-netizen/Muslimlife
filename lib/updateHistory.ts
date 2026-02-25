@@ -5,6 +5,10 @@ export interface UpdateHistoryEntry {
 
 export const UPDATE_HISTORY: UpdateHistoryEntry[] = [
   {
+    date: '2026-02-25',
+    items: ['FIX FULL AUDIO', 'PENAMBAHAKAN APLIKASI LAINNYA', 'MENU BARU BERBAGI'],
+  },
+  {
     date: '2026-02-22',
     items: [
       'Lokasi aktif sekarang menampilkan nama kota agar lebih jelas.',
