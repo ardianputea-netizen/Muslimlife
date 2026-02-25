@@ -108,14 +108,7 @@ const PRIVACY_POLICY_SECTIONS: Array<{ title: string; body: string }> = [
   },
 ];
 
-const OTHER_APP_CARDS: Array<{
-  label: string;
-  type: 'static' | 'share-link';
-}> = [
-  { label: 'SCAN FLOW', type: 'static' },
-  { label: 'CATATAN KEUANGAN', type: 'static' },
-  { label: 'BERBAGI', type: 'share-link' },
-];
+const OTHER_APP_CARDS = ['SCAN FLOW', 'CATATAN KEUANGAN'];
 
 const resolveProvider = (user: SupabaseUser | null): ProviderType => {
   if (!user) return 'unknown';
@@ -848,6 +841,20 @@ export const SettingsPage: React.FC = () => {
           />
         </section>
 
+        <div>
+          <p className="px-1 text-[11px] tracking-[0.18em] font-semibold text-muted-foreground dark:text-foreground">BERBAGI</p>
+        </div>
+
+        <section className="rounded-2xl border border-border bg-card overflow-hidden dark:border-white/10 dark:bg-card">
+          <SettingsRow
+            icon={Share2}
+            iconClassName="text-sky-600 dark:text-sky-200"
+            title="Berbagi"
+            subtitle="Buka link berbagi di tab browser baru"
+            onClick={handleOpenShareLink}
+          />
+        </section>
+
         <div className="pb-6 pt-2 text-center text-[11px] font-medium text-muted-foreground dark:text-foreground">
           © {new Date().getFullYear()} MuslimLife Flow
         </div>
@@ -977,23 +984,12 @@ export const SettingsPage: React.FC = () => {
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {OTHER_APP_CARDS.map((item, index) => (
+              {OTHER_APP_CARDS.map((label, index) => (
                 <div
-                  key={`${item.label}-${index}`}
+                  key={`${label}-${index}`}
                   className="rounded-2xl border border-emerald-200/80 bg-[linear-gradient(160deg,#effcf4_0%,#d8f6ea_55%,#c8efe0_100%)] p-4 shadow-sm dark:border-emerald-400/30 dark:bg-[linear-gradient(160deg,#0d2e24_0%,#0f3d2f_55%,#144f3d_100%)]"
                 >
-                  {item.type === 'share-link' ? (
-                    <button
-                      type="button"
-                      onClick={handleOpenShareLink}
-                      className="inline-flex items-center gap-2 text-left text-sm font-bold text-emerald-900 dark:text-emerald-50"
-                    >
-                      <Share2 size={14} />
-                      {item.label}
-                    </button>
-                  ) : (
-                    <p className="text-sm font-bold text-emerald-900 dark:text-emerald-50">{item.label}</p>
-                  )}
+                  <p className="text-sm font-bold text-emerald-900 dark:text-emerald-50">{label}</p>
                 </div>
               ))}
             </div>
