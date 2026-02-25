@@ -38,6 +38,7 @@ import {
   savePrayerSettings,
   toDateKey,
 } from '../lib/prayerTimes';
+import { getPrayerTimes } from '../lib/ibadahApi';
 import { navigateTo } from '../lib/appRouter';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import {
@@ -134,6 +135,64 @@ const PRAYER_LABELS: Record<PrayerName, string> = {
   ashar: 'Ashar',
   maghrib: 'Maghrib',
   isya: 'Isya',
+};
+
+const parseClockToDate = (dateKey: string, clock: string): Date | null => {
+  const normalized = String(clock || '').trim();
+  const match = normalized.match(/^(\d{1,2})[:.](\d{2})$/);
+  if (!match) return null;
+
+  const year = Number(dateKey.slice(0, 4));
+  const month = Number(dateKey.slice(5, 7));
+  const day = Number(dateKey.slice(8, 10));
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day) ||
+    !Number.isInteger(hour) ||
+    !Number.isInteger(minute) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
+    hour < 0 ||
+    hour > 23 ||
+    minute < 0 ||
+    minute > 59
+  ) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day, hour, minute, 0, 0);
+};
+
+const toPrayerTimesResult = (
+  dateKey: string,
+  timings: { imsak?: string; subuh: string; dzuhur: string; ashar: string; maghrib: string; isya: string },
+  imsakOffsetMinutes = 10
+): PrayerTimesResult | null => {
+  const clampedOffset = Math.max(0, Math.min(60, imsakOffsetMinutes));
+  const subuh = parseClockToDate(dateKey, timings.subuh);
+  const dzuhur = parseClockToDate(dateKey, timings.dzuhur);
+  const ashar = parseClockToDate(dateKey, timings.ashar);
+  const maghrib = parseClockToDate(dateKey, timings.maghrib);
+  const isya = parseClockToDate(dateKey, timings.isya);
+  if (!subuh || !dzuhur || !ashar || !maghrib || !isya) return null;
+  const imsakFromApi = parseClockToDate(dateKey, String(timings.imsak || ''));
+  const imsak = imsakFromApi || new Date(subuh.getTime() - clampedOffset * 60 * 1000);
+
+  return {
+    dateKey,
+    timezone: JAKARTA_TIMEZONE,
+    imsak,
+    subuh,
+    dzuhur,
+    ashar,
+    maghrib,
+    isya,
+  };
 };
 
 const DOA_BOOKMARKS_KEY = 'ml_dua_bookmarks_local_v2';
@@ -304,15 +363,46 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
       lng: DEFAULT_PRAYER_SETTINGS.lng ?? 106.8456,
     };
     const coords = hasLocation && location ? { lat: location.lat, lng: location.lng } : defaultCoords;
+    const today = new Date();
+    const todayKey = toDateKey(today);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowKey = toDateKey(tomorrow);
 
     try {
-      const result = computeTimes(new Date(), coords.lat, coords.lng, {
+      const [todayPayload, tomorrowPayload] = await Promise.all([
+        getPrayerTimes({
+          lat: coords.lat,
+          lng: coords.lng,
+          date: todayKey,
+        }),
+        getPrayerTimes({
+          lat: coords.lat,
+          lng: coords.lng,
+          date: tomorrowKey,
+        }),
+      ]);
+
+      const todayResult = toPrayerTimesResult(todayKey, todayPayload.prayer_times, settings.imsakOffsetMinutes);
+      const tomorrowResult = toPrayerTimesResult(tomorrowKey, tomorrowPayload.prayer_times, settings.imsakOffsetMinutes);
+      if (!todayResult || !tomorrowResult) {
+        throw new Error('Jadwal sholat dari provider wilayah tidak valid.');
+      }
+
+      setTodayTimes(todayResult);
+      setTomorrowTimes(tomorrowResult);
+      return;
+    } catch (apiError) {
+      console.error('Gagal memuat jadwal wilayah, fallback ke hitung lokal.', apiError);
+      setPrayerLoadError('Jadwal wilayah tidak tersedia. Menampilkan perhitungan lokal.');
+    }
+
+    try {
+      const result = computeTimes(today, coords.lat, coords.lng, {
         calculationMethod: settings.calculationMethod,
         madhab: settings.madhab,
         imsakOffsetMinutes: settings.imsakOffsetMinutes,
       });
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
       const nextResult = computeTimes(tomorrow, coords.lat, coords.lng, {
         calculationMethod: settings.calculationMethod,
         madhab: settings.madhab,
@@ -322,16 +412,16 @@ export const HomePage: React.FC<HomePageProps> = ({ isLoggedIn, onRequireLogin }
       setTomorrowTimes(nextResult);
     } catch (error) {
       console.error(error);
-      setPrayerLoadError('Jadwal sholat gagal dimuat. Menampilkan lokasi default.');
       try {
-        const result = computeTimes(new Date(), defaultCoords.lat, defaultCoords.lng, {
+        const fallbackToday = new Date();
+        const fallbackTomorrow = new Date(fallbackToday);
+        fallbackTomorrow.setDate(fallbackTomorrow.getDate() + 1);
+        const result = computeTimes(fallbackToday, defaultCoords.lat, defaultCoords.lng, {
           calculationMethod: settings.calculationMethod,
           madhab: settings.madhab,
           imsakOffsetMinutes: settings.imsakOffsetMinutes,
         });
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const nextResult = computeTimes(tomorrow, defaultCoords.lat, defaultCoords.lng, {
+        const nextResult = computeTimes(fallbackTomorrow, defaultCoords.lat, defaultCoords.lng, {
           calculationMethod: settings.calculationMethod,
           madhab: settings.madhab,
           imsakOffsetMinutes: settings.imsakOffsetMinutes,

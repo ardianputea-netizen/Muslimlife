@@ -66,6 +66,15 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
     setLastReadAyahNumber(lastRead?.ayahNumber || null);
   }, [loadYasin]);
 
+  const loadYasinAudio = useCallback(async () => {
+    const track = await getQuranFoundationChapterAudioTrackCached(36, reciterId);
+    return {
+      audioUrl: track.audioUrl,
+      audioProbe: track.audioProbe,
+      audioSource: track.audioSource,
+    };
+  }, [reciterId]);
+
   return (
     <div className="fixed inset-0 z-[70] min-h-screen bg-background text-foreground overflow-y-auto pb-24">
       <div className="sticky top-0 z-10 border-b border-border bg-card px-4 py-3">
@@ -143,14 +152,7 @@ export const YasinPage: React.FC<YasinPageProps> = ({ onBack }) => {
               setLastReadAyahNumber(verse.verseNumber);
             }}
             lastReadVerseNumber={lastReadAyahNumber}
-            onLoadAudio={async () => {
-              const track = await getQuranFoundationChapterAudioTrackCached(36, reciterId);
-              return {
-                audioUrl: track.audioUrl,
-                audioProbe: track.audioProbe,
-                audioSource: track.audioSource,
-              };
-            }}
+            onLoadAudio={loadYasinAudio}
           />
         ) : null}
       </div>

@@ -183,6 +183,19 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
 
   const visibleSurahs = useMemo(() => (tab === 'all' ? allSurahs : juzSurahs), [allSurahs, juzSurahs, tab]);
 
+  const loadDetailSurahAudio = useCallback(async () => {
+    const chapterId = detailState?.chapter.id;
+    if (!chapterId) {
+      throw new Error('Detail surah belum tersedia.');
+    }
+    const track = await getQuranFoundationChapterAudioTrackCached(chapterId, reciterId);
+    return {
+      audioUrl: track.audioUrl,
+      audioProbe: track.audioProbe,
+      audioSource: track.audioSource,
+    };
+  }, [detailState?.chapter.id, reciterId]);
+
   const continueInCurrentSurah = useMemo(() => {
     if (!detailState || !lastReadV1) return null;
     if (lastReadV1.surahId !== detailState.chapter.id) return null;
@@ -278,6 +291,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
           </div>
 
           <QuranAudioPlayer
+            key={`surah-${detailState.chapter.id}`}
             surahName={detailState.chapter.nameSimple}
             verses={filteredVerses.map((verse) => ({
               verseKey: verse.verseKey,
@@ -289,8 +303,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
             }))}
             showLatin={settings.showLatin}
             showTranslation={settings.showTranslation}
-            fullSurahAudioEnabled={false}
-            fullSurahDisabledMessage="Audio full surah sedang dinonaktifkan sementara. Akan aktif di update berikutnya."
+            persistFullSurahAudio
             bookmarks={bookmarks}
             bookmarkSurahId={detailState.chapter.id}
             onToggleBookmark={(verse) => {
@@ -303,14 +316,7 @@ export const QuranPage: React.FC<QuranPageProps> = ({ onBack }) => {
             lastReadVerseNumber={continueInCurrentSurah}
             scrollToVerseNumber={scrollTargetAyah}
             onScrolledToVerse={() => setScrollTargetAyah(null)}
-            onLoadAudio={async () => {
-              const track = await getQuranFoundationChapterAudioTrackCached(detailState.chapter.id, reciterId);
-              return {
-                audioUrl: track.audioUrl,
-                audioProbe: track.audioProbe,
-                audioSource: track.audioSource,
-              };
-            }}
+            onLoadAudio={loadDetailSurahAudio}
           />
 
           <div className="mt-3">

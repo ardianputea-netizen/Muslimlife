@@ -56,7 +56,7 @@ const shouldFallbackToEquran = (error: unknown) => {
   if (!(error instanceof HttpError)) return true;
   if (error.code === 'TIMEOUT' || error.code === 'NETWORK_ERROR') return true;
   if (typeof error.status === 'number') {
-    return error.status === 429 || error.status >= 500;
+    return error.status >= 400;
   }
   return true;
 };

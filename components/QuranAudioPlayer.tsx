@@ -1,4 +1,4 @@
-import React, { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Bookmark, Loader2, Pause, Play, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -163,6 +163,24 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     };
   };
 
+  const stopVersePlayback = useCallback(() => {
+    const verseAudio = getSharedVerseAudio();
+    if (!verseAudio) return;
+
+    verseAudio.pause();
+    verseAudio.currentTime = 0;
+    verseAudio.removeAttribute('src');
+    if (sharedVerseSource) {
+      sharedVerseSource.src = '';
+    }
+    verseAudio.load();
+
+    setIsVersePlaying(false);
+    setVerseLoadingKey(null);
+    setActiveVerseKey(null);
+    activeVerseKeyRef.current = null;
+  }, []);
+
   useEffect(() => {
     setAudioPayload(null);
     setAudioError(null);
@@ -173,7 +191,9 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     setActiveVerseKey(null);
     setIsVersePlaying(false);
     dispatch({ type: 'stop' });
+    dispatch({ type: 'time', currentTime: 0, duration: 0 });
     activeVerseKeyRef.current = null;
+    stopVersePlayback();
     const fullAudio = getFullAudioElements();
     if (fullAudio.audio) {
       fullAudio.audio.pause();
@@ -184,7 +204,7 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
       fullAudio.audio.load();
     }
     fullSurahSourceFallbackTriedRef.current = false;
-  }, [onLoadAudio, surahName, persistFullSurahAudio]);
+  }, [onLoadAudio, surahName, persistFullSurahAudio, stopVersePlayback]);
 
   useEffect(() => {
     const { audio } = getFullAudioElements();
@@ -240,6 +260,14 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     audio.addEventListener('timeupdate', onTime);
     audio.addEventListener('durationchange', onTime);
     audio.addEventListener('error', onError);
+
+    // Sync initial UI state from real audio element state.
+    dispatch({
+      type: 'time',
+      currentTime: audio.currentTime || 0,
+      duration: Number.isFinite(audio.duration) ? audio.duration : 0,
+    });
+    dispatch({ type: audio.paused ? 'pause' : 'play' });
 
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -437,24 +465,11 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     if (!fullSurahAudioEnabled) return;
     const { audio } = getFullAudioElements();
     if (!audio) return;
-    if (state.isPlaying) {
+    if (!audio.paused) {
       audio.pause();
       return;
     }
-    const verseAudio = getSharedVerseAudio();
-    if (verseAudio) {
-      verseAudio.pause();
-      verseAudio.currentTime = 0;
-      verseAudio.removeAttribute('src');
-      if (sharedVerseSource) {
-        sharedVerseSource.src = '';
-      }
-      verseAudio.load();
-      setIsVersePlaying(false);
-      setVerseLoadingKey(null);
-      setActiveVerseKey(null);
-      activeVerseKeyRef.current = null;
-    }
+    stopVersePlayback();
     const loaded = await ensureAudioLoaded();
     if (!loaded) return;
     try {
@@ -575,10 +590,11 @@ export const QuranAudioPlayer: React.FC<QuranAudioPlayerProps> = ({
     setVerseLoadingKey(verseKey);
 
     const fullAudio = getFullAudioElements().audio;
-    if (fullAudio && state.isPlaying) {
+    if (fullAudio && !fullAudio.paused) {
       fullAudio.pause();
       fullAudio.currentTime = 0;
       dispatch({ type: 'stop' });
+      dispatch({ type: 'time', currentTime: 0, duration: Number.isFinite(fullAudio.duration) ? fullAudio.duration : 0 });
     }
 
     const isSameVerse = activeVerseKeyRef.current === verseKey;
